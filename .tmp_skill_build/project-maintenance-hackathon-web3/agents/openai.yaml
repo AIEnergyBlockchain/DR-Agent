@@ -1,4 +1,0 @@
-interface:
-  display_name: "Project Maintenance Hackathon Web3"
-  short_description: "Audit and repair Web3 hackathon maintenance gaps."
-  default_prompt: "Use $project-maintenance-hackathon-web3 to audit and repair maintenance gaps for my hackathon Web3 repo."
