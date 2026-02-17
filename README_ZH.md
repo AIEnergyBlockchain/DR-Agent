@@ -22,6 +22,7 @@
 ### 技术版导航
 
 - [0. 本地 5 分钟快速跑通](#0-本地-5-分钟快速跑通)
+- [0.1 项目结构](#01-项目结构)
 - [1. 开发目标](#1-开发目标)
 - [2. 系统架构](#2-系统架构)
 - [3. 合约设计（MVP）](#3-合约设计mvp)
@@ -34,6 +35,7 @@
 - [9. 测试清单](#9-测试清单)
 - [10. 安全与边界](#10-安全与边界)
 - [11. 演示与部署资产](#11-演示与部署资产)
+- [11.1 测试网合约证据](#111-测试网合约证据)
 
 ## 1. 我们解决的问题
 
@@ -203,6 +205,19 @@ npm run frontend:serve
 - API 健康检查可单独执行：`npm run smoke:api`
 - 完整 Python 依赖（含 Prophet）：`npm run setup:python`
 - 默认允许前端跨域来源：`http://127.0.0.1:4173,http://localhost:4173`，可用 `DR_CORS_ORIGINS` 覆盖
+
+## 0.1 项目结构
+
+```text
+contracts/                 # 事件生命周期与结算相关 Solidity 合约
+services/                  # FastAPI 服务与链下编排逻辑
+scripts/                   # 环境初始化、演示、健康检查、部署脚本
+test/                      # 合约测试（Hardhat）
+tests/                     # API/集成测试（pytest）
+frontend/                  # 最小演示前端壳
+guide/                     # walkthrough、复现手册、评委交付文档
+docs/adr/                  # 架构决策记录（ADR）
+```
 
 ## 1. 开发目标
 
@@ -509,3 +524,21 @@ sequenceDiagram
 - Fuji 部署记录：`guide/docs/Fuji-Deployment-Record-2026-02-17.md`
 - Fuji 部署模板：`guide/docs/Fuji-Deployment-Record-Template.md`
 - 可复现运行手册：`guide/docs/DR-Agent-Reproducibility-Runbook-2026-02-17.md`
+- ADR 记录：`docs/adr/0001-record-architecture-decisions.md`
+
+## 11.1 测试网合约证据
+
+当前状态：
+- 当前环境因未配置 `PRIVATE_KEY` 与 Fuji 测试 AVAX，暂时阻塞真实部署。
+- 部署证据产物路径：`cache/fuji-deployment-latest.json`（由 `npm run deploy:fuji` 生成）。
+
+当前记录：
+
+| Network | Contract | Explorer URL |
+| --- | --- | --- |
+| Fuji | 待真实部署后回填 | 待真实部署后回填 |
+
+补齐步骤：
+1. 配置 `PRIVATE_KEY` 并准备 Fuji 测试 AVAX。
+2. 运行 `npm run deploy:fuji`。
+3. 从 `cache/fuji-deployment-latest.json` 提取真实地址并回填上表，同时补齐 Snowtrace 链接。
