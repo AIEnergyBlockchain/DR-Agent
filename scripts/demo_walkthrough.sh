@@ -72,6 +72,7 @@ SETTLE_PAYLOAD='{"site_ids":["site-a","site-b"]}'
 request "POST" "/events" "$OP_KEY" "operator-1" "$CREATE_PAYLOAD"
 request "POST" "/proofs" "$PART_KEY" "site-a" "$PROOF_A_PAYLOAD"
 request "POST" "/proofs" "$PART_KEY" "site-b" "$PROOF_B_PAYLOAD"
+request "POST" "/events/${EVENT_ID}/close" "$OP_KEY" "operator-1"
 request "POST" "/settle/${EVENT_ID}" "$OP_KEY" "operator-1" "$SETTLE_PAYLOAD"
 request "POST" "/claim/${EVENT_ID}/site-a" "$PART_KEY" "site-a"
 request "GET" "/events/${EVENT_ID}" "$AUD_KEY" "auditor-1"

@@ -107,6 +107,12 @@ async function settleEvent() {
   appendLog('settle ok', data);
 }
 
+async function closeEvent() {
+  const c = cfg();
+  const data = await callApi(`/events/${c.eventId}/close`, 'POST', null, c.operatorKey, 'operator-1');
+  appendLog('close event ok', data);
+}
+
 async function claimA() {
   const c = cfg();
   const data = await callApi(`/claim/${c.eventId}/site-a`, 'POST', null, c.participantKey, 'site-a');
@@ -136,6 +142,7 @@ async function runFullFlow() {
   await createEvent();
   await submitProof('site-a', 150, 40);
   await submitProof('site-b', 150, 120);
+  await closeEvent();
   await settleEvent();
   await claimA();
   await getEvent();
@@ -157,6 +164,7 @@ function bind(id, fn) {
 bind('btnCreate', createEvent);
 bind('btnProofA', () => submitProof('site-a', 150, 40));
 bind('btnProofB', () => submitProof('site-b', 150, 120));
+bind('btnClose', closeEvent);
 bind('btnSettle', settleEvent);
 bind('btnClaimA', claimA);
 bind('btnRunAll', runFullFlow);
