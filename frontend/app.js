@@ -24,6 +24,7 @@ const state = {
   settlements: [],
   audit: null,
   lastAction: 'none',
+  lastError: '',
 };
 
 if (!eventIdInput.value) {
@@ -66,7 +67,31 @@ function fmtNum(value) {
 
 function stepDone(id, done) {
   const el = document.getElementById(`step-${id}`);
-  if (el) el.classList.toggle('done', done);
+  if (!el) return;
+  el.classList.toggle('done', done);
+  if (done) el.classList.remove('error');
+}
+
+function clearStepErrors() {
+  const steps = ['create', 'proofs', 'close', 'settle', 'claim', 'audit'];
+  for (const step of steps) {
+    const el = document.getElementById(`step-${step}`);
+    if (el) el.classList.remove('error');
+  }
+}
+
+function markStepError(message) {
+  clearStepErrors();
+  let step = '';
+  if (message.includes('/proofs')) step = 'proofs';
+  else if (message.includes('/close')) step = 'close';
+  else if (message.includes('/settle')) step = 'settle';
+  else if (message.includes('/claim')) step = 'claim';
+  else if (message.includes('/audit')) step = 'audit';
+  else if (message.includes('POST /events')) step = 'create';
+  if (!step) return;
+  const el = document.getElementById(`step-${step}`);
+  if (el) el.classList.add('error');
 }
 
 function proofSummaryText(siteId) {
@@ -76,6 +101,8 @@ function proofSummaryText(siteId) {
 }
 
 function renderJudgeView() {
+  if (!metricEventId) return;
+
   metricEventId.textContent = state.event?.event_id || cfg().eventId || '-';
   metricEventStatus.textContent = state.event?.status || 'Not started';
 
@@ -108,7 +135,9 @@ function renderJudgeView() {
   stepDone('claim', claimDone);
   stepDone('audit', auditDone);
 
-  if (auditDone && claimDone) {
+  if (state.lastError) {
+    narrativeLine.textContent = `错误：${state.lastError}`;
+  } else if (auditDone && claimDone) {
     narrativeLine.textContent = '闭环完成：结果可结算、可领取、可审计。';
   } else if (settleDone) {
     narrativeLine.textContent = '已完成自动结算，正在进入领取与审计阶段。';
@@ -166,6 +195,7 @@ async function createEvent() {
     penalty_rate: 5,
   };
   const data = await callApi('/events', 'POST', payload, c.operatorKey, 'operator-1');
+  state.lastError = '';
   state.event = data;
   appendLog('create event ok', data);
 }
@@ -182,6 +212,7 @@ async function submitProof(siteId, baseline, actual) {
     baseline_method: 'simple',
   };
   const data = await callApi('/proofs', 'POST', payload, c.participantKey, siteId);
+  state.lastError = '';
   state.proofs[siteId] = data;
   appendLog(`submit proof ${siteId} ok`, data);
 }
@@ -190,6 +221,7 @@ async function settleEvent() {
   const c = cfg();
   const payload = { site_ids: ['site-a', 'site-b'] };
   const data = await callApi(`/settle/${c.eventId}`, 'POST', payload, c.operatorKey, 'operator-1');
+  state.lastError = '';
   state.settlements = data;
   if (state.event) state.event.status = 'settled';
   appendLog('settle ok', data);
@@ -198,6 +230,7 @@ async function settleEvent() {
 async function closeEvent() {
   const c = cfg();
   const data = await callApi(`/events/${c.eventId}/close`, 'POST', null, c.operatorKey, 'operator-1');
+  state.lastError = '';
   state.event = data;
   appendLog('close event ok', data);
 }
@@ -205,6 +238,7 @@ async function closeEvent() {
 async function claimA() {
   const c = cfg();
   const data = await callApi(`/claim/${c.eventId}/site-a`, 'POST', null, c.participantKey, 'site-a');
+  state.lastError = '';
   const idx = state.settlements.findIndex((x) => x.site_id === data.site_id);
   if (idx >= 0) state.settlements[idx] = data;
   else state.settlements.push(data);
@@ -214,6 +248,7 @@ async function claimA() {
 async function getEvent() {
   const c = cfg();
   const data = await callApi(`/events/${c.eventId}`, 'GET', null, c.auditorKey, 'auditor-1');
+  state.lastError = '';
   state.event = data;
   appendLog('event detail', data);
 }
@@ -221,6 +256,7 @@ async function getEvent() {
 async function getRecords() {
   const c = cfg();
   const data = await callApi(`/events/${c.eventId}/records`, 'GET', null, c.auditorKey, 'auditor-1');
+  state.lastError = '';
   state.settlements = data;
   appendLog('settlement records', data);
 }
@@ -228,6 +264,7 @@ async function getRecords() {
 async function getAudit() {
   const c = cfg();
   const data = await callApi(`/audit/${c.eventId}/${c.auditSiteId}`, 'GET', null, c.auditorKey, 'auditor-1');
+  state.lastError = '';
   state.audit = data;
   appendLog('audit record', data);
 }
@@ -251,7 +288,10 @@ function bind(id, fn) {
     try {
       await fn();
     } catch (err) {
-      appendLog('error', err.message || String(err));
+      const message = err.message || String(err);
+      state.lastError = message;
+      markStepError(message);
+      appendLog('error', message);
     }
   });
 }

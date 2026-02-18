@@ -213,18 +213,25 @@ input {
 
 .step-pill {
   border: 1px solid #c9d4e2;
-  background: #f4f8ff;
-  color: #33465e;
+  background: #eef3fb;
+  color: #2a3f58;
   border-radius: 999px;
   padding: 4px 10px;
   font-size: 0.84rem;
   font-weight: 600;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 .step-pill.done {
-  background: #d8ffe8;
-  border-color: #6ac997;
-  color: #0f5a3a;
+  background: #32b36b;
+  border-color: #19884a;
+  color: #fff;
+}
+
+.step-pill.error {
+  background: #ffd9d9;
+  border-color: #dc4a4a;
+  color: #8a1717;
 }
 
 .metrics-grid {
