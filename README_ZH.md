@@ -181,19 +181,27 @@ export WHEELHOUSE_DIR=<离线 wheel 包目录>
 npm run setup:api
 ```
 
-步骤 3：启动 API
+步骤 3：初始化工作区外 secrets 文件
 
 ```bash
-uvicorn services.main:app --host 127.0.0.1 --port 8000 --reload
+make secrets-init
+# 编辑 ~/.config/dr-agent/secrets.env
+make secrets-check
 ```
 
-步骤 4：执行演示闭环（新终端）
+步骤 4：启动 API（自动加载外置 secrets）
 
 ```bash
-npm run demo:walkthrough
+make api-run
 ```
 
-步骤 5：可选启动前端演示壳
+步骤 5：执行演示闭环（新终端）
+
+```bash
+make demo-run
+```
+
+步骤 6：可选启动前端演示壳
 
 ```bash
 npm run frontend:serve
@@ -204,6 +212,7 @@ npm run frontend:serve
 
 - API 健康检查可单独执行：`npm run smoke:api`
 - 完整 Python 依赖（含 Prophet）：`npm run setup:python`
+- 使用外置 secrets 的 Fuji 部署：`make deploy-fuji`
 - 默认允许前端跨域来源：`http://127.0.0.1:4173,http://localhost:4173`，可用 `DR_CORS_ORIGINS` 覆盖
 
 ## 0.1 项目结构

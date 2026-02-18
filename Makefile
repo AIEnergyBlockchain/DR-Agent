@@ -9,9 +9,14 @@
 # --- CONSTANTS (常量定义) ---
 SUB_PATH = guide  # 改成你真实的文件夹名
 MAIN_BRANCH = main
+SECRETS_FILE ?= $(HOME)/.config/dr-agent/secrets.env
+SECRETS_DIR := $(dir $(SECRETS_FILE))
+RUN_WITH_SECRETS = DR_SECRETS_FILE="$(SECRETS_FILE)" bash scripts/run_with_secrets.sh
 
 
-.PHONY: help up newup ship sup
+.PHONY: help \
+	up newup ship sup fullpr sync new \
+	secrets-init secrets-check api-run demo-run smoke-api-secrets deploy-fuji
 
 # 默认命令：输入 make 就会显示帮助
 help:
@@ -20,6 +25,47 @@ help:
 	@echo "make sup msg='说明文字'         # 先同步子模块再同步主仓库"
 	@echo "make newup branch=名 msg='文字'  # 建新分支并推送"
 	@echo "make ship branch=名 msg='文字'   # 合并回main并删分支"
+	@echo ""
+	@echo "--- 外置 secrets（推荐） ---"
+	@echo "make secrets-init               # 在工作区外创建 secrets 文件"
+	@echo "make secrets-check              # 校验外置 secrets 可读取"
+	@echo "make api-run                    # 使用外置 secrets 启动 API"
+	@echo "make demo-run                   # 使用外置 secrets 执行闭环演示"
+	@echo "make smoke-api-secrets          # 使用外置 secrets 执行 API 冒烟"
+	@echo "make deploy-fuji                # 使用外置 secrets 部署 Fuji"
+
+# 外置 secrets：在工作区外创建 secrets 文件（默认 ~/.config/dr-agent/secrets.env）
+secrets-init:
+	@mkdir -p "$(SECRETS_DIR)"
+	@if [ -f "$(SECRETS_FILE)" ]; then \
+		echo ">>> secrets 已存在: $(SECRETS_FILE)"; \
+	else \
+		cp .env.example "$(SECRETS_FILE)" && chmod 600 "$(SECRETS_FILE)" && \
+		echo ">>> 已创建 secrets: $(SECRETS_FILE)"; \
+	fi
+	@echo ">>> 请编辑 $(SECRETS_FILE) 并填入真实凭证。"
+	@echo ">>> 建议删除工作区内 .env：rm -f .env"
+
+# 校验外置 secrets 可读取（不打印具体内容）
+secrets-check:
+	@$(RUN_WITH_SECRETS) env >/dev/null
+	@echo ">>> [OK] 已成功读取外置 secrets: $(SECRETS_FILE)"
+
+# 使用外置 secrets 启动 API
+api-run:
+	@$(RUN_WITH_SECRETS) python3 -m uvicorn services.main:app --host 127.0.0.1 --port 8000 --reload
+
+# 使用外置 secrets 执行演示流程
+demo-run:
+	@$(RUN_WITH_SECRETS) bash scripts/demo_walkthrough.sh
+
+# 使用外置 secrets 执行 API 冒烟
+smoke-api-secrets:
+	@$(RUN_WITH_SECRETS) python3 scripts/smoke_api_flow.py
+
+# 使用外置 secrets 部署 Fuji
+deploy-fuji:
+	@$(RUN_WITH_SECRETS) npx hardhat run scripts/deploy_fuji.ts --network fuji
 
 # 1. 基础提交
 up:

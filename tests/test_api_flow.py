@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 from fastapi.testclient import TestClient
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from services.api import create_app
 
@@ -205,3 +210,9 @@ def test_settle_requires_closed_event(tmp_path: Path):
     )
     assert settled.status_code == 409
     assert settled.json()["code"] == "EVENT_NOT_CLOSED"
+
+
+if __name__ == "__main__":
+    import pytest
+
+    raise SystemExit(pytest.main([__file__]))

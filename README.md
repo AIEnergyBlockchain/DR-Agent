@@ -184,19 +184,27 @@ export WHEELHOUSE_DIR=<path-to-offline-wheelhouse>
 npm run setup:api
 ```
 
-Step 3: run API server
+Step 3: initialize external secrets (outside workspace)
 
 ```bash
-uvicorn services.main:app --host 127.0.0.1 --port 8000 --reload
+make secrets-init
+# edit ~/.config/dr-agent/secrets.env
+make secrets-check
 ```
 
-Step 4: run walkthrough flow (new terminal)
+Step 4: run API server (loads external secrets automatically)
 
 ```bash
-npm run demo:walkthrough
+make api-run
 ```
 
-Step 5: open minimal frontend shell (optional)
+Step 5: run walkthrough flow (new terminal)
+
+```bash
+make demo-run
+```
+
+Step 6: open minimal frontend shell (optional)
 
 ```bash
 npm run frontend:serve
@@ -212,6 +220,7 @@ Notes:
 
 - API smoke script: `npm run smoke:api`
 - Full Python dependencies (including Prophet): `npm run setup:python`
+- Fuji deploy with external secrets: `make deploy-fuji`
 
 ## 0.1 Project Structure
 
