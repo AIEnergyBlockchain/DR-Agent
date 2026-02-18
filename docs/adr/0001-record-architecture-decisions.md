@@ -1,40 +1,44 @@
-# ADR 0001: DR-Agent MVP Architecture Boundaries
+# ADR 0001: DR-Agent MVP 架构边界
 
-- Date: 2026-02-17
-- Status: accepted
+- 日期：2026-02-17
+- 状态：已接受 (accepted)
 
-## Context
+## 背景 (Context)
 
-DR-Agent aims to deliver a hackathon-ready demand-response settlement MVP that is easy to demo, verify, and extend. The project must support a fast local feedback loop while preserving auditable settlement semantics.
+DR-Agent 旨在交付一个适用于黑客松、具备需求响应结算功能的 MVP（最小可行性产品）。该产品必须易于演示、验证且具备可扩展性。项目需支持快速的本地反馈循环，同时保留可审计的结算语义。
 
-## Decision
+## 决策 (Decision)
 
-1. Keep event lifecycle and settlement-critical state on-chain using three contracts:
-- `EventManager.sol`
-- `ProofRegistry.sol`
-- `Settlement.sol`
+1. **链上部分**：使用三个智能合约管理事件生命周期和结算核心状态：
 
-2. Keep high-frequency telemetry and payload assembly off-chain:
-- FastAPI/Python services process baseline and proof payloads.
-- SQLite stores event/proof/settlement indexes for the MVP loop.
+   - `EventManager.sol`（事件管理器）
+   - `ProofRegistry.sol`（证明注册表）
+   - `Settlement.sol`（结算合约）
 
-3. Separate deployment readiness from local demo readiness:
-- Local loop is the default development path.
-- Fuji deployment remains credential-gated (`PRIVATE_KEY`, test AVAX) and tracked in dedicated deployment records.
+2. **链下部分**：将高频遥测数据处理和负载装配保留在链下：
 
-## Consequences
+   - 使用 FastAPI/Python 服务处理基准线（Baseline）和证明负载（Proof Payloads）。
+   - 使用 SQLite 存储 MVP 循环中的事件/证明/结算索引。
 
-Positive:
-- Fast onboarding and reproducible local walkthrough.
-- Clear trust boundary between verifiable on-chain facts and off-chain computation.
-- Minimal moving parts for hackathon iteration.
+3. **环境隔离**：分离“部署就绪”与“本地演示就绪”状态：
+   - 将本地循环作为默认开发路径。
+   - Fuji 测试网部署保持凭证隔离（受 `PRIVATE_KEY` 和测试 AVAX 限制），并在专用部署记录中进行跟踪。
 
-Tradeoffs:
-- On-chain proof section in README cannot be completed until real testnet deployment succeeds.
-- SQLite is sufficient for MVP but not a production multi-tenant persistence strategy.
+## 后果 (Consequences)
 
-## Follow-up
+**正面影响：**
 
-1. Record real Fuji contract addresses and explorer links after successful deployment.
-2. Introduce stricter CI checks after first stable release branch.
-3. Expand ADR set for auth hardening and production data architecture.
+- 能够快速上手并实现可复现的本地演示流程。
+- 在可验证的链上事实与链下计算之间建立了清晰的信任边界。
+- 极大简化了黑客松迭代期间的组件复杂度。
+
+**权衡 (Tradeoffs)：**
+
+- 在真实的测试网部署成功前，README 中的链上证明部分无法完整填充。
+- SQLite 对 MVP 来说足够，但并非生产级的多租户持久化方案。
+
+## 后续行动 (Follow-up)
+
+1. 在成功部署后，记录真实的 Fuji 合约地址和区块浏览器链接。
+2. 在第一个稳定发布分支之后，引入更严格的 CI（持续集成）检查。
+3. 扩展 ADR 集合，涵盖身份认证加固和生产级数据架构。
