@@ -72,43 +72,44 @@ sup:
 		$(MAKE) up msg="chore: sync submodule - $(msg)"; \
 	fi
 
-# 6. 最终全自动版：任意分支提交 -> 推送 PR -> 全体切回 main
+# 5. 强制分支版：必须在非 main 分支才能提交，完成后强制回到 main
 fullpr:
-	@if [ -z "$(msg)" ]; then echo "Error: 请指定 msg='说明文字'"; exit 1; fi
+	@if [ -z "$(msg)" ]; then \
+		echo "Error: 必须指定 msg='...' (例如: make fullpr msg='完成演示代码')"; exit 1; \
+	fi
 	
-	@# 使用 rev-parse 获取分支名，即使在 detached 状态也能拿到哈希，比 symbolic-ref 更稳
+	@# 1. 自动探测分支并锁定
 	$(eval CUR_BRANCH := $(shell git rev-parse --abbrev-ref HEAD))
 	$(eval CUR_SUB_BRANCH := $(shell cd $(SUB_PATH) && git rev-parse --abbrev-ref HEAD))
 	
-	@echo ">>> 启动全自动流程：主仓库($(CUR_BRANCH)) | 子模块($(CUR_SUB_BRANCH))"
+	@# 2. 安全检查：禁止在 main 执行
+	@if [ "$(CUR_BRANCH)" = "$(MAIN_BRANCH)" ] || [ "$(CUR_SUB_BRANCH)" = "$(MAIN_BRANCH)" ]; then \
+		echo "Error: 严禁在 $(MAIN_BRANCH) 分支直接提交 PR。"; \
+		echo "请先手动切至功能分支 (如: git checkout -b feature/demo)"; exit 1; \
+	fi
 	
-	@# --- [1/2] 子模块处理 ---
-	@echo ">>> [1/2] 正在处理子模块..."
+	@echo ">>> [探测成功] 准备提交分支: $(CUR_BRANCH) | 提交信息: $(msg)"
+	
+	@# 3. 处理子模块
 	@cd $(SUB_PATH) && \
 		git add -A && \
-		if ! git diff --cached --quiet; then \
+		(if ! git diff --cached --quiet; then \
 			git commit -m "[Submodule] $(msg)" && \
 			git push origin $(CUR_SUB_BRANCH) && \
 			gh pr create --title "[Submodule] $(msg)" --body "Automated" --base $(MAIN_BRANCH) || echo "PR已存在"; \
-		else \
-			echo ">>> 子模块无变更，跳过提交"; \
-		fi && \
+		else echo ">>> 子模块无变更"; fi) && \
 		git checkout $(MAIN_BRANCH) && git pull origin $(MAIN_BRANCH)
 
-	@# --- [2/2] 主仓库处理 ---
-	@echo ">>> [2/2] 正在处理主仓库..."
-	@# 关键：先 ADD，再判断 diff，最后才准切换分支
-	@git add -A
-	@if ! git diff --cached --quiet; then \
-		git commit -m "[Main] $(msg)" && \
-		git push origin $(CUR_BRANCH) && \
-		gh pr create --title "[Main] $(msg)" --body "Automated" --base $(MAIN_BRANCH) || echo "PR已存在"; \
-	else \
-		echo ">>> 主仓库无变更，跳过提交"; \
-	fi
-	@git checkout $(MAIN_BRANCH) && git pull origin $(MAIN_BRANCH)
+	@# 4. 处理主仓库
+	@git add -A && \
+		(if ! git diff --cached --quiet; then \
+			git commit -m "[Main] $(msg)" && \
+			git push origin $(CUR_BRANCH) && \
+			gh pr create --title "[Main] $(msg)" --body "Automated" --base $(MAIN_BRANCH) || echo "PR已存在"; \
+		else echo ">>> 主仓库无变更"; fi) && \
+		git checkout $(MAIN_BRANCH) && git pull origin $(MAIN_BRANCH)
 
-# 7. 同时拉取主子仓库 main 分支并更新
+# 6. 同时拉取主子仓库 main 分支并更新
 sync:
 	@echo ">>> [1/2] 正在同步主仓库至 $(MAIN_BRANCH)..."
 	@git checkout $(MAIN_BRANCH)
@@ -122,3 +123,20 @@ sync:
 	
 	@echo ">>> 同步完成！主仓库与所有子模块均已回到 $(MAIN_BRANCH) 并对齐远端。"
 	@git status
+
+# 7. 一键开启新任务：主子模块同步切分支
+# 用法: make new branch=feature/your-task-name
+new:
+	@if [ -z "$(branch)" ]; then \
+		echo "Error: 必须指定分支名，例如: make new branch=feat/demo"; exit 1; \
+	fi
+	@echo ">>> [1/3] 正在同步主子模块至最新状态..."
+	@$(MAKE) sync
+	
+	@echo ">>> [2/3] 正在主仓库创建并切换至分支: $(branch)"
+	@git checkout -b $(branch)
+	
+	@echo ">>> [3/3] 正在子模块创建并切换至分支: $(branch)"
+	@cd $(SUB_PATH) && git checkout -b $(branch)
+	
+	@echo ">>> [OK] 准备就绪！你现在处于 $(branch) 分支，可以开始开发了。"
