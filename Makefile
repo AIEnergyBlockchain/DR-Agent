@@ -109,3 +109,12 @@ fullpr:
 	@gh pr view $(branch) >/dev/null 2>&1 || \
 		gh pr create --title "[Main] $(msg)" --body "Automated" --base $(MAIN_BRANCH)
 	@git checkout $(MAIN_BRANCH)
+
+# 7. 同时拉取主子仓库 main 分支并更新
+sync:
+	@echo ">>> 正在同步主仓库 main..."
+	@git checkout $(MAIN_BRANCH)
+	@git pull origin $(MAIN_BRANCH)
+	@echo ">>> 正在递归更新子模块..."
+	@git submodule foreach 'git checkout $(MAIN_BRANCH) && git pull origin $(MAIN_BRANCH)'
+	@echo ">>> 状态同步完成。"
