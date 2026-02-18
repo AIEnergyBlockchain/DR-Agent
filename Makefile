@@ -161,13 +161,13 @@ sync:
 	@git checkout $(MAIN_BRANCH)
 	@git pull origin $(MAIN_BRANCH)
 	
-	@echo ">>> [2/2] 正在确保所有子模块同步并切换至 $(MAIN_BRANCH)..."
-	@# 1. 先初始化并更新指针内容
-	@git submodule update --init --recursive
-	@# 2. 强制每个子模块切换到 main 并对齐远端
-	@git submodule foreach 'git checkout $(MAIN_BRANCH) && git fetch origin $(MAIN_BRANCH) && git reset --hard origin/$(MAIN_BRANCH)'
+	@echo ">>> [2/2] 正在确保所有子模块严格对齐主仓库指针..."
+	@# 关键点：不再让子模块自己 fetch/reset，而是由主仓库驱动
+	@git submodule update --init --recursive --force
+	@# 如果需要子模块留在 main 分支名上，再额外执行 checkout
+	@git submodule foreach 'git checkout $(MAIN_BRANCH)'
 	
-	@echo ">>> 同步完成！主仓库与所有子模块均已回到 $(MAIN_BRANCH) 并对齐远端。"
+	@echo ">>> 同步完成！"
 	@git status
 
 # 7. 一键开启新任务：主子模块同步切分支
