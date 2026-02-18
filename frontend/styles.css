@@ -200,6 +200,86 @@ input {
   color: var(--muted);
 }
 
+.judge-panel {
+  border-left: 6px solid #2b6ce7;
+}
+
+.flow-track {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.step-pill {
+  border: 1px solid #c9d4e2;
+  background: #f4f8ff;
+  color: #33465e;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.step-pill.done {
+  background: #d8ffe8;
+  border-color: #6ac997;
+  color: #0f5a3a;
+}
+
+.metrics-grid {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.metric {
+  margin: 0;
+  border: 1px solid #d6dee9;
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: #fbfdff;
+}
+
+.metric-label {
+  margin: 0 0 4px;
+  color: #687584;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.metric-value {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: #1c2f45;
+}
+
+.judge-notes {
+  gap: 8px;
+}
+
+.mini-card {
+  border: 1px solid #d6dee9;
+  border-radius: 10px;
+  padding: 10px;
+  background: #fbfdff;
+}
+
+.mini-card h3 {
+  margin: 0 0 6px;
+  font-size: 0.9rem;
+}
+
+.mini-card p {
+  margin: 4px 0;
+}
+
+.muted-line {
+  color: #5f6a76;
+}
+
 .log {
   min-height: 220px;
   max-height: 380px;

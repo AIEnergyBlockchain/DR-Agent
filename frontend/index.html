@@ -63,6 +63,60 @@
         <p class="hint">Flow uses default site IDs: <code>site-a</code>, <code>site-b</code>.</p>
       </section>
 
+      <section class="card reveal judge-panel" style="--delay: 0.14s">
+        <h2>Judge View (Human-Readable)</h2>
+        <p class="hint">This panel translates raw JSON into an easy story for judges.</p>
+
+        <div class="flow-track">
+          <span id="step-create" class="step-pill">1 Create</span>
+          <span id="step-proofs" class="step-pill">2 Proofs</span>
+          <span id="step-close" class="step-pill">3 Close</span>
+          <span id="step-settle" class="step-pill">4 Settle</span>
+          <span id="step-claim" class="step-pill">5 Claim</span>
+          <span id="step-audit" class="step-pill">6 Audit</span>
+        </div>
+
+        <div class="grid metrics-grid">
+          <article class="metric">
+            <p class="metric-label">Event</p>
+            <p id="metricEventId" class="metric-value">-</p>
+          </article>
+          <article class="metric">
+            <p class="metric-label">Status</p>
+            <p id="metricEventStatus" class="metric-value">Not started</p>
+          </article>
+          <article class="metric">
+            <p class="metric-label">Proof Coverage</p>
+            <p id="metricProofCoverage" class="metric-value">0 / 2 sites</p>
+          </article>
+          <article class="metric">
+            <p class="metric-label">Total Payout</p>
+            <p id="metricTotalPayout" class="metric-value">0</p>
+          </article>
+          <article class="metric">
+            <p class="metric-label">Claim (site-a)</p>
+            <p id="metricClaimStatus" class="metric-value">Pending</p>
+          </article>
+          <article class="metric">
+            <p class="metric-label">Audit Match</p>
+            <p id="metricAuditMatch" class="metric-value">Pending</p>
+          </article>
+        </div>
+
+        <div class="grid two-col judge-notes">
+          <article class="mini-card">
+            <h3>Proof A / Proof B 是什么？</h3>
+            <p id="proofHumanA">Proof A（site-a）：尚未提交。</p>
+            <p id="proofHumanB">Proof B（site-b）：尚未提交。</p>
+          </article>
+          <article class="mini-card">
+            <h3>One-Line Story</h3>
+            <p id="narrativeLine">Ready to run demo flow.</p>
+            <p id="lastActionLine" class="muted-line">Last action: none</p>
+          </article>
+        </div>
+      </section>
+
       <section id="tab-event" class="tab-panel card hidden">
         <h2>Event View</h2>
         <div class="actions">

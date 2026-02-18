@@ -7,6 +7,24 @@ const panels = {
 
 const logEl = document.getElementById('log');
 const eventIdInput = document.getElementById('eventId');
+const metricEventId = document.getElementById('metricEventId');
+const metricEventStatus = document.getElementById('metricEventStatus');
+const metricProofCoverage = document.getElementById('metricProofCoverage');
+const metricTotalPayout = document.getElementById('metricTotalPayout');
+const metricClaimStatus = document.getElementById('metricClaimStatus');
+const metricAuditMatch = document.getElementById('metricAuditMatch');
+const proofHumanA = document.getElementById('proofHumanA');
+const proofHumanB = document.getElementById('proofHumanB');
+const narrativeLine = document.getElementById('narrativeLine');
+const lastActionLine = document.getElementById('lastActionLine');
+
+const state = {
+  event: null,
+  proofs: {},
+  settlements: [],
+  audit: null,
+  lastAction: 'none',
+};
 
 if (!eventIdInput.value) {
   eventIdInput.value = `event-ui-${Date.now()}`;
@@ -37,6 +55,72 @@ function appendLog(label, payload) {
   const line = `[${new Date().toISOString()}] ${label}\n${typeof payload === 'string' ? payload : JSON.stringify(payload, null, 2)}\n`;
   logEl.textContent += line + '\n';
   logEl.scrollTop = logEl.scrollHeight;
+  state.lastAction = label;
+  renderJudgeView();
+}
+
+function fmtNum(value) {
+  if (typeof value !== 'number') return '-';
+  return value.toLocaleString('en-US');
+}
+
+function stepDone(id, done) {
+  const el = document.getElementById(`step-${id}`);
+  if (el) el.classList.toggle('done', done);
+}
+
+function proofSummaryText(siteId) {
+  const proof = state.proofs[siteId];
+  if (!proof) return `Proof ${siteId === 'site-a' ? 'A' : 'B'}（${siteId}）：尚未提交。`;
+  return `Proof ${siteId === 'site-a' ? 'A' : 'B'}（${siteId}）：baseline ${proof.baseline_kwh}，actual ${proof.actual_kwh}，reduction ${proof.reduction_kwh}。`;
+}
+
+function renderJudgeView() {
+  metricEventId.textContent = state.event?.event_id || cfg().eventId || '-';
+  metricEventStatus.textContent = state.event?.status || 'Not started';
+
+  const proofCount = Object.keys(state.proofs).length;
+  metricProofCoverage.textContent = `${proofCount} / 2 sites`;
+
+  const totalPayout = state.settlements.reduce((sum, item) => sum + (item.payout || 0), 0);
+  metricTotalPayout.textContent = fmtNum(totalPayout);
+
+  const claimA = state.settlements.find((x) => x.site_id === 'site-a');
+  metricClaimStatus.textContent = claimA?.status || 'Pending';
+
+  if (!state.audit) metricAuditMatch.textContent = 'Pending';
+  else metricAuditMatch.textContent = state.audit.match ? 'PASS' : 'MISMATCH';
+
+  proofHumanA.textContent = proofSummaryText('site-a');
+  proofHumanB.textContent = proofSummaryText('site-b');
+
+  const createDone = !!state.event;
+  const proofsDone = !!state.proofs['site-a'] && !!state.proofs['site-b'];
+  const closeDone = ['closed', 'settled'].includes(state.event?.status || '');
+  const settleDone = state.settlements.length > 0;
+  const claimDone = claimA?.status === 'claimed';
+  const auditDone = !!state.audit;
+
+  stepDone('create', createDone);
+  stepDone('proofs', proofsDone);
+  stepDone('close', closeDone);
+  stepDone('settle', settleDone);
+  stepDone('claim', claimDone);
+  stepDone('audit', auditDone);
+
+  if (auditDone && claimDone) {
+    narrativeLine.textContent = '闭环完成：结果可结算、可领取、可审计。';
+  } else if (settleDone) {
+    narrativeLine.textContent = '已完成自动结算，正在进入领取与审计阶段。';
+  } else if (proofsDone) {
+    narrativeLine.textContent = '两份 proof 已提交，等待 close 后结算。';
+  } else if (createDone) {
+    narrativeLine.textContent = '事件已创建，等待站点提交 proof。';
+  } else {
+    narrativeLine.textContent = 'Ready to run demo flow.';
+  }
+
+  lastActionLine.textContent = `Last action: ${state.lastAction}`;
 }
 
 function plusMinutes(mins) {
@@ -82,6 +166,7 @@ async function createEvent() {
     penalty_rate: 5,
   };
   const data = await callApi('/events', 'POST', payload, c.operatorKey, 'operator-1');
+  state.event = data;
   appendLog('create event ok', data);
 }
 
@@ -97,6 +182,7 @@ async function submitProof(siteId, baseline, actual) {
     baseline_method: 'simple',
   };
   const data = await callApi('/proofs', 'POST', payload, c.participantKey, siteId);
+  state.proofs[siteId] = data;
   appendLog(`submit proof ${siteId} ok`, data);
 }
 
@@ -104,36 +190,45 @@ async function settleEvent() {
   const c = cfg();
   const payload = { site_ids: ['site-a', 'site-b'] };
   const data = await callApi(`/settle/${c.eventId}`, 'POST', payload, c.operatorKey, 'operator-1');
+  state.settlements = data;
+  if (state.event) state.event.status = 'settled';
   appendLog('settle ok', data);
 }
 
 async function closeEvent() {
   const c = cfg();
   const data = await callApi(`/events/${c.eventId}/close`, 'POST', null, c.operatorKey, 'operator-1');
+  state.event = data;
   appendLog('close event ok', data);
 }
 
 async function claimA() {
   const c = cfg();
   const data = await callApi(`/claim/${c.eventId}/site-a`, 'POST', null, c.participantKey, 'site-a');
+  const idx = state.settlements.findIndex((x) => x.site_id === data.site_id);
+  if (idx >= 0) state.settlements[idx] = data;
+  else state.settlements.push(data);
   appendLog('claim site-a ok', data);
 }
 
 async function getEvent() {
   const c = cfg();
   const data = await callApi(`/events/${c.eventId}`, 'GET', null, c.auditorKey, 'auditor-1');
+  state.event = data;
   appendLog('event detail', data);
 }
 
 async function getRecords() {
   const c = cfg();
   const data = await callApi(`/events/${c.eventId}/records`, 'GET', null, c.auditorKey, 'auditor-1');
+  state.settlements = data;
   appendLog('settlement records', data);
 }
 
 async function getAudit() {
   const c = cfg();
   const data = await callApi(`/audit/${c.eventId}/${c.auditSiteId}`, 'GET', null, c.auditorKey, 'auditor-1');
+  state.audit = data;
   appendLog('audit record', data);
 }
 
@@ -172,4 +267,5 @@ bind('btnGetEvent', getEvent);
 bind('btnGetRecords', getRecords);
 bind('btnAudit', getAudit);
 
+renderJudgeView();
 appendLog('ready', 'DR Agent Demo Console initialized');

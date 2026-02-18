@@ -90,6 +90,22 @@ def create_app(db_path: str | None = None) -> FastAPI:
         payload = envelope.model_dump() if hasattr(envelope, "model_dump") else envelope.dict()
         return JSONResponse(status_code=exc.status_code, content=payload)
 
+    @app.get("/")
+    def root():
+        return {
+            "service": "dr-agent-api",
+            "status": "ok",
+            "docs": "/docs",
+            "healthz": "/healthz",
+        }
+
+    @app.get("/healthz")
+    def healthz():
+        return {
+            "status": "ok",
+            "mode": os.getenv("DR_CHAIN_MODE", "simulated"),
+        }
+
     @app.post("/events", response_model=EventDTO)
     def create_event(
         payload: EventCreateRequest,
