@@ -3,54 +3,165 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>DR Agent Demo Console</title>
+    <title>DR Agent Mission Cockpit</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <div class="bg-orb orb-a"></div>
-    <div class="bg-orb orb-b"></div>
+    <div class="bg-grid"></div>
+    <div class="bg-noise"></div>
+    <div class="bg-aurora aurora-a"></div>
+    <div class="bg-aurora aurora-b"></div>
+    <div class="bg-vignette"></div>
+    <div class="bg-glow glow-a"></div>
+    <div class="bg-glow glow-b"></div>
 
-    <main class="app-shell">
+    <main class="cockpit">
       <header class="hero">
-        <p class="eyebrow">Avalanche Build Games Demo</p>
-        <h1>DR Agent Demo Console</h1>
-        <p class="subtitle">Use this single-page shell to run or inspect create/proof/settle/claim/audit flows.</p>
+        <p class="eyebrow">Avalanche Build Games | Judge Demo</p>
+        <h1>DR Agent Mission Cockpit</h1>
+        <p class="subtitle">Verifiable automated settlement for demand response events.</p>
       </header>
 
-      <section class="api-config card reveal" style="--delay: 0.03s">
-        <h2>API Config</h2>
-        <div class="grid two-col">
-          <label>
-            Base URL
-            <input id="baseUrl" value="http://127.0.0.1:8000" />
-          </label>
-          <label>
-            Event ID
-            <input id="eventId" />
-          </label>
-          <label>
-            Operator Key
-            <input id="operatorKey" value="operator-key" />
-          </label>
-          <label>
-            Participant Key
-            <input id="participantKey" value="participant-key" />
-          </label>
-          <label>
-            Auditor Key
-            <input id="auditorKey" value="auditor-key" />
-          </label>
+      <section class="panel mission-strip reveal" style="--delay: 0.02s">
+        <article class="mission-item">
+          <p class="label">Event</p>
+          <p id="missionEventId" class="value">-</p>
+        </article>
+        <article class="mission-item">
+          <p class="label">Chain Mode</p>
+          <p id="missionChainMode" class="value">unknown</p>
+        </article>
+        <article class="mission-item">
+          <p class="label">Current Step</p>
+          <p id="missionStep" class="value">Create</p>
+        </article>
+        <article class="mission-item">
+          <p class="label">Health</p>
+          <p id="missionHealth" class="status-chip pending">pending</p>
+        </article>
+        <article class="mission-item">
+          <p class="label">Latency</p>
+          <p id="missionLatency" class="value">--</p>
+        </article>
+        <article class="mission-item mission-progress">
+          <p class="label">Flow Progress</p>
+          <p id="flowProgressText" class="value">0 / 6 (0%)</p>
+          <div class="progress-track" aria-hidden="true">
+            <div id="flowProgressBar" class="progress-fill"></div>
+          </div>
+        </article>
+      </section>
+
+      <section class="panel mode-strip reveal" style="--delay: 0.04s">
+        <div class="mode-toggle" role="tablist" aria-label="Experience mode">
+          <button id="btnViewStory" class="mode-btn is-active" data-view="story" aria-selected="true">Story Mode</button>
+          <button id="btnViewOps" class="mode-btn" data-view="ops" aria-selected="false">Ops Mode</button>
+          <button id="btnViewEngineering" class="mode-btn" data-view="engineering" aria-selected="false">Engineering Mode</button>
+        </div>
+        <p id="modeHint" class="hint mode-hint">Story Mode focuses on one next action and business impact.</p>
+      </section>
+
+      <section id="storyHero" class="panel action-hero reveal" style="--delay: 0.06s">
+        <div class="action-hero-main">
+          <p class="eyebrow">Mission Command</p>
+          <h2 id="heroTitle">Next Step: Create Event</h2>
+          <p id="heroSubtitle" class="subtitle">Launch a demand response event to initialize the settlement loop.</p>
+          <div class="hero-actions">
+            <button id="btnNextStep" class="btn btn-strong btn-main-cta">Execute Next Step</button>
+            <button id="btnRunAllHero" class="btn">Auto Run Full Flow</button>
+          </div>
+        </div>
+        <div class="story-kpi-row">
+          <article class="story-kpi">
+            <p class="label">Energy Reduction</p>
+            <p id="storyEnergy" class="value">-- kWh</p>
+          </article>
+          <article class="story-kpi">
+            <p class="label">Total Payout</p>
+            <p id="storyPayout" class="value">0 DRT</p>
+          </article>
+          <article class="story-kpi">
+            <p class="label">Audit Confidence</p>
+            <p id="storyAudit" class="value">Pending</p>
+          </article>
+          <article class="story-kpi story-insight">
+            <p class="label">Agent Thinking</p>
+            <p id="storyInsight" class="value">Waiting for mission data.</p>
+          </article>
         </div>
       </section>
 
-      <nav class="tabs reveal" style="--delay: 0.08s">
-        <button class="tab is-active" data-tab="control">Control</button>
-        <button class="tab" data-tab="event">Event</button>
-        <button class="tab" data-tab="audit">Audit</button>
+      <details id="builderPanel" class="panel api-config builder-panel reveal" style="--delay: 0.05s">
+        <summary class="builder-summary">
+          <span>Builder Mode</span>
+          <span class="muted-line">API Control / Keys</span>
+        </summary>
+        <div class="builder-body">
+          <h2>API Control</h2>
+          <div class="grid two-col">
+            <label>
+              Base URL
+              <input id="baseUrl" value="http://127.0.0.1:8000" />
+            </label>
+            <label>
+              Event ID
+              <input id="eventId" />
+            </label>
+            <label>
+              Operator Key
+              <input id="operatorKey" value="operator-key" />
+            </label>
+            <label>
+              Participant Key
+              <input id="participantKey" value="participant-key" />
+            </label>
+            <label>
+              Auditor Key
+              <input id="auditorKey" value="auditor-key" />
+            </label>
+          </div>
+          <p class="hint">If API runs with `make api-run`, ensure keys match your external secrets values.</p>
+        </div>
+      </details>
+
+      <nav class="tabs reveal" role="tablist" aria-label="Mission panels" style="--delay: 0.08s">
+        <button
+          id="tab-control-btn"
+          class="tab is-active"
+          role="tab"
+          aria-selected="true"
+          aria-controls="tab-control"
+          tabindex="0"
+          data-tab="control"
+        >
+          Control
+        </button>
+        <button
+          id="tab-event-btn"
+          class="tab"
+          role="tab"
+          aria-selected="false"
+          aria-controls="tab-event"
+          tabindex="-1"
+          data-tab="event"
+        >
+          Event
+        </button>
+        <button
+          id="tab-audit-btn"
+          class="tab"
+          role="tab"
+          aria-selected="false"
+          aria-controls="tab-audit"
+          tabindex="-1"
+          data-tab="audit"
+        >
+          Audit
+        </button>
       </nav>
 
-      <section id="tab-control" class="tab-panel card reveal" style="--delay: 0.12s">
-        <h2>Control Flow</h2>
+      <section id="tab-control" class="tab-panel panel reveal" role="tabpanel" aria-labelledby="tab-control-btn" style="--delay: 0.11s">
+        <h2>Flow Controls</h2>
         <div class="actions">
           <button id="btnCreate" class="btn">1. Create Event</button>
           <button id="btnProofA" class="btn">2. Submit Proof A</button>
@@ -60,73 +171,143 @@
           <button id="btnClaimA" class="btn">6. Claim A</button>
           <button id="btnRunAll" class="btn btn-strong">Run Full Flow</button>
         </div>
-        <p class="hint">Flow uses default site IDs: <code>site-a</code>, <code>site-b</code>.</p>
+        <p class="hint">Primary story path: Create -> Proofs -> Close -> Settle -> Claim -> Audit.</p>
       </section>
 
-      <section class="card reveal judge-panel" style="--delay: 0.14s">
-        <h2>Judge View (Human-Readable)</h2>
-        <p class="hint">This panel translates raw JSON into an easy story for judges.</p>
-
-        <div class="flow-track">
-          <span id="step-create" class="step-pill">1 Create</span>
-          <span id="step-proofs" class="step-pill">2 Proofs</span>
-          <span id="step-close" class="step-pill">3 Close</span>
-          <span id="step-settle" class="step-pill">4 Settle</span>
-          <span id="step-claim" class="step-pill">5 Claim</span>
-          <span id="step-audit" class="step-pill">6 Audit</span>
+      <section class="panel judge-view reveal" style="--delay: 0.14s">
+        <div class="section-head">
+          <div class="section-head-main">
+            <h2>Judge View</h2>
+            <p>Three-layer readout: mission context, KPI outcomes, technical evidence.</p>
+          </div>
+          <div class="section-actions">
+            <button id="btnTheme" class="btn btn-compact" aria-label="Toggle theme">Theme: Cobalt</button>
+            <button id="btnCameraMode" class="btn btn-compact" aria-pressed="false">Enable Camera Mode</button>
+            <button id="btnJudgeMode" class="btn btn-compact" aria-pressed="false">Enable Judge Mode</button>
+          </div>
         </div>
 
-        <div class="grid metrics-grid">
-          <article class="metric">
-            <p class="metric-label">Event</p>
-            <p id="metricEventId" class="metric-value">-</p>
+        <div class="flow-timeline">
+          <span id="step-create" class="step-pill pending">
+            <span class="step-num">1</span>
+            <span class="step-name">Create</span>
+            <span class="step-state">pending</span>
+          </span>
+          <span id="step-proofs" class="step-pill pending">
+            <span class="step-num">2</span>
+            <span class="step-name">Proofs</span>
+            <span class="step-state">pending</span>
+          </span>
+          <span id="step-close" class="step-pill pending">
+            <span class="step-num">3</span>
+            <span class="step-name">Close</span>
+            <span class="step-state">pending</span>
+          </span>
+          <span id="step-settle" class="step-pill pending">
+            <span class="step-num">4</span>
+            <span class="step-name">Settle</span>
+            <span class="step-state">pending</span>
+          </span>
+          <span id="step-claim" class="step-pill pending">
+            <span class="step-num">5</span>
+            <span class="step-name">Claim</span>
+            <span class="step-state">pending</span>
+          </span>
+          <span id="step-audit" class="step-pill pending">
+            <span class="step-num">6</span>
+            <span class="step-name">Audit</span>
+            <span class="step-state">pending</span>
+          </span>
+        </div>
+
+        <div class="kpi-grid">
+          <article id="kpiCardStatus" class="kpi-card" data-state="pending">
+            <p class="kpi-label">Status</p>
+            <p id="kpiStatus" class="kpi-value">pending</p>
+            <p id="kpiStatusHint" class="kpi-hint">Waiting for event creation.</p>
           </article>
-          <article class="metric">
-            <p class="metric-label">Status</p>
-            <p id="metricEventStatus" class="metric-value">Not started</p>
+          <article id="kpiCardCoverage" class="kpi-card kpi-secondary" data-state="pending">
+            <p class="kpi-label">Proof Coverage</p>
+            <p id="kpiCoverage" class="kpi-value">0 / 2 sites</p>
+            <p id="kpiCoverageHint" class="kpi-hint">No participant proofs submitted yet.</p>
           </article>
-          <article class="metric">
-            <p class="metric-label">Proof Coverage</p>
-            <p id="metricProofCoverage" class="metric-value">0 / 2 sites</p>
+          <article id="kpiCardPayout" class="kpi-card" data-state="pending">
+            <p class="kpi-label">Total Payout</p>
+            <p id="kpiPayout" class="kpi-value">0 DRT</p>
+            <p id="kpiPayoutHint" class="kpi-hint">Calculated after settlement.</p>
           </article>
-          <article class="metric">
-            <p class="metric-label">Total Payout</p>
-            <p id="metricTotalPayout" class="metric-value">0</p>
+          <article id="kpiCardClaim" class="kpi-card" data-state="pending">
+            <p class="kpi-label">Claim (site-a)</p>
+            <p id="kpiClaim" class="kpi-value">pending</p>
+            <p id="kpiClaimHint" class="kpi-hint">Awaiting claim action.</p>
           </article>
-          <article class="metric">
-            <p class="metric-label">Claim (site-a)</p>
-            <p id="metricClaimStatus" class="metric-value">Pending</p>
+          <article id="kpiCardAudit" class="kpi-card" data-state="pending">
+            <p class="kpi-label">Audit Match</p>
+            <p id="kpiAudit" class="kpi-value">pending</p>
+            <p id="kpiAuditHint" class="kpi-hint">Hash verification not requested.</p>
           </article>
-          <article class="metric">
-            <p class="metric-label">Audit Match</p>
-            <p id="metricAuditMatch" class="metric-value">Pending</p>
+          <article id="kpiCardLatency" class="kpi-card kpi-secondary" data-state="pending">
+            <p class="kpi-label">Latency</p>
+            <p id="kpiLatency" class="kpi-value">-- ms</p>
+            <p id="kpiLatencyHint" class="kpi-hint">Last API round-trip time.</p>
           </article>
         </div>
 
-        <div class="grid two-col judge-notes">
-          <article class="mini-card">
-            <h3>Proof A / Proof B 是什么？</h3>
-            <p id="proofHumanA">Proof A（site-a）：尚未提交。</p>
-            <p id="proofHumanB">Proof B（site-b）：尚未提交。</p>
+        <div class="evidence-grid">
+          <article class="evidence-card card-proof">
+            <h3>Proof A vs Proof B</h3>
+            <p id="evidenceProofA" class="proof-summary">Proof A (site-a): not submitted.</p>
+            <div class="proof-row">
+              <div class="proof-row-meta">
+                <span>Proof A Reduction</span>
+                <span id="proofADelta">-</span>
+              </div>
+              <div class="proof-meter"><div id="proofABar" class="proof-fill-bar proof-a"></div></div>
+            </div>
+            <p id="evidenceProofB" class="proof-summary">Proof B (site-b): not submitted.</p>
+            <div class="proof-row">
+              <div class="proof-row-meta">
+                <span>Proof B Reduction</span>
+                <span id="proofBDelta">-</span>
+              </div>
+              <div class="proof-meter"><div id="proofBBar" class="proof-fill-bar proof-b"></div></div>
+            </div>
           </article>
-          <article class="mini-card">
+          <article class="evidence-card card-audit">
+            <h3>Audit Anchor</h3>
+            <p id="evidenceAuditResult">Audit result pending.</p>
+            <p id="evidenceAuditHash" class="mono">Hash: -</p>
+          </article>
+          <article class="evidence-card card-story">
             <h3>One-Line Story</h3>
-            <p id="narrativeLine">Ready to run demo flow.</p>
+            <p id="narrativeLine" aria-live="polite">Ready to execute the settlement mission.</p>
             <p id="lastActionLine" class="muted-line">Last action: none</p>
           </article>
+          <article class="evidence-card card-insight">
+            <h3>Agent Insight</h3>
+            <p id="insightHeadline">No strategy signal yet.</p>
+            <p id="insightReason" class="muted-line">Create an event to let the agent analyze proofs and payout timing.</p>
+            <p id="insightImpact" class="muted-line">Impact: pending.</p>
+          </article>
+          <article id="errorCard" class="evidence-card error-card card-diagnostics" data-level="ok">
+            <h3>Execution Diagnostics</h3>
+            <p id="errorHeadline">No active errors.</p>
+            <p id="errorHint" class="muted-line">Flow guards prevent most invalid actions.</p>
+            <p id="errorNext" class="muted-line">Next: run the current highlighted step.</p>
+          </article>
         </div>
       </section>
 
-      <section id="tab-event" class="tab-panel card hidden">
-        <h2>Event View</h2>
+      <section id="tab-event" class="tab-panel panel hidden" role="tabpanel" aria-labelledby="tab-event-btn">
+        <h2>Event Query</h2>
         <div class="actions">
           <button id="btnGetEvent" class="btn">Get Event</button>
           <button id="btnGetRecords" class="btn">Get Settlement Records</button>
         </div>
       </section>
 
-      <section id="tab-audit" class="tab-panel card hidden">
-        <h2>Audit View</h2>
+      <section id="tab-audit" class="tab-panel panel hidden" role="tabpanel" aria-labelledby="tab-audit-btn">
+        <h2>Audit Query</h2>
         <div class="grid two-col">
           <label>
             Site ID
@@ -138,8 +319,21 @@
         </div>
       </section>
 
-      <section class="card reveal" style="--delay: 0.16s">
-        <h2>Console</h2>
+      <section class="panel evidence-toggle-row reveal" style="--delay: 0.16s">
+        <div class="evidence-tools">
+          <button id="evidenceToggle" class="btn btn-ghost" aria-controls="technicalEvidence" aria-expanded="false">
+            View Technical Evidence
+          </button>
+          <button id="btnExportSnapshot" class="btn">Copy Judge Snapshot</button>
+        </div>
+        <p id="snapshotFeedback" class="hint snapshot-feedback" aria-live="polite"></p>
+      </section>
+
+      <section id="technicalEvidence" class="panel evidence-console collapsed">
+        <div class="console-head">
+          <h2>Technical Evidence</h2>
+          <p class="hint">Raw JSON logs for engineering verification.</p>
+        </div>
         <pre id="log" class="log"></pre>
       </section>
     </main>

@@ -15,6 +15,7 @@ from services.dto import (
     AuditDTO,
     EventCreateRequest,
     EventDTO,
+    JudgeSummaryDTO,
     ProofDTO,
     ProofSubmitRequest,
     SettlementDTO,
@@ -371,6 +372,17 @@ class SubmitterService:
         if row is None:
             raise ServiceError(404, "PROOF_NOT_FOUND", "proof not found")
 
+        requested_at = _utc_now()
+        self.conn.execute(
+            """
+            INSERT INTO audits(event_id,site_id,requested_at)
+            VALUES(?,?,?)
+            ON CONFLICT(event_id,site_id) DO UPDATE SET requested_at = excluded.requested_at
+            """,
+            (event_id, site_id, requested_at),
+        )
+        self.conn.commit()
+
         recomputed = recompute_hash(row["payload"])
 
         return AuditDTO(
@@ -380,6 +392,155 @@ class SubmitterService:
             proof_hash_recomputed=recomputed,
             match=row["proof_hash"].lower() == recomputed.lower(),
             raw_uri=row["uri"],
+        )
+
+    def get_judge_summary(self, event_id: str, network_mode: str) -> JudgeSummaryDTO:
+        event = self.conn.execute(
+            """
+            SELECT event_id,status,created_at,closed_at,settled_at
+            FROM events
+            WHERE event_id = ?
+            """,
+            (event_id,),
+        ).fetchone()
+        if event is None:
+            raise ServiceError(404, "EVENT_NOT_FOUND", "event not found")
+
+        proof_rows = self.conn.execute(
+            """
+            SELECT site_id,reduction_kwh,submitted_at
+            FROM proofs
+            WHERE event_id = ?
+            ORDER BY site_id
+            """,
+            (event_id,),
+        ).fetchall()
+        settlement_rows = self.conn.execute(
+            """
+            SELECT site_id,payout,status,settled_at,claimed_at
+            FROM settlements
+            WHERE event_id = ?
+            ORDER BY site_id
+            """,
+            (event_id,),
+        ).fetchall()
+        audit_row = self.conn.execute(
+            """
+            SELECT requested_at
+            FROM audits
+            WHERE event_id = ? AND site_id = 'site-a'
+            """,
+            (event_id,),
+        ).fetchone()
+
+        proof_map = {row["site_id"]: row for row in proof_rows}
+        proof_required = 2
+        proof_submitted = len(proof_rows)
+        proofs_done = ("site-a" in proof_map) and ("site-b" in proof_map)
+
+        event_status = event["status"]
+        close_done = event_status in ("closed", "settled")
+        settle_done = len(settlement_rows) > 0
+        claim_row = next((row for row in settlement_rows if row["site_id"] == "site-a"), None)
+        claim_status = claim_row["status"] if claim_row is not None else "pending"
+        claim_done = claim_status == "claimed"
+        audit_requested = audit_row is not None
+
+        current_step = "create"
+        if not proofs_done:
+            current_step = "proofs"
+        elif not close_done:
+            current_step = "close"
+        elif not settle_done:
+            current_step = "settle"
+        elif not claim_done:
+            current_step = "claim"
+        elif not audit_requested:
+            current_step = "audit"
+        else:
+            current_step = "completed"
+
+        completed_steps = [True, proofs_done, close_done, settle_done, claim_done, audit_requested].count(True)
+        progress_total = 6
+        progress_pct = round((completed_steps / progress_total) * 100)
+        health = "pending" if completed_steps == 0 else "done" if current_step == "completed" else "in-progress"
+
+        audit_match: bool | None = None
+        if audit_requested:
+            proof_site_a = proof_map.get("site-a")
+            if proof_site_a is not None:
+                audit_payload = self.conn.execute(
+                    """
+                    SELECT proof_hash,payload
+                    FROM proofs
+                    WHERE event_id = ? AND site_id = 'site-a'
+                    """,
+                    (event_id,),
+                ).fetchone()
+                if audit_payload is not None:
+                    recomputed = recompute_hash(audit_payload["payload"])
+                    audit_match = audit_payload["proof_hash"].lower() == recomputed.lower()
+
+        total_reduction_kwh = sum(int(row["reduction_kwh"]) for row in proof_rows)
+        total_payout_drt = sum(int(row["payout"]) for row in settlement_rows)
+
+        transition_points = [
+            event["created_at"],
+            event["closed_at"],
+            event["settled_at"],
+            *[row["submitted_at"] for row in proof_rows if row["submitted_at"]],
+            *[row["settled_at"] for row in settlement_rows if row["settled_at"]],
+            *[row["claimed_at"] for row in settlement_rows if row["claimed_at"]],
+            audit_row["requested_at"] if audit_row is not None else None,
+        ]
+        non_null_points = [point for point in transition_points if point]
+        last_transition_at = max(non_null_points) if non_null_points else None
+
+        if current_step == "proofs":
+            missing_sites = [site for site in ("site-a", "site-b") if site not in proof_map]
+            blocking_reason = f"Missing proofs: {', '.join(missing_sites)}."
+            agent_hint = "Collect both participant proofs to enable settlement lock."
+        elif current_step == "close":
+            blocking_reason = "Proofs ready. Event must be closed before settlement."
+            agent_hint = "Close event to lock payout calculation scope."
+        elif current_step == "settle":
+            blocking_reason = "Event closed. Settlement execution pending."
+            agent_hint = "Trigger settlement to compute payout records."
+        elif current_step == "claim":
+            blocking_reason = "Settlement done. Participant A claim pending."
+            agent_hint = "Complete claim to finalize participant payout."
+        elif current_step == "audit":
+            blocking_reason = "Claim complete. Audit verification pending."
+            agent_hint = "Run audit to verify on-chain and recomputed proof hash."
+        elif current_step == "completed":
+            blocking_reason = "No blockers."
+            agent_hint = "Closed loop finalized with payout and audit evidence."
+        else:
+            blocking_reason = "Create event to initialize mission."
+            agent_hint = "Agent needs event context to start the closed loop."
+
+        return JudgeSummaryDTO(
+            event_id=event_id,
+            network_mode=network_mode,
+            event_status=event_status,
+            current_step=current_step,
+            health=health,
+            blocking_reason=blocking_reason,
+            progress_completed=completed_steps,
+            progress_total=progress_total,
+            progress_pct=progress_pct,
+            proof_submitted=proof_submitted,
+            proof_required=proof_required,
+            total_reduction_kwh=total_reduction_kwh,
+            total_payout_drt=total_payout_drt,
+            claim_site_a_status=claim_status,
+            audit_requested=audit_requested,
+            audit_match=audit_match,
+            last_transition_at=last_transition_at,
+            created_at=event["created_at"],
+            closed_at=event["closed_at"],
+            settled_at=event["settled_at"],
+            agent_hint=agent_hint,
         )
 
 

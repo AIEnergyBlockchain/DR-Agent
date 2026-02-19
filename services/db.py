@@ -50,8 +50,16 @@ CREATE TABLE IF NOT EXISTS settlements (
     PRIMARY KEY (event_id, site_id)
 );
 
+CREATE TABLE IF NOT EXISTS audits (
+    event_id TEXT NOT NULL,
+    site_id TEXT NOT NULL,
+    requested_at TEXT NOT NULL,
+    PRIMARY KEY (event_id, site_id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_proofs_event ON proofs(event_id);
 CREATE INDEX IF NOT EXISTS idx_settlements_event ON settlements(event_id);
+CREATE INDEX IF NOT EXISTS idx_audits_event ON audits(event_id);
 """
 
 

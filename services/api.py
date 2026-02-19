@@ -15,6 +15,7 @@ from services.dto import (
     ErrorEnvelope,
     EventCreateRequest,
     EventDTO,
+    JudgeSummaryDTO,
     ProofDTO,
     ProofSubmitRequest,
     SettleRequest,
@@ -180,6 +181,14 @@ def create_app(db_path: str | None = None) -> FastAPI:
         _role: str = Depends(_require_role("operator", "participant", "auditor")),
     ):
         return {"mode": os.getenv("DR_CHAIN_MODE", "simulated")}
+
+    @app.get("/judge/{event_id}/summary", response_model=JudgeSummaryDTO)
+    def get_judge_summary(
+        event_id: str,
+        _role: str = Depends(_require_role("operator", "participant", "auditor")),
+        svc: SubmitterService = Depends(_service),
+    ):
+        return svc.get_judge_summary(event_id=event_id, network_mode=os.getenv("DR_CHAIN_MODE", "simulated"))
 
     return app
 

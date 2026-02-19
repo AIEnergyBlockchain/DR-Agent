@@ -208,6 +208,14 @@ npm run frontend:serve
 # 浏览器打开 http://127.0.0.1:4173
 ```
 
+前端默认进入英文 `Mission Cockpit`，并提供三层评委视图：
+- Mission Strip：事件、链模式、当前步骤、健康度、延迟
+- KPI Grid：Status/Coverage/Payout/Claim/Audit/Latency
+- Evidence Deck：Proof A vs Proof B、Audit Anchor、One-Line Story（技术日志可折叠）
+- 主题切换：`Theme: Cobalt/Neon`
+- 路演聚焦：`Camera Mode` 自动高亮当前步骤与对应 KPI
+- 证据导出：`Copy Judge Snapshot` 一键复制评委摘要
+
 补充：
 
 - API 健康检查可单独执行：`npm run smoke:api`
@@ -417,17 +425,33 @@ sequenceDiagram
 
 ## 7. 前端（最小页面）
 
-1. 事件列表页
+当前前端采用“暗色指挥舱 + 跑道路演态”结构，主目标是让评委在 3 分钟内看懂闭环状态：
 
-- 状态、目标、时间窗口、参与站点数
+1. Mission Strip（顶部任务条）
+- Event ID、Chain Mode、Current Step、Health、Latency
+- Health 仅由主流程步骤判定（不受查询/快照等旁路动作影响）
 
-2. 事件详情页
+2. Flow Timeline（流程状态条）
+- `create -> proofs -> close -> settle -> claim -> audit`
+- 每一步有 `pending / in-progress / done / error` 状态
+- 当前步骤带跑道流光效果；`Camera Mode` 会自动聚焦当前步骤
 
-- 站点完成率、奖励结果、proofHash
+3. KPI Grid（核心结果）
+- Status、Proof Coverage、Total Payout、Claim(site-a)、Audit Match、Latency
+- 数值变化时有短时高亮动效，提升路演可感知性
 
-3. 审计页
+4. Evidence Deck（证据层）
+- Proof A / Proof B 对比摘要
+- Audit hash 摘要（on-chain vs recomputed）
+- One-Line Story（<=120 字符）
+- 可一键 `Copy Judge Snapshot` 输出“简版摘要 + JSON证据”
 
-- 输入 eventId/siteId 查看链上记录与链下 payload hash 对比
+5. Technical Evidence（折叠日志）
+- 默认可折叠，点击 `View Technical Evidence` 查看原始 JSON
+- 采用日志裁剪上限，避免长时间演示卡顿
+
+6. Theme 与舞台模式
+- 默认 `Cobalt`（可读性优先），可切换 `Neon`（舞台冲击力优先）
 
 ### 7.1 扩展到产品级的计划
 

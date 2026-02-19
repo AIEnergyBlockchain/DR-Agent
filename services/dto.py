@@ -71,6 +71,30 @@ class AuditDTO(BaseModel):
     raw_uri: str
 
 
+class JudgeSummaryDTO(BaseModel):
+    event_id: str
+    network_mode: str
+    event_status: str
+    current_step: str
+    health: Literal["pending", "in-progress", "done", "error"]
+    blocking_reason: str
+    progress_completed: int = Field(ge=0)
+    progress_total: int = Field(ge=1)
+    progress_pct: int = Field(ge=0, le=100)
+    proof_submitted: int = Field(ge=0)
+    proof_required: int = Field(ge=1)
+    total_reduction_kwh: int
+    total_payout_drt: int
+    claim_site_a_status: str
+    audit_requested: bool
+    audit_match: bool | None = None
+    last_transition_at: str | None = None
+    created_at: str | None = None
+    closed_at: str | None = None
+    settled_at: str | None = None
+    agent_hint: str
+
+
 class ErrorEnvelope(BaseModel):
     code: str
     message: str
