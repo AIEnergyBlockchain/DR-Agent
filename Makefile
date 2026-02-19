@@ -180,10 +180,10 @@ fullpr-main: branch-check
 			echo "请先处理 guide 分支历史，再重试 make fullpr-main。"; \
 			exit 1; \
 		}; \
-		echo ">>> [2/3] 提交并推送主仓库子模块指针更新..."; \
-		git add $(SUB_PATH); \
+		echo ">>> [2/3] 提交并推送主仓库全部改动（含子模块指针）..."; \
+		git add -A; \
 		if git diff --cached --quiet; then \
-			echo ">>> 主仓库无子模块指针变化。若你预期有变化，请确认 guide PR 已合并。"; \
+			echo ">>> 主仓库无可提交改动。若你预期有变化，请确认 guide PR 已合并且主仓库文件已修改。"; \
 		else \
 			git commit -m "[main][$$work_branch] $(msg)"; \
 			git push -u origin "$$work_branch"; \
