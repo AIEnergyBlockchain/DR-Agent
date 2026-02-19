@@ -31,7 +31,7 @@
 - [4. Data Models](#4-data-models)
 - [5. Off-chain Services (Python)](#5-off-chain-services-python)
 - [6. API (FastAPI)](#6-api-fastapi)
-- [7. Frontend (Minimum Pages)](#7-frontend-minimum-pages)
+- [7. Frontend (Mission Cockpit)](#7-frontend-mission-cockpit)
 - [7.1 Product-Grade Expansion Plan](#71-product-grade-expansion-plan)
 - [8. 6-Week Development Plan](#8-6-week-development-plan)
 - [9. Test Checklist](#9-test-checklist)
@@ -196,6 +196,8 @@ Step 4: run API server (loads external secrets automatically)
 
 ```bash
 make api-run
+# optional probe
+curl http://127.0.0.1:8000/healthz
 ```
 
 Step 5: run walkthrough flow (new terminal)
@@ -204,12 +206,21 @@ Step 5: run walkthrough flow (new terminal)
 make demo-run
 ```
 
-Step 6: open minimal frontend shell (optional)
+Step 6: launch Mission Cockpit UI (optional)
 
 ```bash
 npm run frontend:serve
 # open http://127.0.0.1:4173
 ```
+
+Mission Cockpit quick checks:
+
+- Mode switch: `Story / Ops / Engineering`
+- Primary actions: `Execute Next Step`, `Auto Run Full Flow`
+- Judge deck includes `Proof A vs Proof B`, `One-Line Story`, and `Agent Insight`
+- Stage controls: `Theme: Cobalt/Neon`, `Camera Mode`, `Judge Mode`
+- Snapshot export behavior: Story/Ops copy brief summary; Engineering copies full snapshot (with JSON evidence)
+- Keyboard shortcuts: `N` (next step), `R` (run full flow), `E` (switch to Engineering)
 
 Cross-origin note:
 
@@ -417,24 +428,52 @@ Modules:
 - `POST /events/{event_id}/close` close event before settlement
 - `POST /proofs` submit site proof
 - `POST /settle/{event_id}` trigger settlement
+- `POST /claim/{event_id}/{site_id}` claim settlement payout for a site
 - `GET /events/{event_id}` query event state
 - `GET /events/{event_id}/records` query settlement details
 - `GET /audit/{event_id}/{site_id}` verify proof hash consistency
+- `GET /judge/{event_id}/summary` query aggregated judge-facing summary
+- `GET /healthz` service health probe
 - `GET /system/chain-mode` expose runtime chain execution mode
 
-## 7. Frontend (Minimum Pages)
+## 7. Frontend (Mission Cockpit)
 
-1. Event list page
+The frontend is a judge-first `Mission Cockpit`, replacing the old multi-page split with one narrative surface.
 
-- status, target, time window, participating site count
+1. Story Mode (default)
 
-2. Event detail page
+- Mission command hero with a single primary CTA: `Execute Next Step`
+- Secondary CTA: `Auto Run Full Flow` for full-path demo automation
+- Story KPI row: Energy Reduction, Total Payout, Audit Confidence, Agent Thinking
 
-- site completion, payout result, proofHash
+2. Ops Mode
 
-3. Audit page
+- Flow timeline: `create -> proofs -> close -> settle -> claim -> audit`
+- KPI grid: Status, Proof Coverage, Total Payout, Claim, Audit Match, Latency
+- Unified state semantics: `pending / in-progress / done / error`
+- Health is derived from the core flow steps only (query/snapshot actions do not override flow health)
 
-- input eventId/siteId to compare on-chain record with off-chain payload hash
+3. Engineering Mode
+
+- Technical Evidence panel with raw JSON logs for verification
+- Full snapshot export including JSON evidence
+
+Judge-facing evidence deck:
+
+- `Proof A vs Proof B` comparison
+- `Audit Anchor` hash summary (on-chain vs recomputed)
+- `One-Line Story` (<=120 chars)
+- `Agent Insight` (headline + reason + impact)
+
+Keyboard shortcuts:
+
+- `N`: Execute Next Step
+- `R`: Auto Run Full Flow
+- `E`: Switch to Engineering Mode
+
+`Auto Run Full Flow` execution order:
+
+- `createEvent -> submitProof(site-a) -> submitProof(site-b) -> closeEvent -> settleEvent -> claim(site-a) -> getEvent -> getRecords -> getAudit`
 
 ### 7.1 Product-Grade Expansion Plan
 

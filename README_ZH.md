@@ -29,7 +29,7 @@
 - [4. 数据模型](#4-数据模型)
 - [5. 链下服务（Python）](#5-链下服务python)
 - [6. API（FastAPI）](#6-apifastapi)
-- [7. 前端（最小页面）](#7-前端最小页面)
+- [7. 前端（Mission Cockpit）](#7-前端mission-cockpit)
 - [7.1 扩展到产品级的计划](#71-扩展到产品级的计划)
 - [8. 开发计划（6 周）](#8-开发计划6-周)
 - [9. 测试清单](#9-测试清单)
@@ -193,6 +193,8 @@ make secrets-check
 
 ```bash
 make api-run
+# 可选健康检查
+curl http://127.0.0.1:8000/healthz
 ```
 
 步骤 5：执行演示闭环（新终端）
@@ -201,7 +203,7 @@ make api-run
 make demo-run
 ```
 
-步骤 6：可选启动前端演示壳
+步骤 6：可选启动前端 Mission Cockpit
 
 ```bash
 npm run frontend:serve
@@ -209,12 +211,16 @@ npm run frontend:serve
 ```
 
 前端默认进入英文 `Mission Cockpit`，并提供三层评委视图：
+- 三模式切换：`Story / Ops / Engineering`
+- 主操作：`Execute Next Step`、`Auto Run Full Flow`
 - Mission Strip：事件、链模式、当前步骤、健康度、延迟
 - KPI Grid：Status/Coverage/Payout/Claim/Audit/Latency
-- Evidence Deck：Proof A vs Proof B、Audit Anchor、One-Line Story（技术日志可折叠）
+- Evidence Deck：Proof A vs Proof B、Audit Anchor、One-Line Story、Agent Insight（技术日志可折叠）
 - 主题切换：`Theme: Cobalt/Neon`
 - 路演聚焦：`Camera Mode` 自动高亮当前步骤与对应 KPI
-- 证据导出：`Copy Judge Snapshot` 一键复制评委摘要
+- 演示去噪：`Judge Mode` 可切换更聚焦的评委展示态
+- 证据导出：`Copy Judge Snapshot` 在 Story/Ops 复制简版摘要，在 Engineering 复制全量（含 JSON 证据）
+- 快捷键：`N`（下一步）/ `R`（全流程）/ `E`（切到 Engineering）
 
 补充：
 
@@ -418,12 +424,15 @@ sequenceDiagram
 - `POST /events/{event_id}/close` 在结算前关闭事件
 - `POST /proofs` 提交站点履约
 - `POST /settle/{event_id}` 触发结算
+- `POST /claim/{event_id}/{site_id}` 触发站点领取结算结果
 - `GET /events/{event_id}` 查询事件状态
 - `GET /events/{event_id}/records` 查询结算明细
 - `GET /audit/{event_id}/{site_id}` 校验 proof hash 一致性
+- `GET /judge/{event_id}/summary` 查询评委视角聚合摘要
+- `GET /healthz` 服务健康检查
 - `GET /system/chain-mode` 输出当前链执行模式
 
-## 7. 前端（最小页面）
+## 7. 前端（Mission Cockpit）
 
 当前前端采用“暗色指挥舱 + 跑道路演态”结构，主目标是让评委在 3 分钟内看懂闭环状态：
 
@@ -435,6 +444,7 @@ sequenceDiagram
 - `create -> proofs -> close -> settle -> claim -> audit`
 - 每一步有 `pending / in-progress / done / error` 状态
 - 当前步骤带跑道流光效果；`Camera Mode` 会自动聚焦当前步骤
+- Health 仅由主流程步骤判定（查询/快照动作不会覆盖主流程健康度）
 
 3. KPI Grid（核心结果）
 - Status、Proof Coverage、Total Payout、Claim(site-a)、Audit Match、Latency
@@ -444,7 +454,7 @@ sequenceDiagram
 - Proof A / Proof B 对比摘要
 - Audit hash 摘要（on-chain vs recomputed）
 - One-Line Story（<=120 字符）
-- 可一键 `Copy Judge Snapshot` 输出“简版摘要 + JSON证据”
+- 可一键 `Copy Judge Snapshot`：Story/Ops 输出简版摘要；Engineering 输出全量（含 JSON 证据）
 
 5. Technical Evidence（折叠日志）
 - 默认可折叠，点击 `View Technical Evidence` 查看原始 JSON
@@ -452,6 +462,14 @@ sequenceDiagram
 
 6. Theme 与舞台模式
 - 默认 `Cobalt`（可读性优先），可切换 `Neon`（舞台冲击力优先）
+
+7. 演示快捷键
+- `N`：执行下一步（Execute Next Step）
+- `R`：自动全流程（Auto Run Full Flow）
+- `E`：切换到 Engineering 模式
+
+8. `Auto Run Full Flow` 实际执行顺序
+- `createEvent -> submitProof(site-a) -> submitProof(site-b) -> closeEvent -> settleEvent -> claim(site-a) -> getEvent -> getRecords -> getAudit`
 
 ### 7.1 扩展到产品级的计划
 
