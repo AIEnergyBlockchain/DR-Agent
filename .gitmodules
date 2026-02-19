@@ -1,3 +1,4 @@
 [submodule "guide"]
 	path = guide
 	url = https://github.com/AIEnergyBlockchain/guide
+	branch = main

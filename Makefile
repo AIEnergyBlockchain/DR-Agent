@@ -7,7 +7,8 @@
 # ==========================================
 
 # --- CONSTANTS (常量定义) ---
-SUB_PATH = guide  # 改成你真实的文件夹名
+# 子模块目录
+SUB_PATH = guide
 MAIN_BRANCH = main
 SECRETS_FILE ?= $(HOME)/.config/dr-agent/secrets.env
 SECRETS_DIR := $(dir $(SECRETS_FILE))
@@ -15,7 +16,7 @@ RUN_WITH_SECRETS = DR_SECRETS_FILE="$(SECRETS_FILE)" bash scripts/run_with_secre
 
 
 .PHONY: help \
-	up newup ship sup fullpr sync new \
+	up newup ship sup fullpr-sub fullpr-main sync sync-sub-main new branch-check \
 	secrets-init secrets-check api-run demo-run smoke-api-secrets deploy-fuji
 
 # 默认命令：输入 make 就会显示帮助
@@ -25,6 +26,10 @@ help:
 	@echo "make sup msg='说明文字'         # 先同步子模块再同步主仓库"
 	@echo "make newup branch=名 msg='文字'  # 建新分支并推送"
 	@echo "make ship branch=名 msg='文字'   # 合并回main并删分支"
+	@echo "make fullpr-sub msg='说明文字'  # 第一步：仅提交子模块并创建子模块PR"
+	@echo "make fullpr-main msg='说明文字' # 第二步：子模块PR合并后，更新指针并创建主仓库PR"
+	@echo "make sync                        # 同步到主仓库记录的子模块提交(可复现)"
+	@echo "make sync-sub-main               # 强制拉子模块main最新(会产生gitlink差异)"
 	@echo ""
 	@echo "--- 外置 secrets（推荐） ---"
 	@echo "make secrets-init               # 在工作区外创建 secrets 文件"
@@ -118,66 +123,105 @@ sup:
 		$(MAKE) up msg="chore: sync submodule - $(msg)"; \
 	fi
 
-# 5. 分支版：必须在非 main 且主/子模块同名分支才能提交
-fullpr:
+# 5. 分支安全检查：主/子模块必须同名且非 main，且子模块不能是 detached HEAD
+branch-check:
+	@set -eu; \
+		main_branch=$$(git branch --show-current); \
+		sub_branch=$$(git -C $(SUB_PATH) branch --show-current); \
+		if [ -z "$$main_branch" ]; then \
+			echo "Error: 主仓库当前不是有效分支(可能是 detached HEAD)。"; exit 1; \
+		fi; \
+		if [ -z "$$sub_branch" ]; then \
+			echo "Error: 子模块 $(SUB_PATH) 当前是 detached HEAD。"; \
+			echo "请先切到同名功能分支，例如: git -C $(SUB_PATH) switch -c $$main_branch"; exit 1; \
+		fi; \
+		if [ "$$main_branch" = "$(MAIN_BRANCH)" ] || [ "$$sub_branch" = "$(MAIN_BRANCH)" ]; then \
+			echo "Error: 禁止在 $(MAIN_BRANCH) 分支直接修改/提PR。"; exit 1; \
+		fi; \
+		if [ "$$main_branch" != "$$sub_branch" ]; then \
+			echo "Error: 分支不一致: main=$$main_branch submodule=$$sub_branch"; exit 1; \
+		fi; \
+		echo ">>> [OK] 分支检查通过: $$main_branch"
+
+# 6. 第一步：仅提子模块 PR
+fullpr-sub: branch-check
 	@if [ -z "$(msg)" ]; then \
-		echo "Error: 必须指定 msg='...' (例如: make fullpr msg='完成演示代码')"; exit 1; \
+		echo "Error: 必须指定 msg='...' (例如: make fullpr-sub msg='close-loop demo')"; exit 1; \
 	fi
-	
-	@# 1. 自动探测分支并锁定
-	$(eval CUR_BRANCH := $(shell git rev-parse --abbrev-ref HEAD))
-	$(eval CUR_SUB_BRANCH := $(shell cd $(SUB_PATH) && git rev-parse --abbrev-ref HEAD))
-	
-	@# 2. 安全检查：禁止在 main 执行
-	@if [ "$(CUR_BRANCH)" = "$(MAIN_BRANCH)" ] || [ "$(CUR_SUB_BRANCH)" = "$(MAIN_BRANCH)" ]; then \
-		echo "Error: 严禁在 $(MAIN_BRANCH) 分支直接提交 PR。"; \
-		echo "请先手动切至功能分支 (如: git checkout -b feature/demo)"; exit 1; \
+	@set -eu; \
+		work_branch=$$(git branch --show-current); \
+		echo ">>> [1/2] 提交并推送子模块分支: $$work_branch"; \
+		git -C $(SUB_PATH) add -A; \
+		if ! git -C $(SUB_PATH) diff --cached --quiet; then \
+			git -C $(SUB_PATH) commit -m "[guide][$$work_branch] $(msg)"; \
+		else \
+			echo ">>> 子模块无新增变更，跳过提交"; \
+		fi; \
+		git -C $(SUB_PATH) push -u origin "$$work_branch"; \
+		if command -v gh >/dev/null 2>&1; then \
+			(cd $(SUB_PATH) && gh pr create --title "[guide][$$work_branch] $(msg)" --body "Auto-created by make fullpr-sub." --base $(MAIN_BRANCH) --head "$$work_branch") || \
+			echo ">>> 子模块 PR 已存在或创建失败（可手动处理）"; \
+		else \
+			echo ">>> 未检测到 gh，跳过子模块 PR 创建"; \
+		fi; \
+		echo ">>> [2/2] 下一步：等待 guide PR 合并到 main，然后执行 make fullpr-main msg='$(msg)'。"
+
+# 7. 第二步：子模块 PR 合并后，更新主仓库子模块指针并提主仓库 PR
+fullpr-main: branch-check
+	@if [ -z "$(msg)" ]; then \
+		echo "Error: 必须指定 msg='...' (例如: make fullpr-main msg='bump guide pointer')"; exit 1; \
 	fi
-	@if [ "$(CUR_BRANCH)" != "$(CUR_SUB_BRANCH)" ]; then \
-		echo "Error: 主仓库分支($(CUR_BRANCH))与子模块分支($(CUR_SUB_BRANCH))不一致。"; \
-		echo "请先对齐为同名非 main 分支后再执行 fullpr。"; exit 1; \
-	fi
-	
-	@echo ">>> [探测成功] 准备提交分支: $(CUR_BRANCH) | 提交信息: $(msg)"
-	
-	@# 3. 处理子模块
-	@cd $(SUB_PATH) && \
-		git add -A && \
-		(if ! git diff --cached --quiet; then \
-			git commit -m "[Submodule] $(msg)" && \
-			git push origin $(CUR_SUB_BRANCH) && \
-			gh pr create --title "[Submodule] $(msg)" --body "Automated" --base $(MAIN_BRANCH) || echo "PR已存在"; \
-		else echo ">>> 子模块无变更"; fi)
+	@set -eu; \
+		work_branch=$$(git branch --show-current); \
+		echo ">>> [1/3] 拉取子模块远端 main，并快进当前同名分支到最新 main..."; \
+		git -C $(SUB_PATH) fetch origin $(MAIN_BRANCH); \
+		git -C $(SUB_PATH) merge --ff-only origin/$(MAIN_BRANCH) || { \
+			echo "Error: 子模块分支无法 fast-forward 到 origin/$(MAIN_BRANCH)。"; \
+			echo "请先处理 guide 分支历史，再重试 make fullpr-main。"; \
+			exit 1; \
+		}; \
+		echo ">>> [2/3] 提交并推送主仓库子模块指针更新..."; \
+		git add $(SUB_PATH); \
+		if git diff --cached --quiet; then \
+			echo ">>> 主仓库无子模块指针变化。若你预期有变化，请确认 guide PR 已合并。"; \
+		else \
+			git commit -m "[main][$$work_branch] $(msg)"; \
+			git push -u origin "$$work_branch"; \
+			if command -v gh >/dev/null 2>&1; then \
+				gh pr create --title "[main][$$work_branch] $(msg)" --body "Bump $(SUB_PATH) to latest merged $(MAIN_BRANCH)." --base $(MAIN_BRANCH) --head "$$work_branch" || \
+				echo ">>> 主仓库 PR 已存在或创建失败（可手动处理）"; \
+			else \
+				echo ">>> 未检测到 gh，跳过主仓库 PR 创建"; \
+			fi; \
+		fi; \
+		echo ">>> [3/3] 完成。主仓库 PR 合并后执行 make sync 对齐本地集成态。"
 
-	@# 4. 处理主仓库
-	@git add -A && \
-		(if ! git diff --cached --quiet; then \
-			git commit -m "[Main] $(msg)" && \
-			git push origin $(CUR_BRANCH) && \
-			gh pr create --title "[Main] $(msg)" --body "Automated" --base $(MAIN_BRANCH) || echo "PR已存在"; \
-		else echo ">>> 主仓库无变更"; fi)
-
-	@# 5. 提交完成后仅切回 main（不 pull，等待手动合并 PR 后再拉取）
-	@echo ">>> [收尾] 切回主仓库与子模块到 $(MAIN_BRANCH)（不执行 pull）..."
-	@git checkout $(MAIN_BRANCH)
-	@git submodule foreach 'git checkout $(MAIN_BRANCH)'
-	@echo ">>> 已切回 $(MAIN_BRANCH)；请在手动 merge PR 后再执行 pull/sync。"
-
-# 6. 同时拉取主子仓库 main 分支并更新
+# 7. 同步到主仓库记录的子模块提交（可复现，子模块 detached HEAD 是正常状态）
 sync:
-	@echo ">>> [1/2] 正在同步主仓库至 $(MAIN_BRANCH)..."
-	@git checkout $(MAIN_BRANCH)
-	@git pull origin $(MAIN_BRANCH)
+	@echo ">>> [1/3] 正在同步主仓库至 $(MAIN_BRANCH)..."
+	@git switch $(MAIN_BRANCH)
+	@git pull --ff-only origin $(MAIN_BRANCH)
 	
-	@echo ">>> [2/2] 正在确保所有子模块严格对齐主仓库指针..."
-	@# 关键点：不让子模块自行 checkout/reset 到 origin/main，避免产生 gitlink 漂移
+	@echo ">>> [2/3] 正在确保子模块对齐主仓库记录提交..."
+	@# 注意：此模式追求可复现；子模块会处于 detached HEAD（正常）
 	@git submodule sync --recursive
-	@git submodule update --init --recursive --force
+	@git submodule update --init --recursive --checkout --force
 	
-	@echo ">>> 同步完成！子模块已与主仓库记录的提交对齐。"
+	@echo ">>> [3/3] 同步完成（集成态）。如需强制拉子模块 main 最新，请执行 make sync-sub-main。"
 	@git status
 
-# 7. 一键开启新任务：主子模块同步切分支
+# 8. 强制拉取主仓库 main + 子模块 main 最新（用于子模块独立开发）
+# 注意：如果子模块 main 领先主仓库 gitlink，会让主仓库出现 guide 指针变化
+sync-sub-main:
+	@echo ">>> [1/3] 同步主仓库 $(MAIN_BRANCH)..."
+	@git switch $(MAIN_BRANCH)
+	@git pull --ff-only origin $(MAIN_BRANCH)
+	@echo ">>> [2/3] 同步子模块 $(MAIN_BRANCH)..."
+	@git -C $(SUB_PATH) switch $(MAIN_BRANCH)
+	@git -C $(SUB_PATH) pull --ff-only origin $(MAIN_BRANCH)
+	@echo ">>> [3/3] 完成。若主仓库出现 guide 变更，可 git add guide 后提交 bump 指针。"
+
+# 9. 一键开启新任务：主子模块同步切分支
 # 用法: make new branch=feature/your-task-name
 new:
 	@if [ -z "$(branch)" ]; then \
@@ -187,9 +231,18 @@ new:
 	@$(MAKE) sync
 	
 	@echo ">>> [2/3] 正在主仓库创建并切换至分支: $(branch)"
-	@git checkout -b $(branch)
+	@if git show-ref --verify --quiet refs/heads/$(branch); then \
+		git switch $(branch); \
+	else \
+		git switch -c $(branch); \
+	fi
 	
 	@echo ">>> [3/3] 正在子模块创建并切换至分支: $(branch)"
-	@cd $(SUB_PATH) && git checkout -b $(branch)
+	@cd $(SUB_PATH) && \
+	if git show-ref --verify --quiet refs/heads/$(branch); then \
+		git switch $(branch); \
+	else \
+		git switch -c $(branch); \
+	fi
 	
 	@echo ">>> [OK] 准备就绪！你现在处于 $(branch) 分支，可以开始开发了。"
