@@ -17,7 +17,7 @@ RUN_WITH_SECRETS = DR_SECRETS_FILE="$(SECRETS_FILE)" bash scripts/run_with_secre
 
 .PHONY: help \
 	up newup ship sup fullpr-sub fullpr-main sync sync-sub-main new branch-check \
-	secrets-init secrets-check api-run demo-run smoke-api-secrets deploy-fuji
+	secrets-init secrets-check api-run demo-run smoke-api-secrets deploy-fuji evidence-judge
 
 # 默认命令：输入 make 就会显示帮助
 help:
@@ -38,6 +38,7 @@ help:
 	@echo "make demo-run                   # 使用外置 secrets 执行闭环演示"
 	@echo "make smoke-api-secrets          # 使用外置 secrets 执行 API 冒烟"
 	@echo "make deploy-fuji                # 使用外置 secrets 部署 Fuji"
+	@echo "make evidence-judge             # 生成评委提交证据包（Markdown）"
 
 # 外置 secrets：在工作区外创建 secrets 文件（默认 ~/.config/dr-agent/secrets.env）
 secrets-init:
@@ -71,6 +72,10 @@ smoke-api-secrets:
 # 使用外置 secrets 部署 Fuji
 deploy-fuji:
 	@$(RUN_WITH_SECRETS) npx hardhat run scripts/deploy_fuji.ts --network fuji
+
+# 生成评委证据包（从部署报告生成 Markdown）
+evidence-judge:
+	@python3 scripts/build_judge_evidence_bundle.py
 
 # 1. 基础提交
 up:

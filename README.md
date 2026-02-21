@@ -18,7 +18,7 @@
 - [6. Business Model (MVP Stage)](#6-business-model-mvp-stage)
 - [7. Competition and Differentiation](#7-competition-and-differentiation)
 - [8. Risks and Mitigations](#8-risks-and-mitigations)
-- [9. Suggested Milestones](#9-suggested-milestones)
+- [9. Completed Progress and Next Milestones (Weekly)](#9-completed-progress-and-next-milestones-weekly)
 - [10. Why This Builder](#10-why-this-builder)
 
 ### Technical Manual
@@ -33,7 +33,7 @@
 - [6. API (FastAPI)](#6-api-fastapi)
 - [7. Frontend (Mission Cockpit)](#7-frontend-mission-cockpit)
 - [7.1 Product-Grade Expansion Plan](#71-product-grade-expansion-plan)
-- [8. 6-Week Development Plan](#8-6-week-development-plan)
+- [8. Completed Progress and Weekly Plan](#8-completed-progress-and-weekly-plan)
 - [9. Test Checklist](#9-test-checklist)
 - [10. Security and Scope Boundaries](#10-security-and-scope-boundaries)
 - [11. Demo and Deployment Assets](#11-demo-and-deployment-assets)
@@ -132,11 +132,18 @@ One sentence:
 
 - Template-based rule engine; start with one jurisdiction MVP.
 
-## 9. Suggested Milestones
+## 9. Completed Progress and Next Milestones (Weekly)
 
-- Week 1: event model + settlement contracts + basic UI
-- Week 2: proof pipeline and automated scoring
-- Week 3: end-to-end stress testing and demo hardening
+Completed (as of 2026-02-21):
+- Core loop is running end-to-end: `create -> proofs -> close -> settle -> claim -> audit`
+- Contract suite remains stable (`15 passing`)
+- Frontend modes, bilingual toggle, snapshot export, and chart-based readouts are in place
+
+Next milestones (weekly):
+- Week 1: move tx reconciliation to worker and keep `/judge/summary` as pure DB read
+- Week 2: connect baseline inference to default proof generation and return model metadata
+- Week 3: ship `GET /agent/next-action` and drive next-step execution from agent decisions
+- Week 4: add `agent_decision_log` + offline replay evaluation and export machine-readable evidence
 
 ## 10. Why This Builder
 
@@ -206,6 +213,32 @@ Step 5: run walkthrough flow (new terminal)
 make demo-run
 ```
 
+For live Fuji demo (default: full dual-site loop + hybrid confirmation), use:
+
+```bash
+export DR_CHAIN_MODE=fuji-live
+export DR_TX_CONFIRM_MODE=hybrid
+export DR_DEMO_SITE_MODE=dual
+make demo-run
+# or
+npm run demo:walkthrough:live
+```
+
+If you need temporary lower faucet AVAX burn, switch to:
+
+```bash
+export DR_DEMO_SITE_MODE=single
+make demo-run
+```
+
+After demo, generated tx hashes are available at:
+
+- summary: `cache/demo-tx-<event_id>.json`
+- evidence: `cache/demo-evidence-<event_id>.json`
+- step raw responses: `cache/demo-raw-<event_id>/`
+- local db tables: `cache/dr_agent.db` in `events/proofs/settlements`
+- live evidence markdown (internal archive under `guide/`, auto-generated in Fuji mode)
+
 Step 6: launch Mission Cockpit UI (optional)
 
 ```bash
@@ -216,8 +249,9 @@ npm run frontend:serve
 Mission Cockpit quick checks:
 
 - Mode switch: `Story / Ops / Engineering`
+- Language toggle: `EN / 中文` (default `EN`, persisted via `localStorage['dr_lang']`)
 - Primary actions: `Execute Next Step`, `Auto Run Full Flow`
-- Judge deck includes `Proof A vs Proof B`, `One-Line Story`, and `Agent Insight`
+- Review deck includes `Proof A vs Proof B`, `One-Line Story`, and `Agent Insight`
 - Stage controls: `Theme: Cobalt/Neon`, `Camera Mode`, `Judge Mode`
 - Snapshot export behavior: Story/Ops copy brief summary; Engineering copies full snapshot (with JSON evidence)
 - Keyboard shortcuts: `N` (next step), `R` (run full flow), `E` (switch to Engineering)
@@ -232,6 +266,7 @@ Notes:
 - API smoke script: `npm run smoke:api`
 - Full Python dependencies (including Prophet): `npm run setup:python`
 - Fuji deploy with external secrets: `make deploy-fuji`
+- For live-demo mode confirmation: `curl http://127.0.0.1:8000/system/chain-mode` (includes `tx_confirm_mode`)
 
 ## 0.1 Project Structure
 
@@ -242,9 +277,17 @@ scripts/                   # setup, demo, smoke, and deployment scripts
 test/                      # contract tests (Hardhat)
 tests/                     # API/integration tests (pytest)
 frontend/                  # minimal demo UI shell
-guide/                     # walkthrough, reproducibility, and judge-facing docs
-docs/adr/                  # architecture decision records (ADR)
+docs/module-design/        # module architecture design docs (main repository)
+docs/adr/                  # architecture decision records (main repository)
+resources/                 # reference resources and source materials
+guide/                     # internal documentation module (NOT for external submission)
 ```
+
+Documentation boundary:
+
+- External-facing materials should be limited to repository code + reproducible commands + generated artifacts under `cache/` + `docs/module-design/`.
+- `docs/adr/` and `resources/` are engineering reference materials for architecture context and source study.
+- Anything under `guide/` is internal working documentation and should not be exposed in external review packets.
 
 ## 1. Development Goal
 
@@ -422,6 +465,13 @@ Modules:
 4. `submitter.py`: orchestrate proof and settlement writes (MVP simulated tx mode)
 5. `scorer.py`: settlement trigger at event end
 
+Mode notes:
+
+- `DR_CHAIN_MODE=simulated` (default): API returns simulated tx hashes.
+- `DR_CHAIN_MODE=fuji-live` (or `fuji`): API submits real Fuji transactions and returns real tx hashes.
+- `DR_TX_CONFIRM_MODE=hybrid` (default): write APIs return quickly with `tx_state=submitted`, then backfill `tx_fee_wei/tx_confirmed_at`.
+- `DR_TX_CONFIRM_MODE=sync`: each write waits for receipt and returns confirmed fee immediately.
+
 ## 6. API (FastAPI)
 
 - `POST /events` create event
@@ -432,19 +482,20 @@ Modules:
 - `GET /events/{event_id}` query event state
 - `GET /events/{event_id}/records` query settlement details
 - `GET /audit/{event_id}/{site_id}` verify proof hash consistency
-- `GET /judge/{event_id}/summary` query aggregated judge-facing summary
+- `GET /judge/{event_id}/summary` query aggregated review summary
 - `GET /healthz` service health probe
-- `GET /system/chain-mode` expose runtime chain execution mode
+- `GET /system/chain-mode` expose runtime chain mode + tx confirm mode + demo site mode + required proof sites
 
 ## 7. Frontend (Mission Cockpit)
 
-The frontend is a judge-first `Mission Cockpit`, replacing the old multi-page split with one narrative surface.
+The frontend is a demo-first `Mission Cockpit`, replacing the old multi-page split with one narrative surface.
 
 1. Story Mode (default)
 
 - Mission command hero with a single primary CTA: `Execute Next Step`
 - Secondary CTA: `Auto Run Full Flow` for full-path demo automation
 - Story KPI row: Energy Reduction, Total Payout, Audit Confidence, Agent Thinking
+- Built-in language switch: `EN / 中文` (English default for live demos; Chinese for local walkthrough)
 
 2. Ops Mode
 
@@ -458,12 +509,13 @@ The frontend is a judge-first `Mission Cockpit`, replacing the old multi-page sp
 - Technical Evidence panel with raw JSON logs for verification
 - Full snapshot export including JSON evidence
 
-Judge-facing evidence deck:
+Review evidence deck:
 
 - `Proof A vs Proof B` comparison
 - `Audit Anchor` hash summary (on-chain vs recomputed)
 - `One-Line Story` (<=120 chars)
 - `Agent Insight` (headline + reason + impact)
+- Live tx status semantics: `submitted / confirmed / failed` are visible in KPI hints and technical logs
 
 Keyboard shortcuts:
 
@@ -473,7 +525,7 @@ Keyboard shortcuts:
 
 `Auto Run Full Flow` execution order:
 
-- `createEvent -> submitProof(site-a) -> submitProof(site-b) -> closeEvent -> settleEvent -> claim(site-a) -> getEvent -> getRecords -> getAudit`
+- `createEvent -> submitProof(site-a) -> submitProof(site-b) -> closeEvent -> settleEvent -> claim(site-a) -> getAudit`
 
 ### 7.1 Product-Grade Expansion Plan
 
@@ -497,34 +549,45 @@ Keyboard shortcuts:
 - Add end-to-end tests for event creation, proof submission, settlement, and audit.
 - Complete release checklist before demo or production rollout.
 
-## 8. 6-Week Development Plan
+## 8. Completed Progress and Weekly Plan
 
-### Week 1
+### Completed progress (as of 2026-02-21)
 
-- Build 3 core contracts + unit tests
+1. End-to-end MVP loop is running:
+- `create -> proofs -> close -> settle -> claim -> audit`
+- Contract tests remain green (`15 passing`).
 
-### Week 2
+2. Live-chain demo capability is available:
+- `DR_CHAIN_MODE=fuji-live` supports real Fuji transactions.
+- Tx status model (`submitted/confirmed/failed`) and evidence outputs are wired.
 
-- Run local flow: createEvent -> submitProof -> closeEvent -> settle
-- Contract integration tests
+3. Mission Cockpit has reached demo-ready usability:
+- `Story / Ops / Engineering` modes
+- `Execute Next Step` / `Auto Run Full Flow`
+- EN/中文 switching with persistence
+- Dynamic KPI/evidence rendering and snapshot export
 
-### Week 3
+4. Baseline/payout visual evidence has been added to Story flow:
+- Baseline vs Actual chart
+- Payout breakdown chart
 
-- Wrap chain interactions with FastAPI
+### Upcoming weekly plan
 
-### Week 4
+1. Week 1 (stability and responsiveness)
+- Move pending tx reconciliation fully into background worker path.
+- Keep `/judge/{event_id}/summary` as pure DB read and reduce tail latency.
 
-- Integrate frontend query/trigger actions
-- Simulate 2-3 site datasets
+2. Week 2 (AI inference integration)
+- Connect baseline inference into proof generation path by default.
+- Return and persist `baseline_method`, `baseline_model_version`, `baseline_confidence`.
 
-### Week 5
+3. Week 3 (AI agent decision loop)
+- Add `GET /agent/next-action` (action/reason/confidence/fallback_action).
+- Route `Execute Next Step` through agent decision output instead of fixed sequence.
 
-- Add exception scenarios (late proof, missing data, under-performance)
-
-### Week 6
-
-- End-to-end stress test
-- Harden demo script and recording flow
+4. Week 4 (decision observability and quality)
+- Add `agent_decision_log` and offline replay evaluation (hit rate/fallback rate/error rate).
+- Export machine-readable decision evidence bundle.
 
 ## 9. Test Checklist
 
@@ -575,25 +638,34 @@ Keyboard shortcuts:
 - API setup script: `scripts/setup_python_env.sh`
 - API smoke script: `scripts/smoke_api_flow.py`
 - Fuji deployment script: `scripts/deploy_fuji.ts`
-- Walkthrough doc: `guide/docs/DR-Agent-Walkthrough-2026-02-17.md`
-- Fuji deployment record: `guide/docs/Fuji-Deployment-Record-2026-02-17.md`
-- Fuji deployment record template: `guide/docs/Fuji-Deployment-Record-Template.md`
-- Reproducibility runbook: `guide/docs/DR-Agent-Reproducibility-Runbook-2026-02-17.md`
-- ADR record: `docs/adr/0001-record-architecture-decisions.md`
+- Evidence bundle script: `scripts/build_judge_evidence_bundle.py`
+- Generated demo tx summary: `cache/demo-tx-<event_id>.json`
+- Generated demo evidence summary: `cache/demo-evidence-<event_id>.json`
+- Generated step raw responses: `cache/demo-raw-<event_id>/`
+- Module architecture docs (main repository): `docs/module-design/`
+- Architecture decisions (main repository): `docs/adr/`
+- Source/reference resources (main repository): `resources/`
+- Internal documentation module (not external): `guide/`
 
 ## 11.1 Testnet Contract Evidence
 
 Status:
-- Blocked in current environment because `PRIVATE_KEY` and Fuji test AVAX are not configured.
-- Deployment evidence source: `cache/fuji-deployment-latest.json` (generated by `npm run deploy:fuji`).
+
+- Fuji deployment completed on `2026-02-20`.
+- Evidence source: `cache/fuji-deployment-latest.json` (internal markdown bundle archived in `guide/`).
 
 Current record:
 
-| Network | Contract | Explorer URL |
-| --- | --- | --- |
-| Fuji | Pending real deployment | Pending real deployment |
+| Network | Item                     | Value                                                                | Explorer URL                                                                                       |
+| ------- | ------------------------ | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Fuji    | Deployer                 | `0xdC1DE25053196bb72e09db43EE34181D1e65cF0A`                         | -                                                                                                  |
+| Fuji    | EventManager             | `0x388C76A617d67137CCF91A3C9B48c0779502484c`                         | https://testnet.snowtrace.io/address/0x388C76A617d67137CCF91A3C9B48c0779502484c                    |
+| Fuji    | ProofRegistry            | `0x05689d6aa1f83ed4854EA0F84f7f96B48133750D`                         | https://testnet.snowtrace.io/address/0x05689d6aa1f83ed4854EA0F84f7f96B48133750D                    |
+| Fuji    | Settlement               | `0x69512B18109BA25Df3A5cA27d30521EE60b7a787`                         | https://testnet.snowtrace.io/address/0x69512B18109BA25Df3A5cA27d30521EE60b7a787                    |
+| Fuji    | setSettlementContract tx | `0xaffbb344ecfec8601313ec452e857f31346c72c5ba0a1e6b6166315b38a2831f` | https://testnet.snowtrace.io/tx/0xaffbb344ecfec8601313ec452e857f31346c72c5ba0a1e6b6166315b38a2831f |
 
-How to complete:
-1. Configure `PRIVATE_KEY` and prepare Fuji test AVAX.
-2. Run `npm run deploy:fuji`.
-3. Copy real addresses from `cache/fuji-deployment-latest.json` into the table above and link Snowtrace URLs.
+Maintenance flow:
+
+1. Re-deploy when needed with `npm run deploy:fuji`.
+2. Rebuild evidence bundle with `npm run evidence:judge`.
+3. Keep this table in sync with generated cache artifacts; update internal docs in `guide/` only as needed.

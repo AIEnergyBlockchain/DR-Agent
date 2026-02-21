@@ -40,6 +40,18 @@ class EventDTO(BaseModel):
     reward_rate: int
     penalty_rate: int
     status: Literal["active", "closed", "settled"]
+    tx_hash: str | None = None
+    tx_fee_wei: str | None = None
+    tx_state: Literal["submitted", "confirmed", "failed"] | None = None
+    tx_submitted_at: str | None = None
+    tx_confirmed_at: str | None = None
+    tx_error: str | None = None
+    close_tx_hash: str | None = None
+    close_tx_fee_wei: str | None = None
+    close_tx_state: Literal["submitted", "confirmed", "failed"] | None = None
+    close_tx_submitted_at: str | None = None
+    close_tx_confirmed_at: str | None = None
+    close_tx_error: str | None = None
 
 
 class ProofDTO(BaseModel):
@@ -51,6 +63,12 @@ class ProofDTO(BaseModel):
     proof_hash: str
     uri: str
     submitted_at: str
+    tx_hash: str | None = None
+    tx_fee_wei: str | None = None
+    tx_state: Literal["submitted", "confirmed", "failed"] | None = None
+    tx_submitted_at: str | None = None
+    tx_confirmed_at: str | None = None
+    tx_error: str | None = None
 
 
 class SettlementDTO(BaseModel):
@@ -60,6 +78,17 @@ class SettlementDTO(BaseModel):
     status: Literal["settled", "claimed"]
     settled_at: str
     tx_hash: str
+    tx_fee_wei: str | None = None
+    tx_state: Literal["submitted", "confirmed", "failed"] | None = None
+    tx_submitted_at: str | None = None
+    tx_confirmed_at: str | None = None
+    tx_error: str | None = None
+    claim_tx_hash: str | None = None
+    claim_tx_fee_wei: str | None = None
+    claim_tx_state: Literal["submitted", "confirmed", "failed"] | None = None
+    claim_tx_submitted_at: str | None = None
+    claim_tx_confirmed_at: str | None = None
+    claim_tx_error: str | None = None
 
 
 class AuditDTO(BaseModel):
@@ -88,6 +117,10 @@ class JudgeSummaryDTO(BaseModel):
     claim_site_a_status: str
     audit_requested: bool
     audit_match: bool | None = None
+    tx_pipeline_total: int = Field(ge=0)
+    tx_pipeline_submitted: int = Field(ge=0)
+    tx_pipeline_confirmed: int = Field(ge=0)
+    tx_pipeline_failed: int = Field(ge=0)
     last_transition_at: str | None = None
     created_at: str | None = None
     closed_at: str | None = None

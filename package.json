@@ -13,7 +13,10 @@
     "smoke:api": "python3 scripts/smoke_api_flow.py",
     "frontend:serve": "python3 -m http.server 4173 --directory frontend",
     "demo:walkthrough": "bash scripts/demo_walkthrough.sh",
-    "deploy:fuji": "hardhat run scripts/deploy_fuji.ts --network fuji"
+    "demo:walkthrough:live": "DR_CHAIN_MODE=fuji-live DR_TX_CONFIRM_MODE=hybrid DR_DEMO_SITE_MODE=dual bash scripts/demo_walkthrough.sh",
+    "deploy:fuji": "bash scripts/run_with_secrets.sh npx hardhat run scripts/deploy_fuji.ts --network fuji",
+    "deploy:fuji:raw": "hardhat run scripts/deploy_fuji.ts --network fuji",
+    "evidence:judge": "python3 scripts/build_judge_evidence_bundle.py"
   },
   "repository": {
     "type": "git",

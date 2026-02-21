@@ -60,6 +60,30 @@ def _service(request: Request) -> SubmitterService:
     return request.app.state.submitter
 
 
+def _chain_mode() -> str:
+    return os.getenv("DR_CHAIN_MODE", "simulated")
+
+
+def _tx_confirm_mode() -> str:
+    mode = os.getenv("DR_TX_CONFIRM_MODE", "hybrid").strip().lower()
+    if mode in {"sync", "hybrid"}:
+        return mode
+    return "hybrid"
+
+
+def _required_sites(chain_mode: str) -> list[str]:
+    configured = os.getenv("DR_REQUIRED_SITES", "").strip()
+    if configured:
+        values = [value.strip() for value in configured.split(",") if value.strip()]
+        if values:
+            return values
+
+    demo_site_mode = os.getenv("DR_DEMO_SITE_MODE", "").strip().lower()
+    if demo_site_mode == "single":
+        return ["site-a"]
+    return ["site-a", "site-b"]
+
+
 def create_app(db_path: str | None = None) -> FastAPI:
     app = FastAPI(title="DR Agent API", version="0.1.0")
     app.state.submitter = SubmitterService(db_path=db_path)
@@ -88,7 +112,11 @@ def create_app(db_path: str | None = None) -> FastAPI:
             retryable=exc.retryable,
             details=exc.details,
         )
-        payload = envelope.model_dump() if hasattr(envelope, "model_dump") else envelope.dict()
+        payload = (
+            envelope.model_dump()
+            if hasattr(envelope, "model_dump")
+            else envelope.dict()
+        )
         return JSONResponse(status_code=exc.status_code, content=payload)
 
     @app.get("/")
@@ -102,9 +130,13 @@ def create_app(db_path: str | None = None) -> FastAPI:
 
     @app.get("/healthz")
     def healthz():
+        mode = _chain_mode()
         return {
             "status": "ok",
-            "mode": os.getenv("DR_CHAIN_MODE", "simulated"),
+            "mode": mode,
+            "tx_confirm_mode": _tx_confirm_mode(),
+            "demo_site_mode": os.getenv("DR_DEMO_SITE_MODE", "dual"),
+            "required_sites": _required_sites(mode),
         }
 
     @app.post("/events", response_model=EventDTO)
@@ -180,7 +212,13 @@ def create_app(db_path: str | None = None) -> FastAPI:
     def get_chain_mode(
         _role: str = Depends(_require_role("operator", "participant", "auditor")),
     ):
-        return {"mode": os.getenv("DR_CHAIN_MODE", "simulated")}
+        mode = _chain_mode()
+        return {
+            "mode": mode,
+            "tx_confirm_mode": _tx_confirm_mode(),
+            "demo_site_mode": os.getenv("DR_DEMO_SITE_MODE", "dual"),
+            "required_sites": _required_sites(mode),
+        }
 
     @app.get("/judge/{event_id}/summary", response_model=JudgeSummaryDTO)
     def get_judge_summary(
@@ -188,7 +226,9 @@ def create_app(db_path: str | None = None) -> FastAPI:
         _role: str = Depends(_require_role("operator", "participant", "auditor")),
         svc: SubmitterService = Depends(_service),
     ):
-        return svc.get_judge_summary(event_id=event_id, network_mode=os.getenv("DR_CHAIN_MODE", "simulated"))
+        return svc.get_judge_summary(
+            event_id=event_id, network_mode=_chain_mode()
+        )
 
     return app
 

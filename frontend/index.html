@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>DR Agent Mission Cockpit</title>
+    <title data-i18n="page.title">DR Agent Mission Cockpit</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -17,34 +17,34 @@
 
     <main class="cockpit">
       <header class="hero">
-        <p class="eyebrow">Avalanche Build Games | Judge Demo</p>
-        <h1>DR Agent Mission Cockpit</h1>
-        <p class="subtitle">Verifiable automated settlement for demand response events.</p>
+        <p class="eyebrow" data-i18n="hero.eyebrow">Avalanche Build Games | Judge Demo</p>
+        <h1 data-i18n="hero.title">DR Agent Mission Cockpit</h1>
+        <p class="subtitle" data-i18n="hero.subtitle">Verifiable automated settlement for demand response events.</p>
       </header>
 
       <section class="panel mission-strip reveal" style="--delay: 0.02s">
         <article class="mission-item">
-          <p class="label">Event</p>
+          <p class="label" data-i18n="mission.event">Event</p>
           <p id="missionEventId" class="value">-</p>
         </article>
-        <article class="mission-item">
-          <p class="label">Chain Mode</p>
+        <article class="mission-item mission-item-chain">
+          <p class="label" data-i18n="mission.chainMode">Chain Mode</p>
           <p id="missionChainMode" class="value">unknown</p>
         </article>
         <article class="mission-item">
-          <p class="label">Current Step</p>
+          <p class="label" data-i18n="mission.currentStep">Current Step</p>
           <p id="missionStep" class="value">Create</p>
         </article>
         <article class="mission-item">
-          <p class="label">Health</p>
+          <p class="label" data-i18n="mission.health">Health</p>
           <p id="missionHealth" class="status-chip pending">pending</p>
         </article>
-        <article class="mission-item">
-          <p class="label">Latency</p>
+        <article class="mission-item mission-item-latency">
+          <p class="label" data-i18n="mission.latency">Latency</p>
           <p id="missionLatency" class="value">--</p>
         </article>
         <article class="mission-item mission-progress">
-          <p class="label">Flow Progress</p>
+          <p class="label" data-i18n="mission.flowProgress">Flow Progress</p>
           <p id="flowProgressText" class="value">0 / 6 (0%)</p>
           <div class="progress-track" aria-hidden="true">
             <div id="flowProgressBar" class="progress-fill"></div>
@@ -53,78 +53,149 @@
       </section>
 
       <section class="panel mode-strip reveal" style="--delay: 0.04s">
-        <div class="mode-toggle" role="tablist" aria-label="Experience mode">
-          <button id="btnViewStory" class="mode-btn is-active" data-view="story" aria-selected="true">Story Mode</button>
-          <button id="btnViewOps" class="mode-btn" data-view="ops" aria-selected="false">Ops Mode</button>
-          <button id="btnViewEngineering" class="mode-btn" data-view="engineering" aria-selected="false">Engineering Mode</button>
+        <div class="mode-toggle" role="tablist" aria-label="Experience mode" data-i18n-attr="aria-label:mode.experience">
+          <button id="btnViewStory" class="mode-btn is-active" data-view="story" aria-selected="true" data-i18n="mode.story">Story Mode</button>
+          <button id="btnViewOps" class="mode-btn" data-view="ops" aria-selected="false" data-i18n="mode.ops">Ops Mode</button>
+          <button id="btnViewEngineering" class="mode-btn" data-view="engineering" aria-selected="false" data-i18n="mode.engineering">Engineering Mode</button>
+          <div class="lang-switch" data-i18n-attr="aria-label:mode.experience">
+            <button id="btnLangEn" class="mode-btn is-active" aria-pressed="true" data-i18n="lang.en">EN</button>
+            <button id="btnLangZh" class="mode-btn" aria-pressed="false" data-i18n="lang.zh">中文</button>
+          </div>
         </div>
-        <p id="modeHint" class="hint mode-hint">Story Mode focuses on one next action and business impact.</p>
+        <p id="modeHint" class="hint mode-hint" data-i18n="mode.hint.story">Story Mode focuses on one next action and business impact.</p>
       </section>
 
       <section id="storyHero" class="panel action-hero reveal" style="--delay: 0.06s">
         <div class="action-hero-main">
-          <p class="eyebrow">Mission Command</p>
+          <p class="eyebrow" data-i18n="story.command">Mission Command</p>
           <h2 id="heroTitle">Next Step: Create Event</h2>
           <p id="heroSubtitle" class="subtitle">Launch a demand response event to initialize the settlement loop.</p>
           <div class="hero-actions">
-            <button id="btnNextStep" class="btn btn-strong btn-main-cta">Execute Next Step</button>
-            <button id="btnRunAllHero" class="btn">Auto Run Full Flow</button>
+            <button id="btnNextStep" class="btn btn-strong btn-main-cta" data-i18n="action.next">Execute Next Step</button>
+            <button id="btnRunAllHero" class="btn" data-i18n="action.runAll">Auto Run Full Flow</button>
           </div>
         </div>
         <div class="story-kpi-row">
           <article class="story-kpi">
-            <p class="label">Energy Reduction</p>
+            <p class="label" data-i18n="story.energyReduction">Energy Reduction</p>
             <p id="storyEnergy" class="value">-- kWh</p>
           </article>
           <article class="story-kpi">
-            <p class="label">Total Payout</p>
+            <p class="label" data-i18n="story.totalPayout">Total Payout</p>
             <p id="storyPayout" class="value">0 DRT</p>
           </article>
           <article class="story-kpi">
-            <p class="label">Audit Confidence</p>
+            <p class="label" data-i18n="story.auditConfidence">Audit Confidence</p>
             <p id="storyAudit" class="value">Pending</p>
           </article>
           <article class="story-kpi story-insight">
-            <p class="label">Agent Thinking</p>
+            <p class="label" data-i18n="story.agentThinking">Agent Thinking</p>
             <p id="storyInsight" class="value">Waiting for mission data.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="visualInsights" class="panel visual-insights hidden reveal" style="--delay: 0.07s">
+        <div class="section-head">
+          <div class="section-head-main">
+            <h2 data-i18n="visual.title">Visual Insights</h2>
+            <p data-i18n="visual.subtitle">Charts appear as proof and settlement data arrives.</p>
+          </div>
+        </div>
+
+        <div id="visualEmpty" class="visual-empty">
+          <p id="visualEmptyText" data-i18n="visual.empty">Run proof submission to unlock baseline and payout charts.</p>
+        </div>
+
+        <div id="visualGrid" class="visual-grid hidden">
+          <article id="visualComparisonCard" class="visual-card">
+            <h3 data-i18n="visual.comparisonTitle">Baseline vs Actual</h3>
+
+            <div class="visual-site-row">
+              <div class="visual-site-head">
+                <span data-i18n="label.participantA">Participant A</span>
+                <span id="visSiteAReduction" class="mono">Reduction: --</span>
+              </div>
+              <div class="visual-metric">
+                <span data-i18n="visual.baseline">Baseline</span>
+                <div class="visual-track"><div id="visSiteABaselineBar" class="visual-fill baseline"></div></div>
+                <span id="visSiteABaselineText" class="mono">--</span>
+              </div>
+              <div class="visual-metric">
+                <span data-i18n="visual.actual">Actual</span>
+                <div class="visual-track"><div id="visSiteAActualBar" class="visual-fill actual"></div></div>
+                <span id="visSiteAActualText" class="mono">--</span>
+              </div>
+            </div>
+
+            <div class="visual-site-row">
+              <div class="visual-site-head">
+                <span data-i18n="label.participantB">Participant B</span>
+                <span id="visSiteBReduction" class="mono">Reduction: --</span>
+              </div>
+              <div class="visual-metric">
+                <span data-i18n="visual.baseline">Baseline</span>
+                <div class="visual-track"><div id="visSiteBBaselineBar" class="visual-fill baseline"></div></div>
+                <span id="visSiteBBaselineText" class="mono">--</span>
+              </div>
+              <div class="visual-metric">
+                <span data-i18n="visual.actual">Actual</span>
+                <div class="visual-track"><div id="visSiteBActualBar" class="visual-fill actual"></div></div>
+                <span id="visSiteBActualText" class="mono">--</span>
+              </div>
+            </div>
+          </article>
+
+          <article id="visualPayoutCard" class="visual-card">
+            <h3 data-i18n="visual.payoutTitle">Payout Breakdown</h3>
+            <div class="payout-row">
+              <span data-i18n="label.participantA">Participant A</span>
+              <div class="payout-track"><div id="visPayoutSiteABar" class="payout-fill zero"></div></div>
+              <span id="visPayoutSiteAValue" class="mono">--</span>
+            </div>
+            <div class="payout-row">
+              <span data-i18n="label.participantB">Participant B</span>
+              <div class="payout-track"><div id="visPayoutSiteBBar" class="payout-fill zero"></div></div>
+              <span id="visPayoutSiteBValue" class="mono">--</span>
+            </div>
           </article>
         </div>
       </section>
 
       <details id="builderPanel" class="panel api-config builder-panel reveal" style="--delay: 0.05s">
         <summary class="builder-summary">
-          <span>Builder Mode</span>
-          <span class="muted-line">API Control / Keys</span>
+          <span data-i18n="builder.mode">Builder Mode</span>
+          <span class="muted-line" data-i18n="builder.apiControlKeys">API Control / Keys</span>
         </summary>
         <div class="builder-body">
-          <h2>API Control</h2>
+          <h2 data-i18n="builder.apiControl">API Control</h2>
           <div class="grid two-col">
-            <label>
+            <label data-i18n="builder.baseUrl" data-i18n-attr="data-label:builder.baseUrl">
               Base URL
               <input id="baseUrl" value="http://127.0.0.1:8000" />
             </label>
-            <label>
+            <label data-i18n="builder.eventId" data-i18n-attr="data-label:builder.eventId">
               Event ID
               <input id="eventId" />
             </label>
-            <label>
+            <label data-i18n="builder.operatorKey" data-i18n-attr="data-label:builder.operatorKey">
               Operator Key
               <input id="operatorKey" value="operator-key" />
             </label>
-            <label>
+            <label data-i18n="builder.participantKey" data-i18n-attr="data-label:builder.participantKey">
               Participant Key
               <input id="participantKey" value="participant-key" />
             </label>
-            <label>
+            <label data-i18n="builder.auditorKey" data-i18n-attr="data-label:builder.auditorKey">
               Auditor Key
               <input id="auditorKey" value="auditor-key" />
             </label>
           </div>
-          <p class="hint">If API runs with `make api-run`, ensure keys match your external secrets values.</p>
+          <p class="hint" data-i18n="builder.hint">If API runs with `make api-run`, ensure keys match your external secrets values.</p>
         </div>
       </details>
 
-      <nav class="tabs reveal" role="tablist" aria-label="Mission panels" style="--delay: 0.08s">
+      <nav class="tabs reveal" role="tablist" aria-label="Mission panels" data-i18n-attr="aria-label:tabs.missionPanels" style="--delay: 0.08s">
         <button
           id="tab-control-btn"
           class="tab is-active"
@@ -134,7 +205,7 @@
           tabindex="0"
           data-tab="control"
         >
-          Control
+          <span data-i18n="tab.control">Control</span>
         </button>
         <button
           id="tab-event-btn"
@@ -145,7 +216,7 @@
           tabindex="-1"
           data-tab="event"
         >
-          Event
+          <span data-i18n="tab.event">Event</span>
         </button>
         <button
           id="tab-audit-btn"
@@ -156,29 +227,29 @@
           tabindex="-1"
           data-tab="audit"
         >
-          Audit
+          <span data-i18n="tab.audit">Audit</span>
         </button>
       </nav>
 
       <section id="tab-control" class="tab-panel panel reveal" role="tabpanel" aria-labelledby="tab-control-btn" style="--delay: 0.11s">
-        <h2>Flow Controls</h2>
+        <h2 data-i18n="flow.controls">Flow Controls</h2>
         <div class="actions">
-          <button id="btnCreate" class="btn">1. Create Event</button>
-          <button id="btnProofA" class="btn">2. Submit Proof A</button>
-          <button id="btnProofB" class="btn">3. Submit Proof B</button>
-          <button id="btnClose" class="btn">4. Close Event</button>
-          <button id="btnSettle" class="btn">5. Settle</button>
-          <button id="btnClaimA" class="btn">6. Claim A</button>
-          <button id="btnRunAll" class="btn btn-strong">Run Full Flow</button>
+          <button id="btnCreate" class="btn" data-i18n="flow.createBtn">1. Create Event</button>
+          <button id="btnProofA" class="btn" data-i18n="flow.proofABtn">2. Submit Proof A</button>
+          <button id="btnProofB" class="btn" data-i18n="flow.proofBBtn">3. Submit Proof B</button>
+          <button id="btnClose" class="btn" data-i18n="flow.closeBtn">4. Close Event</button>
+          <button id="btnSettle" class="btn" data-i18n="flow.settleBtn">5. Settle</button>
+          <button id="btnClaimA" class="btn" data-i18n="flow.claimBtn">6. Claim A</button>
+          <button id="btnRunAll" class="btn btn-strong" data-i18n="flow.runAllBtn">Run Full Flow</button>
         </div>
-        <p class="hint">Primary story path: Create -> Proofs -> Close -> Settle -> Claim -> Audit.</p>
+        <p class="hint" data-i18n="flow.pathHint">Primary story path: Create -> Proofs -> Close -> Settle -> Claim -> Audit.</p>
       </section>
 
       <section class="panel judge-view reveal" style="--delay: 0.14s">
         <div class="section-head">
           <div class="section-head-main">
-            <h2>Judge View</h2>
-            <p>Three-layer readout: mission context, KPI outcomes, technical evidence.</p>
+            <h2 data-i18n="judge.title">Judge View</h2>
+            <p data-i18n="judge.subtitle">Three-layer readout: mission context, KPI outcomes, technical evidence.</p>
           </div>
           <div class="section-actions">
             <button id="btnTheme" class="btn btn-compact" aria-label="Toggle theme">Theme: Cobalt</button>
@@ -190,64 +261,64 @@
         <div class="flow-timeline">
           <span id="step-create" class="step-pill pending">
             <span class="step-num">1</span>
-            <span class="step-name">Create</span>
+            <span class="step-name" data-i18n="step.create">Create</span>
             <span class="step-state">pending</span>
           </span>
           <span id="step-proofs" class="step-pill pending">
             <span class="step-num">2</span>
-            <span class="step-name">Proofs</span>
+            <span class="step-name" data-i18n="step.proofs">Proofs</span>
             <span class="step-state">pending</span>
           </span>
           <span id="step-close" class="step-pill pending">
             <span class="step-num">3</span>
-            <span class="step-name">Close</span>
+            <span class="step-name" data-i18n="step.close">Close</span>
             <span class="step-state">pending</span>
           </span>
           <span id="step-settle" class="step-pill pending">
             <span class="step-num">4</span>
-            <span class="step-name">Settle</span>
+            <span class="step-name" data-i18n="step.settle">Settle</span>
             <span class="step-state">pending</span>
           </span>
           <span id="step-claim" class="step-pill pending">
             <span class="step-num">5</span>
-            <span class="step-name">Claim</span>
+            <span class="step-name" data-i18n="step.claim">Claim</span>
             <span class="step-state">pending</span>
           </span>
           <span id="step-audit" class="step-pill pending">
             <span class="step-num">6</span>
-            <span class="step-name">Audit</span>
+            <span class="step-name" data-i18n="step.audit">Audit</span>
             <span class="step-state">pending</span>
           </span>
         </div>
 
         <div class="kpi-grid">
           <article id="kpiCardStatus" class="kpi-card" data-state="pending">
-            <p class="kpi-label">Status</p>
+            <p class="kpi-label" data-i18n="kpi.status">Status</p>
             <p id="kpiStatus" class="kpi-value">pending</p>
             <p id="kpiStatusHint" class="kpi-hint">Waiting for event creation.</p>
           </article>
           <article id="kpiCardCoverage" class="kpi-card kpi-secondary" data-state="pending">
-            <p class="kpi-label">Proof Coverage</p>
+            <p class="kpi-label" data-i18n="kpi.coverage">Proof Coverage</p>
             <p id="kpiCoverage" class="kpi-value">0 / 2 sites</p>
             <p id="kpiCoverageHint" class="kpi-hint">No participant proofs submitted yet.</p>
           </article>
           <article id="kpiCardPayout" class="kpi-card" data-state="pending">
-            <p class="kpi-label">Total Payout</p>
+            <p class="kpi-label" data-i18n="kpi.totalPayout">Total Payout</p>
             <p id="kpiPayout" class="kpi-value">0 DRT</p>
             <p id="kpiPayoutHint" class="kpi-hint">Calculated after settlement.</p>
           </article>
           <article id="kpiCardClaim" class="kpi-card" data-state="pending">
-            <p class="kpi-label">Claim (site-a)</p>
+            <p class="kpi-label" data-i18n="kpi.claimA">Claim (site-a)</p>
             <p id="kpiClaim" class="kpi-value">pending</p>
             <p id="kpiClaimHint" class="kpi-hint">Awaiting claim action.</p>
           </article>
           <article id="kpiCardAudit" class="kpi-card" data-state="pending">
-            <p class="kpi-label">Audit Match</p>
+            <p class="kpi-label" data-i18n="kpi.auditMatch">Audit Match</p>
             <p id="kpiAudit" class="kpi-value">pending</p>
             <p id="kpiAuditHint" class="kpi-hint">Hash verification not requested.</p>
           </article>
           <article id="kpiCardLatency" class="kpi-card kpi-secondary" data-state="pending">
-            <p class="kpi-label">Latency</p>
+            <p class="kpi-label" data-i18n="kpi.latency">Latency</p>
             <p id="kpiLatency" class="kpi-value">-- ms</p>
             <p id="kpiLatencyHint" class="kpi-hint">Last API round-trip time.</p>
           </article>
@@ -255,11 +326,11 @@
 
         <div class="evidence-grid">
           <article class="evidence-card card-proof">
-            <h3>Proof A vs Proof B</h3>
+            <h3 data-i18n="evidence.proofCompare">Proof A vs Proof B</h3>
             <p id="evidenceProofA" class="proof-summary">Proof A (site-a): not submitted.</p>
             <div class="proof-row">
               <div class="proof-row-meta">
-                <span>Proof A Reduction</span>
+                <span data-i18n="evidence.proofAReduction">Proof A Reduction</span>
                 <span id="proofADelta">-</span>
               </div>
               <div class="proof-meter"><div id="proofABar" class="proof-fill-bar proof-a"></div></div>
@@ -267,30 +338,30 @@
             <p id="evidenceProofB" class="proof-summary">Proof B (site-b): not submitted.</p>
             <div class="proof-row">
               <div class="proof-row-meta">
-                <span>Proof B Reduction</span>
+                <span data-i18n="evidence.proofBReduction">Proof B Reduction</span>
                 <span id="proofBDelta">-</span>
               </div>
               <div class="proof-meter"><div id="proofBBar" class="proof-fill-bar proof-b"></div></div>
             </div>
           </article>
           <article class="evidence-card card-audit">
-            <h3>Audit Anchor</h3>
+            <h3 data-i18n="evidence.auditAnchor">Audit Anchor</h3>
             <p id="evidenceAuditResult">Audit result pending.</p>
             <p id="evidenceAuditHash" class="mono">Hash: -</p>
           </article>
           <article class="evidence-card card-story">
-            <h3>One-Line Story</h3>
+            <h3 data-i18n="evidence.oneLineStory">One-Line Story</h3>
             <p id="narrativeLine" aria-live="polite">Ready to execute the settlement mission.</p>
             <p id="lastActionLine" class="muted-line">Last action: none</p>
           </article>
           <article class="evidence-card card-insight">
-            <h3>Agent Insight</h3>
+            <h3 data-i18n="evidence.agentInsight">Agent Insight</h3>
             <p id="insightHeadline">No strategy signal yet.</p>
             <p id="insightReason" class="muted-line">Create an event to let the agent analyze proofs and payout timing.</p>
             <p id="insightImpact" class="muted-line">Impact: pending.</p>
           </article>
           <article id="errorCard" class="evidence-card error-card card-diagnostics" data-level="ok">
-            <h3>Execution Diagnostics</h3>
+            <h3 data-i18n="evidence.executionDiagnostics">Execution Diagnostics</h3>
             <p id="errorHeadline">No active errors.</p>
             <p id="errorHint" class="muted-line">Flow guards prevent most invalid actions.</p>
             <p id="errorNext" class="muted-line">Next: run the current highlighted step.</p>
@@ -299,40 +370,40 @@
       </section>
 
       <section id="tab-event" class="tab-panel panel hidden" role="tabpanel" aria-labelledby="tab-event-btn">
-        <h2>Event Query</h2>
+        <h2 data-i18n="query.event">Event Query</h2>
         <div class="actions">
-          <button id="btnGetEvent" class="btn">Get Event</button>
-          <button id="btnGetRecords" class="btn">Get Settlement Records</button>
+          <button id="btnGetEvent" class="btn" data-i18n="query.getEvent">Get Event</button>
+          <button id="btnGetRecords" class="btn" data-i18n="query.getRecords">Get Settlement Records</button>
         </div>
       </section>
 
       <section id="tab-audit" class="tab-panel panel hidden" role="tabpanel" aria-labelledby="tab-audit-btn">
-        <h2>Audit Query</h2>
+        <h2 data-i18n="query.audit">Audit Query</h2>
         <div class="grid two-col">
-          <label>
+          <label data-i18n="query.siteId">
             Site ID
             <input id="auditSiteId" value="site-a" />
           </label>
         </div>
         <div class="actions">
-          <button id="btnAudit" class="btn">Get Audit Record</button>
+          <button id="btnAudit" class="btn" data-i18n="query.getAudit">Get Audit Record</button>
         </div>
       </section>
 
       <section class="panel evidence-toggle-row reveal" style="--delay: 0.16s">
         <div class="evidence-tools">
           <button id="evidenceToggle" class="btn btn-ghost" aria-controls="technicalEvidence" aria-expanded="false">
-            View Technical Evidence
+            <span data-i18n="evidence.toggleOpen">View Technical Evidence</span>
           </button>
-          <button id="btnExportSnapshot" class="btn">Copy Judge Snapshot</button>
+          <button id="btnExportSnapshot" class="btn" data-i18n="snapshot.copyJudge">Copy Judge Snapshot</button>
         </div>
         <p id="snapshotFeedback" class="hint snapshot-feedback" aria-live="polite"></p>
       </section>
 
       <section id="technicalEvidence" class="panel evidence-console collapsed">
         <div class="console-head">
-          <h2>Technical Evidence</h2>
-          <p class="hint">Raw JSON logs for engineering verification.</p>
+          <h2 data-i18n="technical.title">Technical Evidence</h2>
+          <p class="hint" data-i18n="technical.subtitle">Raw JSON logs for engineering verification.</p>
         </div>
         <pre id="log" class="log"></pre>
       </section>

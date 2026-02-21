@@ -36,6 +36,7 @@ def test_closed_loop_create_submit_settle_claim_audit(tmp_path: Path):
     created = client.post("/events", json=event_payload, headers=operator)
     assert created.status_code == 200
     assert created.json()["status"] == "active"
+    assert created.json()["tx_hash"].startswith("0x")
 
     proof_a = {
         "event_id": event_payload["event_id"],
@@ -60,10 +61,13 @@ def test_closed_loop_create_submit_settle_claim_audit(tmp_path: Path):
     resp_b = client.post("/proofs", json=proof_b, headers=participant_b)
     assert resp_a.status_code == 200
     assert resp_b.status_code == 200
+    assert resp_a.json()["tx_hash"].startswith("0x")
+    assert resp_b.json()["tx_hash"].startswith("0x")
 
     closed = client.post(f"/events/{event_payload['event_id']}/close", headers=operator)
     assert closed.status_code == 200
     assert closed.json()["status"] == "closed"
+    assert closed.json()["close_tx_hash"].startswith("0x")
 
     settled = client.post(
         f"/settle/{event_payload['event_id']}",
@@ -72,6 +76,7 @@ def test_closed_loop_create_submit_settle_claim_audit(tmp_path: Path):
     )
     assert settled.status_code == 200
     assert len(settled.json()) == 2
+    assert settled.json()[0]["tx_hash"].startswith("0x")
 
     claim = client.post(
         f"/claim/{event_payload['event_id']}/site-a",
@@ -79,8 +84,11 @@ def test_closed_loop_create_submit_settle_claim_audit(tmp_path: Path):
     )
     assert claim.status_code == 200
     assert claim.json()["status"] == "claimed"
+    assert claim.json()["claim_tx_hash"].startswith("0x")
 
-    records = client.get(f"/events/{event_payload['event_id']}/records", headers=auditor)
+    records = client.get(
+        f"/events/{event_payload['event_id']}/records", headers=auditor
+    )
     assert records.status_code == 200
     assert len(records.json()) == 2
 
@@ -210,6 +218,41 @@ def test_settle_requires_closed_event(tmp_path: Path):
     )
     assert settled.status_code == 409
     assert settled.json()["code"] == "EVENT_NOT_CLOSED"
+
+
+def test_chain_mode_endpoint_includes_required_sites(tmp_path: Path):
+    app = create_app(db_path=str(tmp_path / "dr_agent_chain_mode.db"))
+    client = TestClient(app)
+    auditor = _headers("auditor-key", "auditor-1")
+
+    response = client.get("/system/chain-mode", headers=auditor)
+    assert response.status_code == 200
+    payload = response.json()
+    assert "mode" in payload
+    assert payload.get("tx_confirm_mode") in {"hybrid", "sync"}
+    assert isinstance(payload.get("required_sites"), list)
+
+
+def test_default_demo_site_and_confirm_mode(tmp_path: Path, monkeypatch):
+    monkeypatch.delenv("DR_DEMO_SITE_MODE", raising=False)
+    monkeypatch.delenv("DR_TX_CONFIRM_MODE", raising=False)
+    monkeypatch.setenv("DR_CHAIN_MODE", "simulated")
+
+    app = create_app(db_path=str(tmp_path / "dr_agent_default_modes.db"))
+    client = TestClient(app)
+    auditor = _headers("auditor-key", "auditor-1")
+
+    mode_resp = client.get("/system/chain-mode", headers=auditor)
+    assert mode_resp.status_code == 200
+    mode_payload = mode_resp.json()
+    assert mode_payload["demo_site_mode"] == "dual"
+    assert mode_payload["tx_confirm_mode"] == "hybrid"
+
+    health_resp = client.get("/healthz")
+    assert health_resp.status_code == 200
+    health_payload = health_resp.json()
+    assert health_payload["demo_site_mode"] == "dual"
+    assert health_payload["tx_confirm_mode"] == "hybrid"
 
 
 if __name__ == "__main__":

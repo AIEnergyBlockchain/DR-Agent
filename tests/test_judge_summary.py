@@ -77,7 +77,9 @@ def test_judge_summary_lifecycle(tmp_path: Path):
         headers=participant_b,
     )
     client.post(f"/events/{event_id}/close", headers=operator)
-    client.post(f"/settle/{event_id}", json={"site_ids": ["site-a", "site-b"]}, headers=operator)
+    client.post(
+        f"/settle/{event_id}", json={"site_ids": ["site-a", "site-b"]}, headers=operator
+    )
     client.post(f"/claim/{event_id}/site-a", headers=participant_a)
     client.get(f"/audit/{event_id}/site-a", headers=auditor)
 
@@ -115,4 +117,3 @@ def test_judge_summary_returns_not_found_for_unknown_event(tmp_path: Path):
     response = client.get("/judge/missing-event/summary", headers=auditor)
     assert response.status_code == 404
     assert response.json()["code"] == "EVENT_NOT_FOUND"
-

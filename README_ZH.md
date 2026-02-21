@@ -16,7 +16,7 @@
 - [6. 商业模式（MVP 期）](#6-商业模式mvp-期)
 - [7. 竞争与差异化](#7-竞争与差异化)
 - [8. 风险与应对](#8-风险与应对)
-- [9. 里程碑（建议）](#9-里程碑建议)
+- [9. 已完成进度与后续里程碑（按周）](#9-已完成进度与后续里程碑按周)
 - [10. 为什么是我们](#10-为什么是我们)
 
 ### 技术版导航
@@ -31,7 +31,7 @@
 - [6. API（FastAPI）](#6-apifastapi)
 - [7. 前端（Mission Cockpit）](#7-前端mission-cockpit)
 - [7.1 扩展到产品级的计划](#71-扩展到产品级的计划)
-- [8. 开发计划（6 周）](#8-开发计划6-周)
+- [8. 已完成进度与后续开发计划（按周）](#8-已完成进度与后续开发计划按周)
 - [9. 测试清单](#9-测试清单)
 - [10. 安全与边界](#10-安全与边界)
 - [11. 演示与部署资产](#11-演示与部署资产)
@@ -129,11 +129,18 @@
 
 - 采用“规则模板化”架构，先做单一区域 MVP。
 
-## 9. 里程碑（建议）
+## 9. 已完成进度与后续里程碑（按周）
 
-- Week 1-2：事件模型 + 结算合约
-- Week 3-4：数据证明与自动评分 + 基础前端
-- Week 5-6：端到端压测与演示脚本固化
+已完成（截至 2026-02-21）：
+- 主流程闭环已跑通：`create -> proofs -> close -> settle -> claim -> audit`
+- 合约测试稳定通过（`15 passing`）
+- 前端三模式、双语切换、证据快照与图形化读数已接入
+
+后续里程碑（按周）：
+- 第 1 周：链确认对账下沉 worker，`/judge/summary` 纯读 DB
+- 第 2 周：baseline 推理默认接入 proof 生成，并输出模型元信息
+- 第 3 周：上线 `GET /agent/next-action`，前端下一步动作改为 Agent 决策驱动
+- 第 4 周：补齐 `agent_decision_log` 与离线回放评估，产出机器可读证据包
 
 ## 10. 为什么是我们
 
@@ -203,6 +210,32 @@ curl http://127.0.0.1:8000/healthz
 make demo-run
 ```
 
+若要现场演示真实上链（Fuji，默认完整双站点闭环 + hybrid 确认），建议使用：
+
+```bash
+export DR_CHAIN_MODE=fuji-live
+export DR_TX_CONFIRM_MODE=hybrid
+export DR_DEMO_SITE_MODE=dual
+make demo-run
+# 或
+npm run demo:walkthrough:live
+```
+
+若现场预算紧张，可临时切到降耗模式：
+
+```bash
+export DR_DEMO_SITE_MODE=single
+make demo-run
+```
+
+演示结束后可在以下位置查看 tx hash：
+
+- 汇总文件：`cache/demo-tx-<event_id>.json`
+- 证据汇总：`cache/demo-evidence-<event_id>.json`
+- 分步原始响应：`cache/demo-raw-<event_id>/`
+- 本地数据库：`cache/dr_agent.db`（`events/proofs/settlements` 表）
+- Fuji 实况证据文档（`guide/` 内部归档，live 模式自动生成）
+
 步骤 6：可选启动前端 Mission Cockpit
 
 ```bash
@@ -210,15 +243,17 @@ npm run frontend:serve
 # 浏览器打开 http://127.0.0.1:4173
 ```
 
-前端默认进入英文 `Mission Cockpit`，并提供三层评委视图：
+前端默认进入英文 `Mission Cockpit`，并提供三层评审视图：
+
 - 三模式切换：`Story / Ops / Engineering`
+- 语言切换：`EN / 中文`（默认 EN，切换后写入 `localStorage['dr_lang']` 并持久化）
 - 主操作：`Execute Next Step`、`Auto Run Full Flow`
 - Mission Strip：事件、链模式、当前步骤、健康度、延迟
 - KPI Grid：Status/Coverage/Payout/Claim/Audit/Latency
 - Evidence Deck：Proof A vs Proof B、Audit Anchor、One-Line Story、Agent Insight（技术日志可折叠）
 - 主题切换：`Theme: Cobalt/Neon`
 - 路演聚焦：`Camera Mode` 自动高亮当前步骤与对应 KPI
-- 演示去噪：`Judge Mode` 可切换更聚焦的评委展示态
+- 演示去噪：`Judge Mode` 可切换更聚焦的演示展示态
 - 证据导出：`Copy Judge Snapshot` 在 Story/Ops 复制简版摘要，在 Engineering 复制全量（含 JSON 证据）
 - 快捷键：`N`（下一步）/ `R`（全流程）/ `E`（切到 Engineering）
 
@@ -228,6 +263,7 @@ npm run frontend:serve
 - 完整 Python 依赖（含 Prophet）：`npm run setup:python`
 - 使用外置 secrets 的 Fuji 部署：`make deploy-fuji`
 - 默认允许前端跨域来源：`http://127.0.0.1:4173,http://localhost:4173`，可用 `DR_CORS_ORIGINS` 覆盖
+- 真实上链演示建议先确认：`curl http://127.0.0.1:8000/system/chain-mode`（包含 `tx_confirm_mode`）
 
 ## 0.1 项目结构
 
@@ -238,9 +274,17 @@ scripts/                   # 环境初始化、演示、健康检查、部署脚
 test/                      # 合约测试（Hardhat）
 tests/                     # API/集成测试（pytest）
 frontend/                  # 最小演示前端壳
-guide/                     # walkthrough、复现手册、评委交付文档
-docs/adr/                  # 架构决策记录（ADR）
+docs/module-design/        # 模块架构设计文档（主仓库）
+docs/adr/                  # 架构决策记录（主仓库）
+resources/                 # 参考资料与来源材料
+guide/                     # 内部文档模块（不用于外部提交）
 ```
+
+文档边界说明：
+
+- 对外材料建议仅使用仓库代码、可复现命令、`cache/` 自动生成产物，以及 `docs/module-design/` 模块架构文档。
+- `docs/adr/` 与 `resources/` 用于工程架构背景与资料溯源，不属于演示主叙事材料。
+- `guide/` 下所有内容均为内部工作文档，不对外评审包暴露。
 
 ## 1. 开发目标
 
@@ -418,6 +462,13 @@ sequenceDiagram
 4. `submitter.py`：编排 proof 与结算写入（MVP 模拟交易模式）
 5. `scorer.py`：事件结束后触发结算
 
+说明：
+
+- 当 `DR_CHAIN_MODE=simulated`（默认）时，服务返回模拟 tx hash。
+- 当 `DR_CHAIN_MODE=fuji-live`（或 `fuji`）时，服务会调用 Fuji 合约发送真实交易，并返回真实 tx hash。
+- 当 `DR_TX_CONFIRM_MODE=hybrid`（默认）时，写接口快速返回 `tx_state=submitted`，后续读接口异步回填 `tx_fee_wei/tx_confirmed_at`。
+- 当 `DR_TX_CONFIRM_MODE=sync` 时，每步等待链上确认后返回手续费与确认状态。
+
 ## 6. API（FastAPI）
 
 - `POST /events` 创建事件
@@ -428,48 +479,57 @@ sequenceDiagram
 - `GET /events/{event_id}` 查询事件状态
 - `GET /events/{event_id}/records` 查询结算明细
 - `GET /audit/{event_id}/{site_id}` 校验 proof hash 一致性
-- `GET /judge/{event_id}/summary` 查询评委视角聚合摘要
+- `GET /judge/{event_id}/summary` 查询评审视角聚合摘要
 - `GET /healthz` 服务健康检查
-- `GET /system/chain-mode` 输出当前链执行模式
+- `GET /system/chain-mode` 输出当前链执行模式 + 确认模式 + 演示站点模式 + 必需 proof 站点集合
 
 ## 7. 前端（Mission Cockpit）
 
-当前前端采用“暗色指挥舱 + 跑道路演态”结构，主目标是让评委在 3 分钟内看懂闭环状态：
+当前前端采用“暗色指挥舱 + 跑道路演态”结构，主目标是让评审读者在 3 分钟内看懂闭环状态：
 
 1. Mission Strip（顶部任务条）
+
 - Event ID、Chain Mode、Current Step、Health、Latency
 - Health 仅由主流程步骤判定（不受查询/快照等旁路动作影响）
 
 2. Flow Timeline（流程状态条）
+
 - `create -> proofs -> close -> settle -> claim -> audit`
 - 每一步有 `pending / in-progress / done / error` 状态
 - 当前步骤带跑道流光效果；`Camera Mode` 会自动聚焦当前步骤
 - Health 仅由主流程步骤判定（查询/快照动作不会覆盖主流程健康度）
 
 3. KPI Grid（核心结果）
+
 - Status、Proof Coverage、Total Payout、Claim(site-a)、Audit Match、Latency
 - 数值变化时有短时高亮动效，提升路演可感知性
 
 4. Evidence Deck（证据层）
+
 - Proof A / Proof B 对比摘要
 - Audit hash 摘要（on-chain vs recomputed）
 - One-Line Story（<=120 字符）
 - 可一键 `Copy Judge Snapshot`：Story/Ops 输出简版摘要；Engineering 输出全量（含 JSON 证据）
+- 真实上链状态语义：`submitted / confirmed / failed` 会在 KPI 提示与技术日志中同步显示
 
 5. Technical Evidence（折叠日志）
+
 - 默认可折叠，点击 `View Technical Evidence` 查看原始 JSON
 - 采用日志裁剪上限，避免长时间演示卡顿
 
 6. Theme 与舞台模式
+
 - 默认 `Cobalt`（可读性优先），可切换 `Neon`（舞台冲击力优先）
 
 7. 演示快捷键
+
 - `N`：执行下一步（Execute Next Step）
 - `R`：自动全流程（Auto Run Full Flow）
 - `E`：切换到 Engineering 模式
 
 8. `Auto Run Full Flow` 实际执行顺序
-- `createEvent -> submitProof(site-a) -> submitProof(site-b) -> closeEvent -> settleEvent -> claim(site-a) -> getEvent -> getRecords -> getAudit`
+
+- `createEvent -> submitProof(site-a) -> submitProof(site-b) -> closeEvent -> settleEvent -> claim(site-a) -> getAudit`
 
 ### 7.1 扩展到产品级的计划
 
@@ -493,34 +553,45 @@ sequenceDiagram
 - 建立事件发布、履约提交、触发结算、审计查询的端到端测试。
 - 在演示或发布前执行统一 release checklist。
 
-## 8. 开发计划（6 周）
+## 8. 已完成进度与后续开发计划（按周）
 
-### Week 1
+### 已完成进度（截至 2026-02-21）
 
-- 完成 3 个核心合约与单测
+1. MVP 闭环已跑通：
+- `create -> proofs -> close -> settle -> claim -> audit`
+- 合约测试持续全绿（`15 passing`）。
 
-### Week 2
+2. 真实链演示能力已具备：
+- `DR_CHAIN_MODE=fuji-live` 可执行真实 Fuji 交易。
+- 已接入 `submitted/confirmed/failed` 状态语义与证据输出链路。
 
-- 本地脚本跑通：createEvent → submitProof → closeEvent → settle
-- 合约集成测试
+3. Mission Cockpit 可演示性已达标：
+- `Story / Ops / Engineering` 三模式
+- `Execute Next Step` / `Auto Run Full Flow`
+- EN/中文切换与持久化
+- 动态 KPI/证据展示与快照导出
 
-### Week 3
+4. Story 模式图形证据已补齐：
+- baseline vs actual 图表
+- payout breakdown 图表
 
-- FastAPI 封装链交互
+### 后续开发计划（按周）
 
-### Week 4
+1. 第 1 周（稳定性与响应速度）
+- 将 pending tx 对账完全下沉到后台 worker。
+- `GET /judge/{event_id}/summary` 改为纯读 DB，降低尾部耗时。
 
-- 前端接入查询与触发操作
-- 接入 2-3 个站点模拟数据
+2. 第 2 周（AI 推理接入）
+- 将 baseline 推理默认接入 proof 生成链路。
+- 落库并返回 `baseline_method`、`baseline_model_version`、`baseline_confidence`。
 
-### Week 5
+3. 第 3 周（AI Agent 决策闭环）
+- 新增 `GET /agent/next-action`（action/reason/confidence/fallback_action）。
+- 前端 `Execute Next Step` 默认按 agent 决策执行，不再完全依赖固定顺序。
 
-- 增加异常场景（延迟提交、数据缺失、未达标）
-
-### Week 6
-
-- 端到端压测
-- 固化演示脚本和录像流程
+4. 第 4 周（决策可观测与质量评估）
+- 增加 `agent_decision_log` 与离线回放评估（命中率/回退率/错误率）。
+- 产出机器可读的 agent 决策证据包。
 
 ## 9. 测试清单
 
@@ -571,25 +642,34 @@ sequenceDiagram
 - API 环境初始化脚本：`scripts/setup_python_env.sh`
 - API 健康检查脚本：`scripts/smoke_api_flow.py`
 - Fuji 部署脚本：`scripts/deploy_fuji.ts`
-- 演示脚本文档：`guide/docs/DR-Agent-Walkthrough-2026-02-17.md`
-- Fuji 部署记录：`guide/docs/Fuji-Deployment-Record-2026-02-17.md`
-- Fuji 部署模板：`guide/docs/Fuji-Deployment-Record-Template.md`
-- 可复现运行手册：`guide/docs/DR-Agent-Reproducibility-Runbook-2026-02-17.md`
-- ADR 记录：`docs/adr/0001-record-architecture-decisions.md`
+- 证据包脚本：`scripts/build_judge_evidence_bundle.py`
+- 演示交易汇总：`cache/demo-tx-<event_id>.json`
+- 演示证据汇总：`cache/demo-evidence-<event_id>.json`
+- 分步原始响应：`cache/demo-raw-<event_id>/`
+- 模块架构文档（主仓库）：`docs/module-design/`
+- 架构决策记录（主仓库）：`docs/adr/`
+- 参考资料（主仓库）：`resources/`
+- 内部文档模块（不外部暴露）：`guide/`
 
 ## 11.1 测试网合约证据
 
 当前状态：
-- 当前环境因未配置 `PRIVATE_KEY` 与 Fuji 测试 AVAX，暂时阻塞真实部署。
-- 部署证据产物路径：`cache/fuji-deployment-latest.json`（由 `npm run deploy:fuji` 生成）。
+
+- 已于 `2026-02-20` 完成 Fuji 部署。
+- 证据产物路径：`cache/fuji-deployment-latest.json`（内部 Markdown 证据包归档于 `guide/`）。
 
 当前记录：
 
-| Network | Contract | Explorer URL |
-| --- | --- | --- |
-| Fuji | 待真实部署后回填 | 待真实部署后回填 |
+| Network | Item                     | Value                                                                | Explorer URL                                                                                       |
+| ------- | ------------------------ | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Fuji    | Deployer                 | `0xdC1DE25053196bb72e09db43EE34181D1e65cF0A`                         | -                                                                                                  |
+| Fuji    | EventManager             | `0x388C76A617d67137CCF91A3C9B48c0779502484c`                         | https://testnet.snowtrace.io/address/0x388C76A617d67137CCF91A3C9B48c0779502484c                    |
+| Fuji    | ProofRegistry            | `0x05689d6aa1f83ed4854EA0F84f7f96B48133750D`                         | https://testnet.snowtrace.io/address/0x05689d6aa1f83ed4854EA0F84f7f96B48133750D                    |
+| Fuji    | Settlement               | `0x69512B18109BA25Df3A5cA27d30521EE60b7a787`                         | https://testnet.snowtrace.io/address/0x69512B18109BA25Df3A5cA27d30521EE60b7a787                    |
+| Fuji    | setSettlementContract tx | `0xaffbb344ecfec8601313ec452e857f31346c72c5ba0a1e6b6166315b38a2831f` | https://testnet.snowtrace.io/tx/0xaffbb344ecfec8601313ec452e857f31346c72c5ba0a1e6b6166315b38a2831f |
 
-补齐步骤：
-1. 配置 `PRIVATE_KEY` 并准备 Fuji 测试 AVAX。
-2. 运行 `npm run deploy:fuji`。
-3. 从 `cache/fuji-deployment-latest.json` 提取真实地址并回填上表，同时补齐 Snowtrace 链接。
+维护步骤：
+
+1. 如需重部署，执行 `npm run deploy:fuji`。
+2. 执行 `npm run evidence:judge` 刷新证据包。
+3. 保持本表与 `cache/` 自动产物一致；`guide/` 内部文档按需同步。

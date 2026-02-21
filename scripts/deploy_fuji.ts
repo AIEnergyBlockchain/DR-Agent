@@ -9,7 +9,9 @@ async function main(): Promise<void> {
   }
 
   if (!process.env.PRIVATE_KEY) {
-    throw new Error("PRIVATE_KEY is required for fuji deployment");
+    throw new Error(
+      "PRIVATE_KEY is required for fuji deployment. Set it in ~/.config/dr-agent/secrets.env and run `npm run deploy:fuji` (or `make deploy-fuji`)."
+    );
   }
 
   const [deployer] = await ethers.getSigners();
