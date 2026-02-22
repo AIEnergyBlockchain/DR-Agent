@@ -59,6 +59,8 @@
 - 履约证明：接入方提交可验证的负荷数据证明
 - 自动结算：合约按规则发放奖励或扣罚
 - 审计追踪：全流程可回放、可验证
+- 核心增强：**能源预言机层（Energy Oracle Layer）** 将链下遥测转为链上可验证证据
+  （`telemetry -> baseline 推理 -> 置信度元数据 -> proof hash 上链`）
 
 一句话：
 **把 DR 从“人盯流程”升级为“可验证执行 + 自动结算”。**
@@ -72,8 +74,9 @@
 ## 4. 为什么是 Avalanche
 
 1. 低延迟与确定性结算：适合事件触发后的准实时流程。
-2. 可定制 L1（Subnet）：可将能源行业规则固化为专用链参数。
+2. 明确的 **C-Chain MVP -> 可定制 L1** 演进路径：可承载能源行业规则参数化。
 3. Interchain 互操作：数据链、资产链、结算链可拆分并协同。
+4. 落地策略清晰：先在 C-Chain 快速验证，再按业务规则深度定制网络。
 
 ## 5. 目标客户与价值
 
@@ -111,9 +114,10 @@
 
 ### 我们的差异化
 
-1. **结算自动化**：不是只做监控面板。
-2. **履约可验证**：对账争议可链上复现。
-3. **规则可编程**：不同地区可配置不同结算规则模板。
+1. **能源预言机层**：baseline 推理 + 置信度元数据 + 证据哈希上链一体化。
+2. **AI 负荷/算力场景**：从传统工业负荷扩展到 AI 时代柔性算力需求。
+3. **M2M 结算与激励**：机器账户驱动可编程激励分发。
+4. **Avalanche 专属路径**：先 C-Chain 验证，再升级到可定制 L1。
 
 ## 8. 风险与应对
 
@@ -137,10 +141,10 @@
 - 前端三模式、双语切换、证据快照与图形化读数已接入
 
 后续里程碑（按周）：
-- 第 1 周：链确认对账下沉 worker，`/judge/summary` 纯读 DB
-- 第 2 周：baseline 推理默认接入 proof 生成，并输出模型元信息
-- 第 3 周：上线 `GET /agent/next-action`，前端下一步动作改为 Agent 决策驱动
-- 第 4 周：补齐 `agent_decision_log` 与离线回放评估，产出机器可读证据包
+- 第 1 周：能源预言机层默认接入主路径，并落库模型元信息
+- 第 2 周：补齐 AI 负荷/算力场景证据页与指标
+- 第 3 周：完成 M2M 结算与激励设计并输出 API 证据
+- 第 4 周：完成 C-Chain -> 可定制 L1 迁移蓝图与演示证据包
 
 ## 10. 为什么是我们
 
@@ -577,21 +581,21 @@ sequenceDiagram
 
 ### 后续开发计划（按周）
 
-1. 第 1 周（稳定性与响应速度）
-- 将 pending tx 对账完全下沉到后台 worker。
-- `GET /judge/{event_id}/summary` 改为纯读 DB，降低尾部耗时。
-
-2. 第 2 周（AI 推理接入）
-- 将 baseline 推理默认接入 proof 生成链路。
+1. 第 1 周（能源预言机层默认接入）
+- 将 `telemetry -> baseline -> confidence -> proof hash` 作为默认 proof 生成链路。
 - 落库并返回 `baseline_method`、`baseline_model_version`、`baseline_confidence`。
 
-3. 第 3 周（AI Agent 决策闭环）
-- 新增 `GET /agent/next-action`（action/reason/confidence/fallback_action）。
-- 前端 `Execute Next Step` 默认按 agent 决策执行，不再完全依赖固定顺序。
+2. 第 2 周（AI 负荷/算力场景证据）
+- 增加 AI 负荷/算力柔性场景模板与证据展示页。
+- 输出可路演的场景指标与图形证据。
 
-4. 第 4 周（决策可观测与质量评估）
-- 增加 `agent_decision_log` 与离线回放评估（命中率/回退率/错误率）。
-- 产出机器可读的 agent 决策证据包。
+3. 第 3 周（M2M 结算与激励）
+- 增加机器账户结算与激励规则模板，以及 API 证据输出。
+- 让人工操作聚焦异常处理，而非逐笔处理。
+
+4. 第 4 周（Avalanche 迁移蓝图）
+- 完成 C-Chain MVP -> 可定制 L1 迁移蓝图与接口边界定义。
+- 产出与迁移路径一致的演示证据包。
 
 ## 9. 测试清单
 
@@ -639,6 +643,8 @@ sequenceDiagram
 - 前端逻辑：`frontend/app.js`
 - 前端样式：`frontend/styles.css`
 - 一键演示脚本：`scripts/demo_walkthrough.sh`
+- 路演 PPT 同步脚本：`scripts/sync_pitch_pptx.py`
+- 最终路演 PPT（PPTX）：`guide/ppt/DR-Agent-Verifiable-Demand-Response-Auto-Settlement-final.pptx`
 - API 环境初始化脚本：`scripts/setup_python_env.sh`
 - API 健康检查脚本：`scripts/smoke_api_flow.py`
 - Fuji 部署脚本：`scripts/deploy_fuji.ts`

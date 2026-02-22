@@ -62,6 +62,8 @@ DR has two persistent real-world pain points:
 - Proof submission: participants submit verifiable load-reduction proofs.
 - Automated settlement: smart contracts compute rewards/penalties.
 - Auditability: full lifecycle is replayable and verifiable.
+- Core enhancement: **Energy Oracle Layer** converts off-chain telemetry into on-chain verifiable proof
+  (`telemetry -> baseline inference -> confidence metadata -> proof hash anchoring`).
 
 One sentence:
 **DR Agent upgrades DR from "human-operated workflow" to "verifiable execution + automated settlement."**
@@ -75,8 +77,9 @@ One sentence:
 ## 4. Why Avalanche
 
 1. Low latency and deterministic settlement for event-driven workflows.
-2. Customizable L1/Subnet path for energy-specific rule encoding.
+2. Explicit path from **C-Chain MVP to Custom L1** for energy-specific rule encoding.
 3. Interchain interoperability for splitting data, asset, and settlement domains when needed.
+4. Rollout strategy is execution-first: validate quickly on C-Chain, then customize network parameters.
 
 ## 5. Target Customers and Value
 
@@ -114,9 +117,10 @@ One sentence:
 
 ### Our differentiation
 
-1. **Settlement automation**: not just another dashboard.
-2. **Verifiable fulfillment**: disputes can be replayed on-chain.
-3. **Programmable rule templates**: configurable for different regional DR programs.
+1. **Energy Oracle Layer**: baseline inference + confidence metadata + on-chain proof anchoring in one pipeline.
+2. **AI load / compute flexibility scenarios**: extends DR from industrial loads to AI-era flexible compute demand.
+3. **M2M settlement and incentives**: machine-account-based programmable reward distribution.
+4. **Avalanche-specific growth path**: C-Chain MVP now, Custom L1 when domain rules require deeper control.
 
 ## 8. Risks and Mitigations
 
@@ -140,10 +144,10 @@ Completed (as of 2026-02-21):
 - Frontend modes, bilingual toggle, snapshot export, and chart-based readouts are in place
 
 Next milestones (weekly):
-- Week 1: move tx reconciliation to worker and keep `/judge/summary` as pure DB read
-- Week 2: connect baseline inference to default proof generation and return model metadata
-- Week 3: ship `GET /agent/next-action` and drive next-step execution from agent decisions
-- Week 4: add `agent_decision_log` + offline replay evaluation and export machine-readable evidence
+- Week 1: make Energy Oracle Layer default-in-path and persist model metadata (`baseline_method/version/confidence`)
+- Week 2: add AI load/compute scenario evidence view and related metrics
+- Week 3: deliver M2M settlement/incentive design with API evidence outputs
+- Week 4: complete C-Chain -> Custom L1 migration blueprint and demo-ready evidence package
 
 ## 10. Why This Builder
 
@@ -573,21 +577,21 @@ Keyboard shortcuts:
 
 ### Upcoming weekly plan
 
-1. Week 1 (stability and responsiveness)
-- Move pending tx reconciliation fully into background worker path.
-- Keep `/judge/{event_id}/summary` as pure DB read and reduce tail latency.
-
-2. Week 2 (AI inference integration)
-- Connect baseline inference into proof generation path by default.
+1. Week 1 (Energy Oracle default path)
+- Make `telemetry -> baseline -> confidence -> proof hash` the default proof-generation path.
 - Return and persist `baseline_method`, `baseline_model_version`, `baseline_confidence`.
 
-3. Week 3 (AI agent decision loop)
-- Add `GET /agent/next-action` (action/reason/confidence/fallback_action).
-- Route `Execute Next Step` through agent decision output instead of fixed sequence.
+2. Week 2 (AI load/compute scenario evidence)
+- Add AI load/compute flexibility scenario templates in demo and evidence pages.
+- Publish scenario metrics and narrative-ready visual evidence.
 
-4. Week 4 (decision observability and quality)
-- Add `agent_decision_log` and offline replay evaluation (hit rate/fallback rate/error rate).
-- Export machine-readable decision evidence bundle.
+3. Week 3 (M2M settlement and incentives)
+- Add machine-account settlement/incentive rule templates and API-side evidence outputs.
+- Keep human operators in exception-handling mode, not per-transaction operations.
+
+4. Week 4 (Avalanche migration blueprint)
+- Finalize C-Chain MVP -> Custom L1 migration blueprint and interface boundary.
+- Export demo-ready evidence package aligned with the migration path.
 
 ## 9. Test Checklist
 
@@ -638,6 +642,8 @@ Keyboard shortcuts:
 - API setup script: `scripts/setup_python_env.sh`
 - API smoke script: `scripts/smoke_api_flow.py`
 - Fuji deployment script: `scripts/deploy_fuji.ts`
+- Pitch deck sync script: `scripts/sync_pitch_pptx.py`
+- Final judge pitch deck (PPTX): `guide/ppt/DR-Agent-Verifiable-Demand-Response-Auto-Settlement-final.pptx`
 - Evidence bundle script: `scripts/build_judge_evidence_bundle.py`
 - Generated demo tx summary: `cache/demo-tx-<event_id>.json`
 - Generated demo evidence summary: `cache/demo-evidence-<event_id>.json`
