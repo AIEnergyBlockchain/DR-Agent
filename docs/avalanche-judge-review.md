@@ -1,203 +1,203 @@
-# DR Agent - Avalanche Hackathon Project Review
+# DR Agent - Avalanche 黑客松项目评审
 
-## Reviewer Perspective: Avalanche Ecosystem Judge
-
----
-
-## Executive Summary
-
-DR Agent is a Demand Response (DR) automated settlement layer built on Avalanche C-Chain, targeting the energy sector's two core pain points: **fulfillment verification difficulty** and **slow manual settlement**. The project proposes an on-chain/off-chain hybrid architecture that converts energy telemetry data into verifiable proofs and automates incentive settlement via smart contracts.
-
-The project demonstrates a complete end-to-end closed loop (`create -> proofs -> close -> settle -> claim -> audit`) and has been deployed on Fuji testnet with verifiable transaction evidence.
+## 评审视角：Avalanche 生态评委
 
 ---
 
-## Evaluation Dimensions
+## 摘要
 
-### 1. Problem Authenticity and Market Fit (8/10)
+DR Agent 是基于 Avalanche C-Chain 构建的需求响应（DR）自动化结算层，针对能源行业的两个核心痛点：**履约验证困难**和**人工结算缓慢**。项目提出链上/链下混合架构，将能源遥测数据转化为可验证证明，并通过智能合约自动执行激励结算。
 
-**Strengths:**
-
-- The problem is real and well-scoped. Demand Response is a growing field worldwide. As grid flexibility demands increase and distributed energy resources proliferate, the need for transparent, automated settlement infrastructure is genuine.
-- The two pain points identified (verification difficulty, slow settlement) are precisely the areas where blockchain can create structural advantage over centralized systems.
-- The project clearly positions itself as "settlement and audit infrastructure," not as an energy dispatch platform, avoiding regulatory landmines.
-
-**Concerns:**
-
-- The market size analysis is implicit rather than quantified. For judges, specific numbers (e.g., global DR market size, target region TAM) would be more persuasive.
-- Competitor analysis mentions "traditional DR platforms" generically without naming specific incumbents (e.g., EnerNOC/Enel X, CPower, Voltus), making differentiation claims harder to verify.
-- The "AI load/compute flexibility scenario" extension feels aspirational at this stage, with limited evidence of the AI compute demand-response use case being validated.
+项目展示了完整的端到端闭环流程（`create -> proofs -> close -> settle -> claim -> audit`），已部署在 Fuji 测试网上并具有可验证的交易证据。
 
 ---
 
-### 2. Avalanche Ecosystem Alignment (7/10)
+## 评估维度
 
-**Strengths:**
+### 1. 问题真实性与市场匹配度（8/10）
 
-- **C-Chain MVP with Custom L1 roadmap:** The team articulates a clear migration path from C-Chain prototyping to a Custom L1 (formerly Subnet), which aligns with Avalanche's architectural vision of application-specific blockchains.
-- **Low-latency settlement fit:** The whitepaper states Snow* protocols achieve finality in ≤1 second. For event-driven DR settlement, this sub-second finality is a real advantage over Ethereum's longer confirmation times.
-- **Fuji testnet deployment verified:** Contracts are live on Fuji with verifiable addresses and transaction hashes on Snowtrace, demonstrating actual Avalanche integration rather than just a claim.
+**优势：**
 
-**Concerns:**
+- 问题真实且定义清晰。需求响应是全球性的增长领域。随着电网灵活性需求增加和分布式能源资源普及，对透明、自动化结算基础设施的需求是真实存在的。
+- 识别出的两个痛点（验证困难、结算缓慢）恰好是区块链相对于中心化系统能够创造结构性优势的领域。
+- 项目明确定位为"结算与审计基础设施"，而非能源调度平台，避免了监管雷区。
 
-- **Shallow Avalanche-specific integration.** The smart contracts are standard Solidity EVM contracts. They could be deployed on any EVM chain (Ethereum, Polygon, BSC) with zero modification. There is no usage of:
-  - Avalanche Warp Messaging (AWM) for cross-chain communication
-  - Teleporter for interchain proof verification
-  - Subnet/L1-specific features (custom gas tokens, custom precompiles)
-  - HyperSDK or custom VM development
-  - AVAX-specific staking or governance primitives
-- **The "Why Avalanche" section reads like marketing rather than engineering.** Statements like "low latency and deterministic settlement" and "interchain interoperability" are generic platform properties, not evidence of the project exploiting Avalanche-specific capabilities.
-- **No Custom L1 implementation or prototype.** The Week 4 milestone mentions a "C-Chain -> Custom L1 migration blueprint," but this is future work. For an Avalanche hackathon, at minimum a design document showing custom VM parameters or a Subnet configuration spec would strengthen the Avalanche alignment.
-- **The stablecoin and token dynamics papers in resources are not visibly connected to the project.** The resources directory includes Avalanche's stablecoin classification paper and token dynamics paper, but the project does not implement any token economics or stablecoin settlement mechanism. Settlement payouts are computed but not actually transferred on-chain (no ERC20 integration, no AVAX transfer).
+**关注点：**
 
-**Recommendation:** To score higher on Avalanche ecosystem alignment, the project should demonstrate at least one Avalanche-differentiated feature (AWM, custom precompile, or Teleporter usage) rather than relying solely on "will migrate to Custom L1 later."
+- 市场规模分析是隐含的，而非量化的。对评委而言，具体数据（如全球 DR 市场规模、目标区域 TAM）会更有说服力。
+- 竞品分析笼统提及"传统 DR 平台"，未点名具体竞争对手（如 EnerNOC/Enel X、CPower、Voltus），使差异化声明更难验证。
+- "AI 负载/算力灵活性场景"的扩展在当前阶段偏愿景性，AI 算力需求响应用例的验证证据有限。
 
 ---
 
-### 3. Technical Architecture and Implementation Quality (8.5/10)
+### 2. Avalanche 生态对齐度（7/10）
 
-**Smart Contracts (9/10):**
+**优势：**
 
-- Three cleanly separated contracts (`EventManager`, `ProofRegistry`, `Settlement`) with clear single responsibilities.
-- Proper state machine enforcement: `Active -> Closed -> Settled` with transition guards.
-- Interface-based contract-to-contract communication (`IEventManagerView`, `IEventManagerSettlement`, `IProofRegistryView`) demonstrating modular design thinking.
-- Defensive programming: zero-address checks, duplicate prevention, permission enforcement via modifiers.
-- 15 passing tests covering happy path, permission enforcement, state violations, and idempotency.
-- Pull-based claim pattern (user calls `claimReward` rather than push-based distribution) -- this is a correct security pattern.
+- **C-Chain MVP + Custom L1 路线图：** 团队阐述了从 C-Chain 原型到 Custom L1（前身为 Subnet）的清晰迁移路径，与 Avalanche 应用专属链的架构愿景一致。
+- **低延迟结算契合度：** 白皮书指出 Snow* 协议在 ≤1 秒内实现最终性。对于事件驱动的 DR 结算，这种亚秒级最终性相比以太坊更长的确认时间具有真实优势。
+- **Fuji 测试网部署已验证：** 合约已在 Fuji 上线，具有可在 Snowtrace 上验证的地址和交易哈希，证明了真实的 Avalanche 集成而非仅停留在声明层面。
 
-**Minor issues:**
-- No reentrancy guards. While the current logic doesn't have reentrancy risk (no ETH transfers), it would be good practice for production.
-- `targetShare = targetKw / siteIds.length` uses integer division, which silently discards remainders. For example, if `targetKw = 100` and there are 3 sites, each site gets `targetShare = 33` and 1 kW is lost. This is acceptable for MVP but should be documented.
-- No upgradability pattern (proxy, diamond). Acceptable for hackathon but noted for production readiness.
+**关注点：**
 
-**Backend Services (8/10):**
+- **Avalanche 专属集成较浅。** 智能合约是标准的 Solidity EVM 合约，可以零修改部署到任何 EVM 链（Ethereum、Polygon、BSC）。未使用以下特性：
+  - Avalanche Warp Messaging（AWM）用于跨链通信
+  - Teleporter 用于跨链证明验证
+  - Subnet/L1 专属特性（自定义 Gas 代币、自定义预编译合约）
+  - HyperSDK 或自定义 VM 开发
+  - AVAX 质押或治理原语
+- **"为什么选 Avalanche"部分更像营销而非工程论证。** "低延迟和确定性结算"、"跨链互操作性"等表述是通用的平台属性，而非项目利用 Avalanche 专属能力的证据。
+- **无 Custom L1 实现或原型。** 第4周里程碑提到"C-Chain -> Custom L1 迁移蓝图"，但这属于未来工作。对于 Avalanche 黑客松，至少一份展示自定义 VM 参数或 Subnet 配置规格的设计文档将加强 Avalanche 对齐度。
+- **资源目录中的稳定币和代币经济论文与项目未见实质关联。** 资源目录包含 Avalanche 的稳定币分类论文和代币经济论文，但项目未实现任何代币经济或稳定币结算机制。结算支付仅被计算和记录，从未在链上实际转移（无 ERC20 集成，无 AVAX 转账）。
 
-- Well-structured FastAPI application with modular Python services.
-- Clean separation: `collector.py`, `baseline.py`, `proof_builder.py`, `submitter.py`, `scorer.py`.
-- Dual chain mode (`simulated` vs `fuji-live`) with hybrid/sync confirmation modes demonstrates operational maturity.
-- Deterministic proof hash generation (`keccak256` of canonical JSON) with recomputation for audit -- this is the core innovation and is well-implemented.
-- SQLite persistence with migration system, trace ID injection, and structured error handling.
-- The `submitter.py` at ~1,180 lines carries too much responsibility. Decomposition would improve maintainability.
-
-**Frontend (7/10):**
-
-- Three-mode cockpit (Story/Ops/Engineering) is a thoughtful design for different audience levels.
-- Bilingual support (EN/中文) with localStorage persistence.
-- Judge evidence export feature shows domain awareness.
-- However: single monolithic 2,800-line JavaScript file with no framework, no build step, no component architecture. This is acceptable for a hackathon demo but would not scale.
+**建议：** 要在 Avalanche 生态对齐度上获得更高分，项目应至少展示一个 Avalanche 差异化特性（AWM、自定义预编译或 Teleporter 使用），而非仅仅依赖"将来会迁移到 Custom L1"。
 
 ---
 
-### 4. Innovation and Differentiation (7.5/10)
+### 3. 技术架构与实现质量（8.5/10）
 
-**Energy Oracle Layer (Core Innovation):**
+**智能合约（9/10）：**
 
-The project's strongest differentiator is the "Energy Oracle Layer" -- a pipeline that converts off-chain energy telemetry into on-chain verifiable proofs:
+- 三个职责清晰分离的合约（`EventManager`、`ProofRegistry`、`Settlement`），具有明确的单一职责。
+- 正确的状态机强制执行：`Active -> Closed -> Settled`，带有转换守卫。
+- 基于接口的合约间通信（`IEventManagerView`、`IEventManagerSettlement`、`IProofRegistryView`），体现模块化设计思维。
+- 防御性编程：零地址检查、重复防护、通过修饰器执行权限控制。
+- 15 个通过的测试覆盖正常路径、权限执行、状态违规和幂等性。
+- 拉取式索赔模式（用户调用 `claimReward` 而非推送式分发）——这是正确的安全模式。
+
+**小问题：**
+- 无重入守卫。虽然当前逻辑不存在重入风险（无 ETH 转账），但这是生产环境的良好实践。
+- `targetShare = targetKw / siteIds.length` 使用整数除法，静默丢弃余数。例如 `targetKw = 100`，3 个站点，每站点得到 `targetShare = 33`，1 kW 丢失。MVP 可接受但应记录说明。
+- 无升级模式（代理、钻石）。黑客松可接受，但需为生产就绪做标记。
+
+**后端服务（8/10）：**
+
+- 结构良好的 FastAPI 应用，Python 服务模块化。
+- 清晰的关注点分离：`collector.py`、`baseline.py`、`proof_builder.py`、`submitter.py`、`scorer.py`。
+- 双链模式（`simulated` vs `fuji-live`），带有混合/同步确认模式，体现运营成熟度。
+- 确定性证明哈希生成（规范 JSON 的 `keccak256`），支持审计重新计算——这是核心创新，实现良好。
+- SQLite 持久化带迁移系统、Trace ID 注入和结构化错误处理。
+- `submitter.py` 约 1,180 行承载了过多职责。分解将提高可维护性。
+
+**前端（7/10）：**
+
+- 三模式驾驶舱（Story/Ops/Engineering）对不同受众层次设计周到。
+- 双语支持（EN/中文），带 localStorage 持久化。
+- 评委证据导出功能展示了领域意识。
+- 但：单一的 2,800 行 JavaScript 文件，无框架、无构建步骤、无组件架构。黑客松演示可接受，但不可扩展。
+
+---
+
+### 4. 创新与差异化（7.5/10）
+
+**能源预言机层（核心创新）：**
+
+项目最强的差异化是"能源预言机层"——将链下能源遥测转化为链上可验证证明的管道：
 
 ```
-telemetry -> baseline inference -> confidence metadata -> proof hash anchoring
+遥测 -> 基线推理 -> 置信度元数据 -> 证明哈希锚定
 ```
 
-This addresses a genuine gap: most energy blockchain projects store data on-chain or use generic oracles (Chainlink price feeds). DR Agent's approach of computing baselines off-chain, generating deterministic proof hashes, and anchoring only the hash on-chain is architecturally sound. It separates the "data availability" problem from the "verification" problem.
+这解决了一个真实的空白：大多数能源区块链项目直接将数据存在链上或使用通用预言机（Chainlink 价格馈送）。DR Agent 的方案——链下计算基线、生成确定性证明哈希、仅将哈希锚定到链上——在架构上是合理的。它将"数据可用性"问题与"验证"问题分离。
 
-**However:**
-- The baseline computation is currently simplistic (7-day same-hour average or Prophet fallback). The "AI" in the Energy Oracle Layer is thin -- Prophet is a time series forecasting library, not a sophisticated ML model.
-- The confidence metadata (`baseline_method`, `baseline_model_version`, `baseline_confidence`) is planned for Week 1 but not yet implemented in the current codebase.
-- There is no on-chain dispute mechanism. If a participant disagrees with the baseline, there is no contract-level challenge/appeal process.
+**但：**
+- 基线计算目前较简单（7 天同时段均值或 Prophet 后备）。能源预言机层中的"AI"成分较薄——Prophet 是时间序列预测库，非高级 ML 模型。
+- 置信度元数据（`baseline_method`、`baseline_model_version`、`baseline_confidence`）计划在第1周实现，但当前代码库尚未实现。
+- 无链上争议机制。如果参与者对基线不认可，合约层面没有挑战/申诉流程。
 
-**M2M Settlement:**
+**M2M 结算：**
 
-The machine-account-based settlement concept is interesting but currently only at the design stage (Week 3 milestone).
-
----
-
-### 5. Completeness and Demo Readiness (9/10)
-
-**This is the project's strongest dimension.**
-
-- End-to-end flow is fully operational: `create -> proofs -> close -> settle -> claim -> audit`.
-- 5-minute demo loop with both simulated and live Fuji execution paths.
-- Comprehensive operational tooling:
-  - `Makefile` with 20+ commands including secrets management
-  - `demo_walkthrough.sh` with timing instrumentation
-  - Evidence bundle generation for judges
-  - Fuji deployment script with deployment report
-- Cache artifacts (`demo-tx-*.json`, `demo-evidence-*.json`, `demo-raw-*/`) provide full audit trail.
-- Module design documentation (8 documents) and ADR records show engineering discipline.
-- Testnet evidence table with Snowtrace-verifiable addresses.
-
-This level of operational maturity is uncommon in hackathon projects and demonstrates the builder's production engineering background.
+基于机器账户的结算概念有趣，但目前仅在设计阶段（第3周里程碑）。
 
 ---
 
-### 6. Builder Credibility (8/10)
+### 5. 完整性与演示就绪度（9/10）
 
-- Huawei Digital Energy background with 3+ years in PV systems provides genuine domain expertise.
-- Cross-stack capability (embedded C, Python AI, Solidity) is verified by the codebase.
-- Zhejiang University education adds credibility.
-- The weekly milestone planning shows project management discipline.
-- Solo builder (implied) completing this scope is impressive.
+**这是项目最强的维度。**
 
----
+- 端到端流程完全可运行：`create -> proofs -> close -> settle -> claim -> audit`。
+- 5 分钟演示循环，支持模拟和真实 Fuji 执行路径。
+- 全面的运维工具：
+  - `Makefile` 包含 20+ 命令，含密钥管理
+  - `demo_walkthrough.sh` 带计时功能
+  - 评委证据包生成
+  - Fuji 部署脚本带部署报告
+- 缓存产物（`demo-tx-*.json`、`demo-evidence-*.json`、`demo-raw-*/`）提供完整审计轨迹。
+- 模块设计文档（8 份）和 ADR 记录展示了工程纪律。
+- 测试网证据表格具有 Snowtrace 可验证地址。
 
-### 7. Risks and Honest Assessment
-
-**What the project does well:**
-1. Complete closed-loop demonstration with real testnet transactions
-2. Clean contract architecture with proper access control
-3. Sound off-chain/on-chain data boundary design
-4. Professional operational tooling and documentation
-5. Bilingual, multi-audience frontend
-
-**What the project lacks:**
-1. **No actual value transfer on-chain.** Settlement payouts are computed and recorded but never actually transferred as AVAX or ERC20 tokens. The `claimReward` function emits an event but transfers no funds. This is a fundamental gap for a "settlement" platform.
-2. **No Avalanche-differentiated features.** The project is portable to any EVM chain without modification.
-3. **No dispute resolution mechanism.** In real DR markets, disputes over baselines and measurements are common. The contracts have no challenge/appeal process.
-4. **No real device/meter integration.** All telemetry data is simulated. There is no IoT gateway, smart meter API, or real data ingestion pipeline.
-5. **No token economics.** Despite including the AVAX Token Dynamics paper in resources, there is no token model for the platform (e.g., staking for data validators, fee distribution, governance).
-6. **The "AI" claim is overstated.** Prophet-based forecasting is a standard statistical tool, not a differentiating AI capability.
+这种运维成熟度在黑客松项目中并不常见，体现了构建者的生产工程背景。
 
 ---
 
-## Scoring Summary
+### 6. 构建者可信度（8/10）
 
-| Dimension | Score | Weight | Weighted |
-|-----------|-------|--------|----------|
-| Problem Authenticity & Market Fit | 8.0 | 15% | 1.20 |
-| Avalanche Ecosystem Alignment | 7.0 | 20% | 1.40 |
-| Technical Architecture & Quality | 8.5 | 25% | 2.13 |
-| Innovation & Differentiation | 7.5 | 15% | 1.13 |
-| Completeness & Demo Readiness | 9.0 | 15% | 1.35 |
-| Builder Credibility | 8.0 | 10% | 0.80 |
-| **Total** | | **100%** | **8.00** |
+- 华为数字能源背景，3 年以上光伏系统经验，提供了真实的领域专业知识。
+- 跨技术栈能力（嵌入式 C、Python AI、Solidity）在代码库中得到验证。
+- 浙江大学教育背景增加可信度。
+- 按周里程碑规划展示了项目管理纪律。
+- 单人构建者（推测）完成这个范围令人印象深刻。
 
 ---
 
-## Verdict
+### 7. 风险与诚实评估
 
-**DR Agent is a technically solid, well-executed hackathon project that solves a real problem with genuine engineering discipline.** The end-to-end completeness and operational maturity set it apart from many hackathon submissions that are conceptual or partially implemented.
+**项目做得好的：**
+1. 完整的闭环演示，具有真实测试网交易
+2. 清晰的合约架构，正确的访问控制
+3. 合理的链下/链上数据边界设计
+4. 专业的运维工具和文档
+5. 双语、多受众前端
 
-**The primary weakness is insufficient Avalanche-specific integration.** The project uses Avalanche C-Chain as a deployment target but does not leverage any Avalanche-differentiated capabilities. From an Avalanche ecosystem judge's perspective, this is a significant gap. The project would benefit from:
-
-1. Implementing at least one Avalanche-specific feature (AWM for cross-chain proof verification, custom precompile for settlement computation, or Teleporter integration).
-2. Adding actual AVAX or ERC20 token transfers in the settlement flow.
-3. Delivering the Custom L1 migration blueprint with concrete Subnet configuration parameters.
-4. Introducing an on-chain dispute resolution mechanism that leverages Avalanche's fast finality for rapid arbitration.
-
-**Overall: a strong MVP with clear path to improvement, but needs deeper Avalanche integration to stand out in an Avalanche-specific hackathon.**
+**项目欠缺的：**
+1. **无实际链上价值转移。** 结算支付被计算和记录但从未以 AVAX 或 ERC20 代币实际转移。`claimReward` 函数触发事件但不转账。这是"结算"平台的根本性缺口。
+2. **无 Avalanche 差异化特性。** 项目可零修改移植到任何 EVM 链。
+3. **无争议解决机制。** 在实际 DR 市场中，关于基线和测量的争议很常见。合约无挑战/申诉流程。
+4. **无真实设备/电表集成。** 所有遥测数据是模拟的。无 IoT 网关、智能电表 API 或真实数据摄入管道。
+5. **无代币经济。** 尽管资源中包含 AVAX 代币经济论文，平台无代币模型（如数据验证者质押、费用分配、治理）。
+6. **"AI"声明有所夸大。** 基于 Prophet 的预测是标准统计工具，非差异化 AI 能力。
 
 ---
 
-## Appendix: Resources Context
+## 评分总结
 
-The resources directory contains four Avalanche research papers:
+| 维度 | 评分 | 权重 | 加权分 |
+|------|------|------|--------|
+| 问题真实性与市场匹配度 | 8.0 | 15% | 1.20 |
+| Avalanche 生态对齐度 | 7.0 | 20% | 1.40 |
+| 技术架构与实现质量 | 8.5 | 25% | 2.13 |
+| 创新与差异化 | 7.5 | 15% | 1.13 |
+| 完整性与演示就绪度 | 9.0 | 15% | 1.35 |
+| 构建者可信度 | 8.0 | 10% | 0.80 |
+| **总分** | | **100%** | **8.00** |
 
-1. **Avalanche Consensus Whitepaper** (Team Rocket et al., Cornell) -- Describes the Snow* protocol family. Key relevance: the metastable consensus mechanism provides probabilistic BFT guarantees with O(1) communication per node per round and sub-second finality. This is directly relevant to DR Agent's event-driven settlement use case.
+---
 
-2. **Avalanche Platform Whitepaper** (Sekniqi et al.) -- Describes the platform architecture including Subnets, VMs, and staking. Key relevance: the Subnet model enables application-specific chains, which DR Agent's roadmap cites as the target for Custom L1 migration.
+## 结论
 
-3. **Avalanche Native Token Dynamics** (Buttolph et al.) -- Describes AVAX tokenomics, governance, and minting function. Key relevance: the governance model and fee-burning mechanism could inform DR Agent's own token economics if a native token is introduced.
+**DR Agent 是一个技术扎实、执行良好的黑客松项目，以真正的工程纪律解决了一个真实问题。** 端到端的完整性和运维成熟度使其在许多停留在概念或部分实现的黑客松提交中脱颖而出。
 
-4. **Stablecoin Classification Framework** (Moin et al.) -- Comprehensive taxonomy of stablecoin designs. Key relevance: if DR Agent's settlement layer moves to USDC or a stablecoin-denominated payout system, this framework informs the collateral and mechanism design choices.
+**主要弱点是 Avalanche 专属集成不足。** 项目将 Avalanche C-Chain 用作部署目标，但未利用任何 Avalanche 差异化能力。从 Avalanche 生态评委的视角来看，这是一个显著的缺口。项目将受益于：
 
-**Assessment:** The builder has studied the Avalanche ecosystem papers, but the current implementation does not yet reflect the depth of these resources in the actual code.
+1. 实现至少一个 Avalanche 专属特性（AWM 用于跨链证明验证、自定义预编译用于结算计算、或 Teleporter 集成）。
+2. 在结算流程中添加实际的 AVAX 或 ERC20 代币转移。
+3. 交付具有具体 Subnet 配置参数的 Custom L1 迁移蓝图。
+4. 引入利用 Avalanche 快速最终性进行快速仲裁的链上争议解决机制。
+
+**总体评价：一个有明确改进路径的强 MVP，但需要更深入的 Avalanche 集成才能在 Avalanche 专属黑客松中脱颖而出。**
+
+---
+
+## 附录：资源上下文
+
+资源目录包含四篇 Avalanche 研究论文：
+
+1. **Avalanche 共识白皮书**（Team Rocket 等人，Cornell）——描述 Snow* 协议族。关键相关性：亚稳态共识机制以每节点每轮 O(1) 通信提供概率性 BFT 保证和亚秒级最终性。这与 DR Agent 的事件驱动结算用例直接相关。
+
+2. **Avalanche 平台白皮书**（Sekniqi 等人）——描述平台架构，包括 Subnet、VM 和质押。关键相关性：Subnet 模型支持应用专属链，DR Agent 路线图将其作为 Custom L1 迁移目标。
+
+3. **Avalanche 原生代币经济**（Buttolph 等人）——描述 AVAX 代币经济、治理和铸造函数。关键相关性：治理模型和燃烧费机制可为 DR Agent 引入原生代币时提供参考。
+
+4. **稳定币分类框架**（Moin 等人）——全面的稳定币设计分类体系。关键相关性：如果 DR Agent 的结算层转向 USDC 或稳定币计价的支付系统，该框架可指导抵押品和机制设计选择。
+
+**评估：** 构建者已研究了 Avalanche 生态论文，但当前实现尚未在实际代码中体现这些资源的深度。
