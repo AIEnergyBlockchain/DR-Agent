@@ -20,55 +20,68 @@ DR-Agent 的三个智能合约（`EventManager`、`ProofRegistry`、`Settlement`
 
 | 特性 | 产品价值 | 工程复杂度 | 黑客松可行性 | 决策 |
 |------|---------|-----------|------------|------|
-| ICTT（跨链代币转移） | **极高** | 中 | **可行** | **必须做** |
-| ICM/Teleporter 跨链消息 | 高 | 中-高 | 可行 | **推荐做** |
-| Custom L1 配置蓝图 | 高 | 低（文档级） | **容易** | **必须做** |
-| 自定义预编译合约 | 中 | 高 | 勉强可行 | 暂缓 |
-| HyperSDK 自定义 VM | 低 | 极高 | 不可行 | 不做 |
-| ValidatorManager 自定义质押 | 中 | 高 | 不可行 | 不做 |
+| DRT 代币 + claimReward 转账 | **极高** | 低 | **容易** | **必须做（黑客松交付）** |
+| ICTT（跨链代币转移） | **极高** | 中 | **可行** | **必须做（黑客松交付）** |
+| Custom L1 配置蓝图 | 高 | 低（文档级） | **容易** | **必须做（黑客松交付）** |
+| ICM/Teleporter 跨链消息 | 高 | 中-高 | 可行但非刚需 | **长期愿景（路线图展示）** |
+| 自定义预编译合约 | 中 | 高 | 勉强可行 | 长期愿景 |
+| HyperSDK 自定义 VM | 低 | 极高 | 不可行 | 长期愿景 |
+| ValidatorManager 自定义质押 | 中 | 高 | 不可行 | 长期愿景 |
 
 ---
 
-## 一、ICTT 跨链代币转移 —— 必须做
+## 一、DRT 代币 + ICTT 跨链代币转移 —— 必须做（黑客松交付）
 
 ### 产品经理视角
 
-**解决什么问题：**
-- 当前 `claimReward()` 仅更新状态，不转移任何资产——这是"结算平台"的逻辑矛盾
-- 引入 ICTT 不仅解决价值转移问题，还展示了 DR 结算如何跨多条 Avalanche L1 运行
+**解决两个层次的问题：**
+
+**第一层（刚需）：结算必须转账。**
+当前 `claimReward()` 仅更新状态，不转移任何资产——一个"结算平台"的 claim 不转钱，是产品逻辑的根本矛盾。部署 DRT 代币并在 `claimReward()` 中执行 `transfer()` 是最低要求。
+
+**第二层（Avalanche 刚需）：应用链上的代币必须有流动性出口。**
+如果 DR-Agent 未来运行在 Custom L1 上，DRT 代币就被困在一条应用专属链里——没有 DEX、没有交易对手、没有流动性。**ICTT 是唯一能让应用链代币"活"起来的方式**：用户通过 ICTT 将 DRT 桥接到 C-Chain，在那里兑换 USDC/AVAX。这不是技术炫技，是代币经济的基本需求。
 
 **用户故事：**
-> 作为 DR 事件参与者，当我的削减量被结算确认后，我可以 claim 获得 DRT 代币（ERC-20），该代币可通过 ICTT 桥接到 C-Chain 或其他 L1 进行交易。
+> 作为 DR 事件参与者，当我的削减量被结算确认后，我 claim 获得 DRT 代币。我可以将 DRT 通过 ICTT 桥接到 C-Chain，在 DEX 上卖出换取 USDC。
 
 **产品价值：**
 1. **结算闭环** — 从"记账型结算"升级为"真实价值转移"
-2. **Avalanche 叙事** — 展示 ICTT 在能源结算场景的应用，这是 Avalanche 生态独有的
-3. **多链扩展性** — 未来不同电网区域可运行不同 L1，通过 ICTT 互通结算代币
+2. **代币流动性** — 应用链代币通过 ICTT 获得 C-Chain 生态的流动性
+3. **Avalanche 独有叙事** — ICTT 不依赖第三方桥，由 L1 验证者集合保证安全，这是 Avalanche 生态独有的基础设施
 
 ### 架构师视角
 
-**实现方案：**
+**实现方案（分两步，降低风险）：**
 
 ```
-当前架构:
-Settlement.sol → claimReward() → 仅更新 status
-
-目标架构:
+Step 1（MVP，1天）:
 Settlement.sol → claimReward() → DRToken.transfer(claimer, amount)
-                                    ↓
-                              ERC20TokenHome (C-Chain)
-                                    ↓ (ICTT)
-                              ERC20TokenRemote (DR L1)
+  - 在 Fuji C-Chain 上完成，不涉及跨链
+  - 解决"结算不转账"问题
+
+Step 2（ICTT 桥接，1-2天）:
+DR-L1 (未来)                         C-Chain (流动性中心)
+  DRT 在这里铸造                       DEX / USDC 在这里
+  Settlement.claimReward()              |
+        ↓                              |
+  ERC20TokenRemote (DR-L1)             |
+        ↓ (ICTT 桥接)                  |
+  ERC20TokenHome (C-Chain) ───→ 用户卖出 DRT
 ```
 
-**具体步骤：**
-1. 部署 `DRToken.sol`（ERC-20，初始铸造量用于奖励池）
+**Step 1 具体步骤：**
+1. 部署 `DRToken.sol`（ERC-20，初始铸造 1,000,000 DRT 到 Settlement 合约）
 2. `Settlement.sol` 构造函数增加 `IERC20 rewardToken` 参数
 3. `claimReward()` 中加入 `rewardToken.transfer(msg.sender, uint256(payout))`
-4. 部署 ICTT 的 `ERC20TokenHome`（Fuji C-Chain）和 `ERC20TokenRemote`（未来 DR L1）
-5. 前端展示代币余额和跨链桥接入口
+4. 前端展示代币余额
 
-**工程量估算：** ~2-3 天
+**Step 2 具体步骤：**
+5. 部署 ICTT 的 `ERC20TokenHome`（Fuji C-Chain）
+6. 部署 `ERC20TokenRemote`（测试 L1 或模拟）
+7. 演示 DRT 跨链转移流程
+
+**工程量估算：** Step 1 约 1 天，Step 2 约 1-2 天
 - DRToken.sol: 20 行（标准 OpenZeppelin ERC20）
 - Settlement.sol 修改: 15 行
 - ICTT 部署脚本: 参考 Avalanche Academy 教程
@@ -80,63 +93,63 @@ Settlement.sol → claimReward() → DRToken.transfer(claimer, amount)
 
 | 风险 | 概率 | 影响 | 缓解措施 |
 |------|------|------|---------|
-| ICTT 合约在 Fuji 上部署复杂 | 中 | 高 | 先仅做 ERC20 转移，ICTT 桥接作为加分项 |
+| ICTT 合约在 Fuji 上部署复杂 | 中 | 高 | Step 1 独立交付，Step 2 失败不影响核心功能 |
 | 代币经济不合理 | 低 | 中 | MVP 使用固定铸造量，不设计复杂 tokenomics |
 
 ---
 
-## 二、ICM/Teleporter 跨链消息 —— 推荐做
+## 二、ICM/Teleporter 跨链消息 —— 长期愿景（路线图展示）
 
-### 产品经理视角
+### 为什么现在不做，但必须讲
 
-**解决什么问题：**
-- DR 事件涉及多个利益方（电网运营商、聚合商、参与者），可能运行在不同 L1
-- 跨链证明验证：在 L1-A 上提交的削减证明，可以被 L1-B 上的结算合约验证
+**诚实的产品判断：**
+如果 DR-Agent 全流程（create → proof → settle → claim）都运行在同一条 Custom L1 上，跨链消息在 MVP 阶段没有真实用途。为了"秀跨链"而拆分合约到两条链上，是伪需求驱动的过度工程。
 
-**用户故事：**
-> 作为电网运营商（运行自己的 DR L1），当参与者在我的 L1 上提交证明后，结算可以跨链触发 C-Chain 上的代币释放。
+**但这是一个创业导向的黑客松，评委看的不只是"你做了什么"，还有"你要做什么"。** ICM 的叙事价值在于：它描绘了 DR-Agent 从单一电网结算工具成长为**多区域跨电网结算协议**的路径——这个路径只有在 Avalanche 上才成立。
 
-**产品价值：**
-1. **行业合理性** — 不同地区的电网运营商天然运行不同的链，跨链消息是刚需
-2. **Avalanche 独有** — ICM 是 Avalanche 原生的跨链协议，不依赖第三方桥
-3. **安全模型优势** — 不引入额外信任假设，由 L1 验证者集合保证
+### 产品经理视角：创业叙事
 
-### 架构师视角
+**长期故事（1-3 年）：**
 
-**实现方案（最小可行）：**
+电力市场天然是区域性的。华东电网和华南电网是不同的市场主体，有不同的规则、不同的监管方、不同的参与者。在 Avalanche 的架构下，这自然映射为：
 
-跨链证明验证场景：
 ```
-DR-L1 (ProofRegistry)                    C-Chain (Settlement)
-        |                                        |
-  submitProof() →                                 |
-        | → ICM sendCrossChainMessage() →         |
-        |          [eventId, siteId, proofHash]   |
-        |                                  → receiveTeleporterMessage()
-        |                                  → verifyAndSettle()
+华东电网 DR-L1          华南电网 DR-L1          C-Chain（结算清算层）
+  ├ EventManager          ├ EventManager          ├ DRT TokenHome
+  ├ ProofRegistry         ├ ProofRegistry         ├ 跨区域结算汇总
+  └ Settlement            └ Settlement            └ DEX 流动性
+        |                       |                       |
+        └───── ICM ────────────└───────── ICM ──────────┘
+              跨区域证明互认              跨区域代币流通
 ```
 
-**具体步骤：**
-1. `ProofRegistry.sol` 继承 `ITeleporterReceiver` 或增加跨链通知函数
-2. 证明提交后，通过 `TeleporterMessenger.sendCrossChainMessage()` 发送摘要到结算链
-3. 结算链的接收合约验证消息来源并触发结算
+**这个故事为什么有说服力：**
+1. **行业真实** — 电力市场确实按区域划分，不同 ISO/RTO 有不同规则
+2. **技术自洽** — 每个区域一条 L1（许可验证者、独立 Gas）+ ICM 跨链互通，架构上说得通
+3. **Avalanche 独有** — 只有 Avalanche 的 L1 + ICM 原生架构能支撑这个模型，以太坊/Polygon 做不到
 
-**工程量估算：** ~3-4 天
-- 需要理解 ICM 合约接口和 Relayer 配置
-- 在 Fuji 上需要两条链（C-Chain + 一条测试 L1）
-- 参考 Avalanche Academy ICM 课程
+### 架构师视角：未来接入点
 
-**简化方案（黑客松适用）：**
-- 不必真正部署两条链，可以用 Fuji C-Chain 作为 Home Chain，用测试 Dispatch Chain 作为 Remote
-- 只展示单向消息（证明摘要从 DR L1 → C-Chain），不需要完整双向通信
+**当前代码中的预留点（不需要现在改代码）：**
 
-### 风险评估
+| 未来 ICM 场景 | 接入合约 | 改动描述 |
+|---------------|---------|---------|
+| 跨区域证明互认 | ProofRegistry | 接收远程 L1 的 `TeleporterMessage`，验证后存储远程证明摘要 |
+| 跨区域结算汇总 | Settlement | 从多条 L1 汇总 payout，触发 C-Chain 上的统一清算 |
+| 跨区域代币流通 | DRToken + ICTT | 已通过 ICTT 解决（见第一节） |
 
-| 风险 | 概率 | 影响 | 缓解措施 |
-|------|------|------|---------|
-| Relayer 配置复杂 | 高 | 中 | 使用 Avalanche 提供的公共 Relayer |
-| 测试 L1 部署耗时 | 中 | 高 | 使用 Avalanche CLI 快速启动本地 L1 |
-| Demo 中跨链延迟 | 低 | 低 | Avalanche 跨链延迟 <2s，演示效果好 |
+**工程量估算（未来实施时）：** ~3-4 天
+- ProofRegistry 增加 `ITeleporterReceiver` 接口
+- 部署 Relayer 或使用 Avalanche 公共 Relayer
+- 需要两条 Fuji L1 环境
+
+### 黑客松交付建议
+
+**不写代码，但在 Custom L1 蓝图文档中加入一节"多区域扩展架构"：**
+- 架构图：多条 DR-L1 + C-Chain 清算层
+- ICM 消息流：证明互认 + 结算汇总
+- 说明为什么这只能在 Avalanche 上实现
+- 预计工作量：0.5 天（纯文档）
 
 ---
 
@@ -201,22 +214,17 @@ DR-L1 (ProofRegistry)                    C-Chain (Settlement)
 
 ---
 
-## 四、自定义预编译合约 —— 暂缓
+## 四、自定义预编译合约 —— 长期愿景
 
 ### 产品经理视角
 
-**潜在价值：**
-- 将基线计算或证明验证逻辑内置为 EVM 预编译，实现近乎原生的执行速度
-- 例如：`BaselinerPrecompile` 在 EVM 层面提供 `computeBaseline(siteId, window)` 函数
-
-**为什么暂缓：**
+**为什么现在不做：**
 1. **ROI 不足** — 当前基线计算在链下完成，链上仅存哈希，预编译无法改善这个架构
 2. **工程量大** — 需要 fork Subnet-EVM（Go 语言），编写自定义预编译，工程量 5+ 天
-3. **黑客松评分权重** — 评委更看重"用了 Avalanche 什么"而非"用得多深"，ICTT+ICM 已足够
 
-**未来可能的预编译方向（如果项目继续）：**
-- `EnergyProofVerifier` 预编译：链上验证基线计算的 zk-SNARK 证明
-- `DRSettlementBatch` 预编译：批量结算优化，降低多站点结算的 Gas 成本
+**长远方向（6-12 个月）：**
+- `EnergyProofVerifier` 预编译：链上验证基线计算的 zk-SNARK 证明，从"信任链下计算"升级为"链上密码学验证"
+- `DRSettlementBatch` 预编译：批量结算优化，当参与站点从 2 个扩展到 1000+ 时降低 Gas 成本
 
 ---
 
@@ -251,70 +259,78 @@ DR-L1 (ProofRegistry)                    C-Chain (Settlement)
 
 ## 实施优先级与路线图
 
-### Phase 1：立即执行（1-2 天）
+### 黑客松交付（本次必须完成，~3-4 天）
 
 ```
-[P0] DRT 代币 + claimReward 价值转移
+[P0] DRT 代币 + claimReward 价值转移（1 天）
      ├── 部署 DRToken.sol (ERC-20)
      ├── 修改 Settlement.sol 加入 token.transfer()
      └── 前端展示代币余额
 
-[P0] Custom L1 配置蓝图文档
+[P0] Custom L1 配置蓝图文档（0.5 天）
      ├── genesis.json 配置示例
      ├── 技术论证：为什么 DR 结算需要专属 L1
+     ├── 多区域扩展架构图（ICM 愿景）
      └── 预编译 AllowList 参数设计
-```
 
-### Phase 2：核心差异化（2-3 天）
-
-```
-[P1] ICTT 跨链代币桥接
+[P1] ICTT 跨链代币桥接（1-2 天）
      ├── 部署 ERC20TokenHome (Fuji C-Chain)
      ├── 部署 ERC20TokenRemote (测试 L1)
      └── 演示 DRT 代币跨链转移
 
-[P2] ICM 跨链证明通知（简化版）
-     ├── ProofRegistry 提交后发送 ICM 消息
-     └── C-Chain 接收合约验证消息并记录
+[P2] Snowtrace 浏览器链接（前端 ~10 行代码）
+[P2] Prophet 自动调用（后端 ~30 行代码）
 ```
 
-### Phase 3：锦上添花（如有余力）
+### 创业愿景路线图（写入文档，不写代码）
 
 ```
-[P3] Snowtrace 浏览器链接（前端 ~10 行代码）
-[P3] Prophet 自动调用（后端 ~30 行代码）
+[6 个月] ICM 跨区域证明互认
+         ├── 华东/华南等不同电网运营商各自部署 DR-L1
+         ├── ProofRegistry 通过 ICM 实现跨区域证明验证
+         └── Settlement 从多条 L1 汇总，C-Chain 统一清算
+
+[12 个月] 自定义预编译
+         ├── EnergyProofVerifier: zk-SNARK 证明链上验证
+         └── DRSettlementBatch: 千级站点批量结算优化
+
+[18 个月] HyperSDK DR-VM
+         ├── 原生证明提交/验证指令
+         ├── 百万级 TPS 结算吞吐
+         └── 能源数据专用状态存储
+
+[24 个月] 验证者经济
+         ├── 电表运营商质押成为 DR-L1 验证者
+         └── 数据验证挖矿：验证基线准确性获得 DRT 奖励
 ```
 
 ---
 
 ## 预期评分影响
 
-| 维度 | 当前 | Phase 1 后 | Phase 2 后 | 变化 |
-|------|------|-----------|-----------|------|
-| Avalanche 生态对齐度 | 7.0 | 7.5 | **8.5-9.0** | +1.5~2.0 |
-| 创新与差异化 | 7.0 | 7.5 | **8.0** | +1.0 |
-| 技术架构 | 8.5 | 8.5 | **9.0** | +0.5 |
-| **加权平均** | **7.9** | **8.2** | **8.7-9.0** | **+0.8~1.1** |
+| 维度 | 当前 | 黑客松交付后 | 变化 |
+|------|------|------------|------|
+| Avalanche 生态对齐度 | 7.0 | **8.5-9.0** | +1.5~2.0 |
+| 创新与差异化 | 7.0 | **8.0** | +1.0 |
+| 技术架构 | 8.5 | **9.0** | +0.5 |
+| **加权平均** | **7.9** | **8.7-9.0** | **+0.8~1.1** |
 
-Phase 1 + Phase 2 完成后，项目将从"碰巧部署在 Avalanche 的通用 EVM 应用"转变为**"只有在 Avalanche 上才能完整运行的能源结算协议"**。
+黑客松交付完成后，项目将从"碰巧部署在 Avalanche 的通用 EVM 应用"转变为**"只有在 Avalanche 上才能完整运行的能源结算协议"**。加上创业愿景路线图，评委能看到这不是一次性项目，而是一个有清晰成长路径的创业方向。
 
 ---
 
 ## 结论
 
-**必须做的两件事：**
-1. **DRT 代币 + ICTT** — 解决"结算不转账"的根本矛盾，同时引入 Avalanche 独有的跨链代币转移
-2. **Custom L1 蓝图** — 零代码成本回答"为什么是 Avalanche"
+### 黑客松交付（写代码，~3-4 天）
 
-**推荐做的一件事：**
-3. **ICM 跨链证明通知** — 展示能源证明的跨链验证场景，这是评委最容易理解的 Avalanche 差异化叙事
+1. **DRT 代币 + claimReward 转账** — 解决"结算不转账"的根本矛盾
+2. **ICTT 跨链代币桥接** — 让应用链代币拥有 C-Chain 流动性，Avalanche 独有能力
+3. **Custom L1 蓝图** — 零代码成本回答"为什么是 Avalanche"，含多区域架构图
 
-**不做的三件事：**
-4. 自定义预编译 — ROI 不足，留给生产阶段
-5. HyperSDK — 工程量不现实
-6. 自定义质押 — 黑客松不需要
+### 创业愿景（写文档，不写代码）
 
-这三项投入（~4-5 天工程量）预计可将加权评分从 **7.9 提升至 8.7-9.0**，使项目在 Avalanche 黑客松中具有竞争力。
+4. **ICM 多区域证明互认** — 不同电网运营商各自运行 L1，通过 ICM 跨链互通。这个故事只有在 Avalanche 上才成立，是最有说服力的长期叙事
+5. **自定义预编译 / HyperSDK / 验证者经济** — 6-24 个月路线图，展示项目的技术深度和成长空间
 
 ---
 
