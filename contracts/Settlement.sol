@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 interface IEventManagerSettlement {
     enum Status {
         Pending,
@@ -67,6 +69,7 @@ contract Settlement {
     address public operator;
     IEventManagerSettlement public eventManager;
     IProofRegistryView public proofRegistry;
+    IERC20 public drtToken;
 
     mapping(address => bool) public authorizedServices;
     mapping(bytes32 => mapping(bytes32 => SettlementRecord)) private settlements;
@@ -100,15 +103,18 @@ contract Settlement {
     constructor(
         address eventManagerAddress,
         address proofRegistryAddress,
-        address operatorAddress
+        address operatorAddress,
+        address drtTokenAddress
     ) {
         require(eventManagerAddress != address(0), "Zero event manager");
         require(proofRegistryAddress != address(0), "Zero proof registry");
         require(operatorAddress != address(0), "Zero operator");
+        require(drtTokenAddress != address(0), "Zero DRT token");
 
         eventManager = IEventManagerSettlement(eventManagerAddress);
         proofRegistry = IProofRegistryView(proofRegistryAddress);
         operator = operatorAddress;
+        drtToken = IERC20(drtTokenAddress);
     }
 
     function setAuthorizedService(address service, bool allowed)
@@ -188,6 +194,12 @@ contract Settlement {
 
         record.status = SettlementStatus.Claimed;
         record.claimedAt = uint64(block.timestamp);
+
+        // Transfer DRT tokens for positive payouts
+        if (record.payout > 0) {
+            uint256 amount = uint256(record.payout);
+            require(drtToken.transfer(msg.sender, amount), "DRT transfer failed");
+        }
 
         emit RewardClaimed(eventId, siteId, record.payout, msg.sender);
     }

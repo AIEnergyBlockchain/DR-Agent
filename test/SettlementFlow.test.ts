@@ -1,6 +1,7 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import {
+  DRToken,
   EventManager,
   ProofRegistry,
   Settlement,
@@ -13,6 +14,7 @@ describe("Settlement flow", function () {
   let participantB: SignerWithAddress;
   let outsider: SignerWithAddress;
 
+  let drtToken: DRToken;
   let eventManager: EventManager;
   let proofRegistry: ProofRegistry;
   let settlement: Settlement;
@@ -20,9 +22,13 @@ describe("Settlement flow", function () {
   const eventId = ethers.id("event-closed-loop-001");
   const siteA = ethers.id("site-a");
   const siteB = ethers.id("site-b");
+  const INITIAL_SUPPLY = ethers.parseEther("1000000");
 
   beforeEach(async function () {
     [operator, participantA, participantB, outsider] = await ethers.getSigners();
+
+    const drtFactory = await ethers.getContractFactory("DRToken");
+    drtToken = await drtFactory.deploy(operator.address, INITIAL_SUPPLY);
 
     const eventFactory = await ethers.getContractFactory("EventManager");
     eventManager = await eventFactory.deploy(operator.address);
@@ -34,8 +40,12 @@ describe("Settlement flow", function () {
     settlement = await settlementFactory.deploy(
       await eventManager.getAddress(),
       await proofRegistry.getAddress(),
-      operator.address
+      operator.address,
+      await drtToken.getAddress()
     );
+
+    // Fund Settlement contract with DRT tokens
+    await drtToken.transfer(await settlement.getAddress(), ethers.parseEther("500000"));
 
     await eventManager.setSettlementContract(await settlement.getAddress());
   });
@@ -70,9 +80,15 @@ describe("Settlement flow", function () {
     expect(settledA.payout).to.equal(1000); // targetShare=100 => 100*10
     expect(settledB.payout).to.equal(-50); // 30*10 - (70*5)
 
+    // participantA has positive payout (1000) — should receive DRT tokens
+    const balBefore = await drtToken.balanceOf(participantA.address);
+
     await expect(
       settlement.connect(participantA).claimReward(eventId, siteA)
     ).to.emit(settlement, "RewardClaimed");
+
+    const balAfter = await drtToken.balanceOf(participantA.address);
+    expect(balAfter - balBefore).to.equal(1000n);
 
     const claimed = await settlement.getSettlement(eventId, siteA);
     expect(claimed.status).to.equal(2);
