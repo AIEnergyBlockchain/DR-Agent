@@ -36,8 +36,8 @@ DR-Agent 的三个智能合约（`EventManager`、`ProofRegistry`、`Settlement`
 
 **解决两个层次的问题：**
 
-**第一层（刚需）：结算必须转账。**
-当前 `claimReward()` 仅更新状态，不转移任何资产——一个"结算平台"的 claim 不转钱，是产品逻辑的根本矛盾。部署 DRT 代币并在 `claimReward()` 中执行 `transfer()` 是最低要求。
+**第一层（产品闭环）：补齐结算环节的价值转移。**
+当前 `claimReward()` 仅更新状态，不转移任何资产。现实中 DR 结算最终会完成支付，但我们的链上协议缺少这一环节。部署 DRT 代币并在 `claimReward()` 中执行 `transfer()` 是将产品从"证据锚定工具"升级为"完整结算协议"的关键一步。
 
 **第二层（Avalanche 刚需）：应用链上的代币必须有流动性出口。**
 如果 DR-Agent 未来运行在 Custom L1 上，DRT 代币就被困在一条应用专属链里——没有 DEX、没有交易对手、没有流动性。**ICTT 是唯一能让应用链代币"活"起来的方式**：用户通过 ICTT 将 DRT 桥接到 C-Chain，在那里兑换 USDC/AVAX。这不是技术炫技，是代币经济的基本需求。
@@ -46,7 +46,7 @@ DR-Agent 的三个智能合约（`EventManager`、`ProofRegistry`、`Settlement`
 > 作为 DR 事件参与者，当我的削减量被结算确认后，我 claim 获得 DRT 代币。我可以将 DRT 通过 ICTT 桥接到 C-Chain，在 DEX 上卖出换取 USDC。
 
 **产品价值：**
-1. **结算闭环** — 从"记账型结算"升级为"真实价值转移"
+1. **结算闭环** — 从"证据锚定工具"升级为"完整结算协议"
 2. **代币流动性** — 应用链代币通过 ICTT 获得 C-Chain 生态的流动性
 3. **Avalanche 独有叙事** — ICTT 不依赖第三方桥，由 L1 验证者集合保证安全，这是 Avalanche 生态独有的基础设施
 
@@ -323,7 +323,7 @@ DR-L1 (未来)                         C-Chain (流动性中心)
 
 ### 黑客松交付（写代码，~3-4 天）
 
-1. **DRT 代币 + claimReward 转账** — 解决"结算不转账"的根本矛盾
+1. **DRT 代币 + claimReward 转账** — 补齐产品结算闭环的价值转移环节
 2. **ICTT 跨链代币桥接** — 让应用链代币拥有 C-Chain 流动性，Avalanche 独有能力
 3. **Custom L1 蓝图** — 零代码成本回答"为什么是 Avalanche"，含多区域架构图
 

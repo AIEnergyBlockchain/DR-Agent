@@ -77,7 +77,7 @@ DR Agent 不是"碰巧部署在 Avalanche"——Avalanche 是产品架构的一�
 
 ### 黑客松交付（为什么现在就需要 Avalanche）
 
-1. **DRT 代币 + 真实结算转账**：`claimReward()` 转移 ERC-20 DRT 代币，而非仅更新状态。一个"结算不转钱"的结算平台是产品逻辑矛盾。
+1. **DRT 代币 + 链上结算转账**：`claimReward()` 在链上转移 ERC-20 DRT 代币，补齐结算闭环。将我们的证据锚定协议升级为完整的结算系统。
 2. **ICTT 跨链代币桥接**：如果 DR-Agent 运行在 Custom L1 上，DRT 代币就被困在应用链——没有 DEX、没有交易对手、没有流动性。ICTT 将 DRT 桥接到 C-Chain 获得流动性，这不是炫技，是代币经济的刚需。
 3. **Custom L1 蓝图**：许可 Gas（`txAllowList`）、部署限制（`deployerAllowList`）、合规隔离——用具体参数回答"为什么不用 Polygon"。
 
@@ -123,7 +123,7 @@ DR Agent 不是"碰巧部署在 Avalanche"——Avalanche 是产品架构的一�
 ### 我们的差异化
 
 1. **能源预言机层**：baseline 推理 + 置信度元数据 + 证据哈希上链一体化。
-2. **真实代币结算**：DRT（ERC-20）在 Claim 时真实转账，而非仅更新状态。
+2. **链上代币结算**：DRT（ERC-20）在 Claim 时链上转账，补齐结算闭环的价值转移环节。
 3. **ICTT 代币流动性**：应用链 DRT 通过 Avalanche ICTT 桥接到 C-Chain，奖励可在 DEX 交易。
 4. **AI 负荷/算力场景**：从传统工业负荷扩展到 AI 时代柔性算力需求。
 5. **M2M 结算与激励**：机器账户驱动可编程激励分发。

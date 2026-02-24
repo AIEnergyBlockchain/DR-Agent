@@ -80,7 +80,7 @@ DR Agent is not just deployed on Avalanche — Avalanche is part of the product 
 
 ### Hackathon deliverables (why Avalanche is required now)
 
-1. **DRT token + real settlement payout**: `claimReward()` transfers ERC-20 DRT tokens, not just updates state. A settlement platform that doesn't transfer value is a contradiction.
+1. **DRT token + on-chain settlement payout**: `claimReward()` transfers ERC-20 DRT tokens on-chain, completing the settlement loop with real value transfer. This turns our proof-anchoring protocol into a full settlement system.
 2. **ICTT cross-chain token bridge**: If DR-Agent runs on a Custom L1, DRT tokens are trapped on an app-specific chain with no DEX and no counterparties. ICTT bridges DRT to C-Chain for liquidity — this is not cross-chain for show, it's a token economics requirement.
 3. **Custom L1 blueprint**: Permissioned gas (`txAllowList`), deploy restrictions (`deployerAllowList`), compliance isolation — answers "why not Polygon" with concrete parameters.
 
@@ -126,7 +126,7 @@ DR Agent is not just deployed on Avalanche — Avalanche is part of the product 
 ### Our differentiation
 
 1. **Energy Oracle Layer**: baseline inference + confidence metadata + on-chain proof anchoring in one pipeline.
-2. **Real token settlement**: DRT (ERC-20) payout on claim — not just state updates, but actual value transfer.
+2. **On-chain token settlement**: DRT (ERC-20) payout on claim — completing the settlement loop with real on-chain value transfer.
 3. **ICTT token liquidity**: app-chain DRT bridged to C-Chain via Avalanche ICTT for DEX-tradeable rewards.
 4. **AI load / compute flexibility scenarios**: extends DR from industrial loads to AI-era flexible compute demand.
 5. **M2M settlement and incentives**: machine-account-based programmable reward distribution.
