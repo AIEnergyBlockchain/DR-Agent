@@ -76,10 +76,18 @@ One sentence:
 
 ## 4. Why Avalanche
 
-1. Low latency and deterministic settlement for event-driven workflows.
-2. Explicit path from **C-Chain MVP to Custom L1** for energy-specific rule encoding.
-3. Interchain interoperability for splitting data, asset, and settlement domains when needed.
-4. Rollout strategy is execution-first: validate quickly on C-Chain, then customize network parameters.
+DR Agent is not just deployed on Avalanche — Avalanche is part of the product architecture.
+
+### Hackathon deliverables (why Avalanche is required now)
+
+1. **DRT token + real settlement payout**: `claimReward()` transfers ERC-20 DRT tokens, not just updates state. A settlement platform that doesn't transfer value is a contradiction.
+2. **ICTT cross-chain token bridge**: If DR-Agent runs on a Custom L1, DRT tokens are trapped on an app-specific chain with no DEX and no counterparties. ICTT bridges DRT to C-Chain for liquidity — this is not cross-chain for show, it's a token economics requirement.
+3. **Custom L1 blueprint**: Permissioned gas (`txAllowList`), deploy restrictions (`deployerAllowList`), compliance isolation — answers "why not Polygon" with concrete parameters.
+
+### Startup vision (why Avalanche is the only option long-term)
+
+4. **Multi-region grid settlement via ICM**: Power markets are regional (different ISOs/RTOs). Each region runs its own DR-L1 with region-specific rules. Avalanche ICM enables cross-region proof verification and unified clearing on C-Chain. This architecture is only possible with Avalanche's native L1 + ICM.
+5. **Progressive deepening path**: C-Chain MVP → Custom L1 → Custom precompiles → HyperSDK DR-VM, with each step adding energy-domain-specific capabilities.
 
 ## 5. Target Customers and Value
 
@@ -118,9 +126,11 @@ One sentence:
 ### Our differentiation
 
 1. **Energy Oracle Layer**: baseline inference + confidence metadata + on-chain proof anchoring in one pipeline.
-2. **AI load / compute flexibility scenarios**: extends DR from industrial loads to AI-era flexible compute demand.
-3. **M2M settlement and incentives**: machine-account-based programmable reward distribution.
-4. **Avalanche-specific growth path**: C-Chain MVP now, Custom L1 when domain rules require deeper control.
+2. **Real token settlement**: DRT (ERC-20) payout on claim — not just state updates, but actual value transfer.
+3. **ICTT token liquidity**: app-chain DRT bridged to C-Chain via Avalanche ICTT for DEX-tradeable rewards.
+4. **AI load / compute flexibility scenarios**: extends DR from industrial loads to AI-era flexible compute demand.
+5. **M2M settlement and incentives**: machine-account-based programmable reward distribution.
+6. **Avalanche-native growth path**: C-Chain MVP → Custom L1 → ICM multi-region → Custom precompiles.
 
 ## 8. Risks and Mitigations
 
@@ -136,18 +146,26 @@ One sentence:
 
 - Template-based rule engine; start with one jurisdiction MVP.
 
-## 9. Completed Progress and Next Milestones (Weekly)
+## 9. Completed Progress and Next Milestones
 
-Completed (as of 2026-02-21):
+Completed (as of 2026-02-24):
 - Core loop is running end-to-end: `create -> proofs -> close -> settle -> claim -> audit`
 - Contract suite remains stable (`15 passing`)
 - Frontend modes, bilingual toggle, snapshot export, and chart-based readouts are in place
+- Avalanche feature analysis completed: hackathon deliverables vs startup vision clearly scoped
 
-Next milestones (weekly):
-- Week 1: make Energy Oracle Layer default-in-path and persist model metadata (`baseline_method/version/confidence`)
-- Week 2: add AI load/compute scenario evidence view and related metrics
-- Week 3: deliver M2M settlement/incentive design with API evidence outputs
-- Week 4: complete C-Chain -> Custom L1 migration blueprint and demo-ready evidence package
+Hackathon deliverables (prioritized):
+- **P0**: DRT token (ERC-20) + `claimReward()` real token transfer (~1 day)
+- **P0**: Custom L1 configuration blueprint with multi-region architecture diagram (~0.5 day)
+- **P1**: ICTT cross-chain token bridge (ERC20TokenHome on C-Chain + ERC20TokenRemote) (~1-2 days)
+- **P1**: Energy Oracle Layer default-in-path with model metadata persistence
+- **P2**: Snowtrace explorer links in frontend, Prophet auto-invocation
+
+Startup vision (documented in roadmap, no code):
+- 6 months: ICM multi-region proof verification across grid operators
+- 12 months: Custom precompiles for zk-SNARK proof validation
+- 18 months: HyperSDK DR-VM for native settlement throughput
+- 24 months: Validator economy — meter operators stake as DR-L1 validators
 
 ## 10. Why This Builder
 
@@ -555,7 +573,7 @@ Keyboard shortcuts:
 
 ## 8. Completed Progress and Weekly Plan
 
-### Completed progress (as of 2026-02-21)
+### Completed progress (as of 2026-02-24)
 
 1. End-to-end MVP loop is running:
 - `create -> proofs -> close -> settle -> claim -> audit`
@@ -575,23 +593,34 @@ Keyboard shortcuts:
 - Baseline vs Actual chart
 - Payout breakdown chart
 
-### Upcoming weekly plan
+5. Avalanche feature analysis completed:
+- Scoped hackathon deliverables: DRT token + ICTT bridge + Custom L1 blueprint
+- Scoped startup vision: ICM multi-region + precompiles + HyperSDK + validator economy
 
-1. Week 1 (Energy Oracle default path)
+### Hackathon execution plan
+
+1. DRT token + claimReward transfer (P0, ~1 day)
+- Deploy `DRToken.sol` (ERC-20, initial mint to Settlement contract).
+- Modify `Settlement.sol` to call `rewardToken.transfer()` on claim.
+- Frontend: display DRT token balance after claim.
+
+2. Custom L1 configuration blueprint (P0, ~0.5 day)
+- `genesis.json` config with `txAllowList`, `deployerAllowList`, custom fee parameters.
+- Technical justification: why DR settlement needs a dedicated L1.
+- Multi-region expansion architecture diagram (ICM vision).
+
+3. ICTT cross-chain token bridge (P1, ~1-2 days)
+- Deploy `ERC20TokenHome` on Fuji C-Chain.
+- Deploy `ERC20TokenRemote` on test L1.
+- Demo: DRT cross-chain transfer flow.
+
+4. Energy Oracle Layer default path (P1)
 - Make `telemetry -> baseline -> confidence -> proof hash` the default proof-generation path.
 - Return and persist `baseline_method`, `baseline_model_version`, `baseline_confidence`.
 
-2. Week 2 (AI load/compute scenario evidence)
-- Add AI load/compute flexibility scenario templates in demo and evidence pages.
-- Publish scenario metrics and narrative-ready visual evidence.
-
-3. Week 3 (M2M settlement and incentives)
-- Add machine-account settlement/incentive rule templates and API-side evidence outputs.
-- Keep human operators in exception-handling mode, not per-transaction operations.
-
-4. Week 4 (Avalanche migration blueprint)
-- Finalize C-Chain MVP -> Custom L1 migration blueprint and interface boundary.
-- Export demo-ready evidence package aligned with the migration path.
+5. Polish and evidence (P2)
+- Snowtrace explorer links in frontend (~10 lines).
+- Prophet auto-invocation in baseline service (~30 lines).
 
 ## 9. Test Checklist
 
