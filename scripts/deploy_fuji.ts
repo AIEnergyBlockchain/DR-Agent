@@ -30,13 +30,27 @@ async function main(): Promise<void> {
   const proofRegistry = await proofFactory.deploy(await eventManager.getAddress());
   await proofRegistry.waitForDeployment();
 
+  // Deploy DRT token — 1,000,000 DRT (18 decimals)
+  const initialSupply = ethers.parseEther("1000000");
+  const drtFactory = await ethers.getContractFactory("DRToken");
+  const drtToken = await drtFactory.deploy(deployer.address, initialSupply);
+  await drtToken.waitForDeployment();
+
   const settlementFactory = await ethers.getContractFactory("Settlement");
   const settlement = await settlementFactory.deploy(
     await eventManager.getAddress(),
     await proofRegistry.getAddress(),
-    deployer.address
+    deployer.address,
+    await drtToken.getAddress()
   );
   await settlement.waitForDeployment();
+
+  // Fund Settlement contract with DRT so it can pay out on claim
+  const fundTx = await drtToken.transfer(
+    await settlement.getAddress(),
+    ethers.parseEther("500000")
+  );
+  await fundTx.wait();
 
   const setTx = await eventManager.setSettlementContract(await settlement.getAddress());
   const setReceipt = await setTx.wait();
@@ -47,11 +61,13 @@ async function main(): Promise<void> {
     chain_id: Number(chain.chainId),
     deployer: deployer.address,
     contracts: {
+      drt_token: await drtToken.getAddress(),
       event_manager: await eventManager.getAddress(),
       proof_registry: await proofRegistry.getAddress(),
       settlement: await settlement.getAddress(),
     },
     tx_hashes: {
+      fund_settlement_drt: fundTx.hash,
       set_settlement_contract: setReceipt?.hash ?? setTx.hash,
     },
   };

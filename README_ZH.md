@@ -73,10 +73,18 @@
 
 ## 4. 为什么是 Avalanche
 
-1. 低延迟与确定性结算：适合事件触发后的准实时流程。
-2. 明确的 **C-Chain MVP -> 可定制 L1** 演进路径：可承载能源行业规则参数化。
-3. Interchain 互操作：数据链、资产链、结算链可拆分并协同。
-4. 落地策略清晰：先在 C-Chain 快速验证，再按业务规则深度定制网络。
+DR Agent 不是"碰巧部署在 Avalanche"——Avalanche 是产品架构的一部分。
+
+### 黑客松交付（为什么现在就需要 Avalanche）
+
+1. **DRT 代币 + 链上结算转账**：`claimReward()` 在链上转移 ERC-20 DRT 代币，补齐结算闭环。将我们的证据锚定协议升级为完整的结算系统。
+2. **ICTT 跨链代币桥接**：如果 DR-Agent 运行在 Custom L1 上，DRT 代币就被困在应用链——没有 DEX、没有交易对手、没有流动性。ICTT 将 DRT 桥接到 C-Chain 获得流动性，这不是炫技，是代币经济的刚需。
+3. **Custom L1 蓝图**：许可 Gas（`txAllowList`）、部署限制（`deployerAllowList`）、合规隔离——用具体参数回答"为什么不用 Polygon"。
+
+### 创业愿景（为什么长期只有 Avalanche 可行）
+
+4. **ICM 多区域电网结算**：电力市场天然按区域划分（不同 ISO/RTO）。每个区域运行自己的 DR-L1，通过 Avalanche ICM 实现跨区域证明互认，C-Chain 统一清算。这个架构只有 Avalanche 原生 L1 + ICM 能支撑。
+5. **逐步深化路径**：C-Chain MVP → Custom L1 → 自定义预编译 → HyperSDK DR-VM，每一步都增加能源行业专属能力。
 
 ## 5. 目标客户与价值
 
@@ -115,9 +123,11 @@
 ### 我们的差异化
 
 1. **能源预言机层**：baseline 推理 + 置信度元数据 + 证据哈希上链一体化。
-2. **AI 负荷/算力场景**：从传统工业负荷扩展到 AI 时代柔性算力需求。
-3. **M2M 结算与激励**：机器账户驱动可编程激励分发。
-4. **Avalanche 专属路径**：先 C-Chain 验证，再升级到可定制 L1。
+2. **链上代币结算**：DRT（ERC-20）在 Claim 时链上转账，补齐结算闭环的价值转移环节。
+3. **ICTT 代币流动性**：应用链 DRT 通过 Avalanche ICTT 桥接到 C-Chain，奖励可在 DEX 交易。
+4. **AI 负荷/算力场景**：从传统工业负荷扩展到 AI 时代柔性算力需求。
+5. **M2M 结算与激励**：机器账户驱动可编程激励分发。
+6. **Avalanche 原生成长路径**：C-Chain MVP → Custom L1 → ICM 多区域 → 自定义预编译。
 
 ## 8. 风险与应对
 
@@ -133,18 +143,26 @@
 
 - 采用“规则模板化”架构，先做单一区域 MVP。
 
-## 9. 已完成进度与后续里程碑（按周）
+## 9. 已完成进度与后续里程碑
 
-已完成（截至 2026-02-21）：
+已完成（截至 2026-02-24）：
 - 主流程闭环已跑通：`create -> proofs -> close -> settle -> claim -> audit`
 - 合约测试稳定通过（`15 passing`）
 - 前端三模式、双语切换、证据快照与图形化读数已接入
+- Avalanche 特性分析完成：黑客松交付 vs 创业愿景已明确划分
 
-后续里程碑（按周）：
-- 第 1 周：能源预言机层默认接入主路径，并落库模型元信息
-- 第 2 周：补齐 AI 负荷/算力场景证据页与指标
-- 第 3 周：完成 M2M 结算与激励设计并输出 API 证据
-- 第 4 周：完成 C-Chain -> 可定制 L1 迁移蓝图与演示证据包
+黑客松交付（按优先级）：
+- **P0**：DRT 代币（ERC-20）+ `claimReward()` 真实代币转账（约 1 天）
+- **P0**：Custom L1 配置蓝图，含多区域扩展架构图（约 0.5 天）
+- **P1**：ICTT 跨链代币桥接（ERC20TokenHome + ERC20TokenRemote）（约 1-2 天）
+- **P1**：能源预言机层默认接入主路径，落库模型元信息
+- **P2**：Snowtrace 浏览器链接、Prophet 自动调用
+
+创业愿景（写入路线图文档，不写代码）：
+- 6 个月：ICM 多区域证明互认
+- 12 个月：自定义预编译 zk-SNARK 证明验证
+- 18 个月：HyperSDK DR-VM 原生结算
+- 24 个月：验证者经济——电表运营商质押为 DR-L1 验证者
 
 ## 10. 为什么是我们
 
@@ -559,7 +577,7 @@ sequenceDiagram
 
 ## 8. 已完成进度与后续开发计划（按周）
 
-### 已完成进度（截至 2026-02-21）
+### 已完成进度（截至 2026-02-24）
 
 1. MVP 闭环已跑通：
 - `create -> proofs -> close -> settle -> claim -> audit`
@@ -579,23 +597,34 @@ sequenceDiagram
 - baseline vs actual 图表
 - payout breakdown 图表
 
-### 后续开发计划（按周）
+5. Avalanche 特性分析完成：
+- 黑客松交付范围：DRT 代币 + ICTT 桥接 + Custom L1 蓝图
+- 创业愿景范围：ICM 多区域 + 自定义预编译 + HyperSDK + 验证者经济
 
-1. 第 1 周（能源预言机层默认接入）
+### 黑客松执行计划
+
+1. DRT 代币 + claimReward 转账（P0，约 1 天）
+- 部署 `DRToken.sol`（ERC-20，初始铸造到 Settlement 合约）。
+- 修改 `Settlement.sol`，Claim 时调用 `rewardToken.transfer()`。
+- 前端展示 DRT 代币余额。
+
+2. Custom L1 配置蓝图（P0，约 0.5 天）
+- `genesis.json` 配置：`txAllowList`、`deployerAllowList`、自定义费率参数。
+- 技术论证：为什么 DR 结算需要专属 L1。
+- 多区域扩展架构图（ICM 愿景载体）。
+
+3. ICTT 跨链代币桥接（P1，约 1-2 天）
+- 在 Fuji C-Chain 部署 `ERC20TokenHome`。
+- 在测试 L1 部署 `ERC20TokenRemote`。
+- 演示 DRT 跨链转移流程。
+
+4. 能源预言机层默认接入（P1）
 - 将 `telemetry -> baseline -> confidence -> proof hash` 作为默认 proof 生成链路。
 - 落库并返回 `baseline_method`、`baseline_model_version`、`baseline_confidence`。
 
-2. 第 2 周（AI 负荷/算力场景证据）
-- 增加 AI 负荷/算力柔性场景模板与证据展示页。
-- 输出可路演的场景指标与图形证据。
-
-3. 第 3 周（M2M 结算与激励）
-- 增加机器账户结算与激励规则模板，以及 API 证据输出。
-- 让人工操作聚焦异常处理，而非逐笔处理。
-
-4. 第 4 周（Avalanche 迁移蓝图）
-- 完成 C-Chain MVP -> 可定制 L1 迁移蓝图与接口边界定义。
-- 产出与迁移路径一致的演示证据包。
+5. 收尾与证据打磨（P2）
+- Snowtrace 浏览器链接（前端约 10 行）。
+- Prophet 自动调用（后端约 30 行）。
 
 ## 9. 测试清单
 
