@@ -209,8 +209,9 @@ sync:
 	
 	@echo ">>> [2/3] 正在确保子模块对齐主仓库记录提交..."
 	@# 注意：此模式追求可复现；子模块会处于 detached HEAD（正常）
-	@git submodule sync --recursive
-	@git submodule update --init --recursive --checkout --force
+	@# 只同步根级子模块，避免 guide 内历史 gitlink 残留导致递归 update 失败。
+	@git submodule sync
+	@git submodule update --init --checkout --force
 	
 	@echo ">>> [3/3] 同步完成（集成态）。如需强制拉子模块 main 最新，请执行 make sync-sub-main。"
 	@git status
