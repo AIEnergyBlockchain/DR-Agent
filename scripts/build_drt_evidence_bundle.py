@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Build a Fuji execution evidence markdown bundle.
-
-This script converts deployment JSON evidence into a markdown file that is easy
-to paste into submission materials and demo docs.
-"""
+"""Build a DRT-only Fuji evidence markdown bundle from deployment JSON."""
 
 from __future__ import annotations
 
@@ -19,17 +15,17 @@ FUJI_EXPLORER = "https://testnet.snowtrace.io"
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Render execution evidence bundle from deployment report"
+        description="Render DRT-only evidence bundle from deployment report"
     )
     parser.add_argument(
         "--report",
-        default="cache/fuji-deployment-latest.json",
-        help="Path to deployment report JSON (default: cache/fuji-deployment-latest.json)",
+        default="cache/fuji-drt-deployment-latest.json",
+        help="Path to DRT deployment report JSON (default: cache/fuji-drt-deployment-latest.json)",
     )
     parser.add_argument(
         "--output",
-        default="guide/docs/Fuji-Execution-Evidence-Bundle-latest.md",
-        help="Output markdown path (default: guide/docs/Fuji-Execution-Evidence-Bundle-latest.md)",
+        default="guide/docs/Fuji-DRT-Evidence-Bundle-latest.md",
+        help="Output markdown path (default: guide/docs/Fuji-DRT-Evidence-Bundle-latest.md)",
     )
     parser.add_argument(
         "--explorer",
@@ -41,13 +37,13 @@ def parse_args() -> argparse.Namespace:
 
 def load_json(path: Path) -> dict:
     if not path.exists():
-        print(f"[evidence] deployment report not found: {path}")
-        print("[evidence] run: npm run deploy:fuji")
+        print(f"[drt-evidence] deployment report not found: {path}")
+        print("[drt-evidence] run: npm run deploy:fuji:drt")
         sys.exit(1)
     try:
         return json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
-        print(f"[evidence] invalid json in {path}: {exc}")
+        print(f"[drt-evidence] invalid json in {path}: {exc}")
         sys.exit(1)
 
 
@@ -86,8 +82,26 @@ def main() -> None:
     chain_id = fmt_value(report.get("chain_id"))
     deployed_at = fmt_value(report.get("deployed_at_utc"))
     deployer = fmt_value(report.get("deployer"))
+
     contracts = report.get("contracts") or {}
+    token = report.get("token") or {}
     tx_hashes = report.get("tx_hashes") or {}
+    tx_receipts = report.get("tx_receipts") or {}
+    receipt = tx_receipts.get("deploy_drt_token") or {}
+
+    drt_token = fmt_value(contracts.get("drt_token"))
+    deploy_tx = fmt_value(tx_hashes.get("deploy_drt_token"))
+    token_name = fmt_value(token.get("name"))
+    token_symbol = fmt_value(token.get("symbol"))
+    token_decimals = fmt_value(token.get("decimals"))
+    initial_supply_units = fmt_value(token.get("initial_supply_units"))
+    initial_supply_wei = fmt_value(token.get("initial_supply_wei"))
+
+    block_number = fmt_value(receipt.get("block_number"))
+    gas_used = fmt_value(receipt.get("gas_used"))
+    gas_price = fmt_value(receipt.get("effective_gas_price_wei"))
+    tx_fee_wei = fmt_value(receipt.get("tx_fee_wei"))
+
     explorer = explorer_for(network, args.explorer)
     generated_at = (
         datetime.now(timezone.utc)
@@ -96,13 +110,8 @@ def main() -> None:
         .replace("+00:00", "Z")
     )
 
-    event_manager = fmt_value(contracts.get("event_manager"))
-    proof_registry = fmt_value(contracts.get("proof_registry"))
-    settlement = fmt_value(contracts.get("settlement"))
-    set_settlement_tx = fmt_value(tx_hashes.get("set_settlement_contract"))
-
     lines: list[str] = []
-    lines.append("# Fuji Execution Evidence Bundle")
+    lines.append("# Fuji DRT Evidence Bundle")
     lines.append("")
     lines.append(f"- Generated at (UTC): `{generated_at}`")
     lines.append(f"- Source report: `{report_path}`")
@@ -111,46 +120,39 @@ def main() -> None:
     lines.append(f"- Deployed at (UTC): `{deployed_at}`")
     lines.append(f"- Deployer: `{deployer}`")
     lines.append("")
-    lines.append("## Contract Evidence")
+    lines.append("## Token Metadata")
+    lines.append("")
+    lines.append(f"- Name: `{token_name}`")
+    lines.append(f"- Symbol: `{token_symbol}`")
+    lines.append(f"- Decimals: `{token_decimals}`")
+    lines.append(f"- Initial Supply (units): `{initial_supply_units}`")
+    lines.append(f"- Initial Supply (wei): `{initial_supply_wei}`")
+    lines.append("")
+    lines.append("## Contract and Transaction Evidence")
     lines.append("")
     lines.append("| Item | Value | Explorer |")
     lines.append("| --- | --- | --- |")
     lines.append(
-        f"| EventManager | `{event_manager}` | {mk_link(explorer, 'address', event_manager)} |"
+        f"| DRToken | `{drt_token}` | {mk_link(explorer, 'address', drt_token)} |"
     )
     lines.append(
-        f"| ProofRegistry | `{proof_registry}` | {mk_link(explorer, 'address', proof_registry)} |"
+        f"| deploy tx | `{deploy_tx}` | {mk_link(explorer, 'tx', deploy_tx)} |"
     )
-    lines.append(
-        f"| Settlement | `{settlement}` | {mk_link(explorer, 'address', settlement)} |"
-    )
-    lines.append(
-        f"| setSettlementContract tx | `{set_settlement_tx}` | {mk_link(explorer, 'tx', set_settlement_tx)} |"
-    )
+    lines.append(f"| deploy block | `{block_number}` | - |")
+    lines.append(f"| gas used | `{gas_used}` | - |")
+    lines.append(f"| effective gas price (wei) | `{gas_price}` | - |")
+    lines.append(f"| deploy fee (wei) | `{tx_fee_wei}` | - |")
     lines.append("")
-    lines.append("## Execution Checklist")
+    lines.append("## Checklist")
     lines.append("")
-    lines.append("- [ ] Explorer links open correctly and match contract addresses.")
-    lines.append(
-        "- [ ] `EventManager.settlementContract` points to Settlement address."
-    )
-    lines.append("- [ ] At least one full flow demo is recorded with these addresses.")
-    lines.append(
-        "- [ ] Walkthrough and README are updated with this evidence bundle link."
-    )
-    lines.append("")
-    lines.append("## Optional Runtime Evidence (fill manually if available)")
-    lines.append("")
-    lines.append("- `create tx`:")
-    lines.append("- `proof A tx`:")
-    lines.append("- `proof B tx`:")
-    lines.append("- `close tx`:")
-    lines.append("- `settle tx`:")
-    lines.append("- `claim tx`:")
+    lines.append("- [ ] DRToken address opens in explorer.")
+    lines.append("- [ ] deploy tx opens in explorer and status is success.")
+    lines.append("- [ ] Gas and fee fields are present and non-empty.")
+    lines.append("- [ ] README command section reflects DRT-only deploy flow.")
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    print(f"[evidence] wrote: {output_path}")
+    print(f"[drt-evidence] wrote: {output_path}")
 
 
 if __name__ == "__main__":

@@ -283,14 +283,16 @@ evidence = {
     "tx_hashes": tx_hashes,
     "unique_write_txs": summary["unique_write_txs"],
     "fee_total_wei_unique": summary["fee_total_wei_unique"],
+    "explorer_links": summary.get("explorer_links", {}),
+    # Backward-compatible key for previously generated evidence consumers.
     "snowtrace_links": summary.get("explorer_links", {}),
 }
 
 if chain_mode.lower() in {"fuji", "fuji-live"}:
     doc_date = datetime.now(timezone.utc).date().isoformat()
-    doc_path = Path("guide/docs") / f"Fuji-Live-Demo-Evidence-{doc_date}.md"
+    doc_path = Path("guide/docs") / f"Testnet-Live-Demo-Evidence-{doc_date}.md"
     lines = [
-        "# Fuji Live Demo Evidence",
+        "# Testnet Live Demo Evidence",
         "",
         f"- Generated at (UTC): {summary['generated_at_utc']}",
         f"- Event ID: `{event_id}`",
@@ -302,7 +304,7 @@ if chain_mode.lower() in {"fuji", "fuji-live"}:
         "",
         "## Unique Write Transactions",
         "",
-        "| Step(s) | Tx Hash | Fee (wei) | Snowtrace |",
+        "| Step(s) | Tx Hash | Fee (wei) | Explorer |",
         "|---|---|---:|---|",
     ]
     for item in summary["unique_write_txs"]:

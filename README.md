@@ -13,7 +13,7 @@
 - [1. Problem We Solve](#1-problem-we-solve)
 - [2. Product Definition](#2-product-definition)
 - [3. Why Now](#3-why-now)
-- [4. Why Avalanche](#4-why-avalanche)
+- [4. Network and Deployment Strategy](#4-network-and-deployment-strategy)
 - [5. Target Customers and Value](#5-target-customers-and-value)
 - [6. Business Model (MVP Stage)](#6-business-model-mvp-stage)
 - [7. Competition and Differentiation](#7-competition-and-differentiation)
@@ -56,7 +56,7 @@ DR has two persistent real-world pain points:
 
 ## 2. Product Definition
 
-**DR Agent** is an Avalanche-based automated settlement layer for demand response:
+**DR Agent** is an EVM-compatible automated settlement layer for demand response:
 
 - Event publishing: operator/aggregator defines event time window, target reduction, and settlement rules.
 - Proof submission: participants submit verifiable load-reduction proofs.
@@ -72,22 +72,13 @@ One sentence:
 
 - Grid flexibility demand is increasing.
 - AI can improve event-time dispatch decisions, but a trusted shared settlement layer is missing.
-- Avalanche’s app-chain and interoperability capabilities are well suited to multi-party, rule-based, auditable energy settlement.
+- A modular EVM deployment strategy is well suited to multi-party, rule-based, auditable energy settlement.
 
-## 4. Why Avalanche
+## 4. Network and Deployment Strategy
 
-DR Agent is not just deployed on Avalanche — Avalanche is part of the product architecture.
-
-### Hackathon deliverables (why Avalanche is required now)
-
-1. **DRT token + on-chain settlement payout**: `claimReward()` transfers ERC-20 DRT tokens on-chain, completing the settlement loop with real value transfer. This turns our proof-anchoring protocol into a full settlement system.
-2. **ICTT cross-chain token bridge**: If DR-Agent runs on a Custom L1, DRT tokens are trapped on an app-specific chain with no DEX and no counterparties. ICTT bridges DRT to C-Chain for liquidity — this is not cross-chain for show, it's a token economics requirement.
-3. **Custom L1 blueprint**: Permissioned gas (`txAllowList`), deploy restrictions (`deployerAllowList`), compliance isolation — answers "why not Polygon" with concrete parameters.
-
-### Startup vision (why Avalanche is the only option long-term)
-
-4. **Multi-region grid settlement via ICM**: Power markets are regional (different ISOs/RTOs). Each region runs its own DR-L1 with region-specific rules. Avalanche ICM enables cross-region proof verification and unified clearing on C-Chain. This architecture is only possible with Avalanche's native L1 + ICM.
-5. **Progressive deepening path**: C-Chain MVP → Custom L1 → Custom precompiles → HyperSDK DR-VM, with each step adding energy-domain-specific capabilities.
+1. **Chain-agnostic contracts**: core contracts stay EVM-compatible and keep the same event/proof/settlement lifecycle across environments.
+2. **Testnet-first verification**: live mode can run on EVM testnets for real tx proofs while preserving the same API semantics.
+3. **Progressive hardening path**: local simulation -> testnet live tx -> stricter deployment and governance policies as the protocol matures.
 
 ## 5. Target Customers and Value
 
@@ -127,10 +118,10 @@ DR Agent is not just deployed on Avalanche — Avalanche is part of the product 
 
 1. **Energy Oracle Layer**: baseline inference + confidence metadata + on-chain proof anchoring in one pipeline.
 2. **On-chain token settlement**: DRT (ERC-20) payout on claim — completing the settlement loop with real on-chain value transfer.
-3. **ICTT token liquidity**: app-chain DRT bridged to C-Chain via Avalanche ICTT for DEX-tradeable rewards.
+3. **Cross-network token liquidity (optional)**: DRT can be bridged to external liquidity venues when needed.
 4. **AI load / compute flexibility scenarios**: extends DR from industrial loads to AI-era flexible compute demand.
 5. **M2M settlement and incentives**: machine-account-based programmable reward distribution.
-6. **Avalanche-native growth path**: C-Chain MVP → Custom L1 → ICM multi-region → Custom precompiles.
+6. **Modular growth path**: testnet MVP -> dedicated execution environment -> cross-domain interoperability -> domain-specific precompiles.
 
 ## 8. Risks and Mitigations
 
@@ -152,14 +143,14 @@ Completed (as of 2026-02-24):
 - Core loop is running end-to-end: `create -> proofs -> close -> settle -> claim -> audit`
 - Contract suite remains stable (`15 passing`)
 - Frontend modes, bilingual toggle, snapshot export, and chart-based readouts are in place
-- Avalanche feature analysis completed: hackathon deliverables vs startup vision clearly scoped
+- network integration analysis completed: delivery scope vs long-term architecture clearly scoped
 
 Hackathon deliverables (prioritized):
 - **P0**: DRT token (ERC-20) + `claimReward()` real token transfer (~1 day)
 - **P0**: Custom L1 configuration blueprint with multi-region architecture diagram (~0.5 day)
 - **P1**: ICTT cross-chain token bridge (ERC20TokenHome on C-Chain + ERC20TokenRemote) (~1-2 days)
 - **P1**: Energy Oracle Layer default-in-path with model metadata persistence
-- **P2**: Snowtrace explorer links in frontend, Prophet auto-invocation
+- **P2**: explorer links in frontend, Prophet auto-invocation
 
 Startup vision (documented in roadmap, no code):
 - 6 months: ICM multi-region proof verification across grid operators
@@ -274,7 +265,7 @@ Mission Cockpit quick checks:
 - Language toggle: `EN / 中文` (default `EN`, persisted via `localStorage['dr_lang']`)
 - Primary actions: `Execute Next Step`, `Auto Run Full Flow`
 - Review deck includes `Proof A vs Proof B`, `One-Line Story`, and `Agent Insight`
-- Stage controls: `Theme: Cobalt/Neon`, `Camera Mode`, `Judge Mode`
+- Stage controls: `Theme: Cobalt/Neon`, `Camera Mode`, `Review Mode`
 - Snapshot export behavior: Story/Ops copy brief summary; Engineering copies full snapshot (with JSON evidence)
 - Keyboard shortcuts: `N` (next step), `R` (run full flow), `E` (switch to Engineering)
 
@@ -288,6 +279,8 @@ Notes:
 - API smoke script: `npm run smoke:api`
 - Full Python dependencies (including Prophet): `npm run setup:python`
 - Fuji deploy with external secrets: `make deploy-fuji`
+- DRT-only Fuji deploy: `make deploy-fuji-drt`
+- DRT-only deploy + evidence: `make deploy-fuji-drt-evidence`
 - For live-demo mode confirmation: `curl http://127.0.0.1:8000/system/chain-mode` (includes `tx_confirm_mode`)
 
 ## 0.1 Project Structure
@@ -350,7 +343,7 @@ flowchart TB
         IDX["Postgres/SQLite\nEvent/site index (optional)"]
     end
 
-    subgraph A["Avalanche C-Chain (MVP)"]
+    subgraph A["EVM Chain (MVP)"]
         EM["EventManager.sol\nEvent lifecycle"]
         PR["ProofRegistry.sol\nProof summary + hash anchoring"]
         ST["Settlement.sol\nReward/penalty and claim"]
@@ -504,7 +497,7 @@ Mode notes:
 - `GET /events/{event_id}` query event state
 - `GET /events/{event_id}/records` query settlement details
 - `GET /audit/{event_id}/{site_id}` verify proof hash consistency
-- `GET /judge/{event_id}/summary` query aggregated review summary
+- `GET /judge/{event_id}/summary` query aggregated execution summary
 - `GET /healthz` service health probe
 - `GET /system/chain-mode` expose runtime chain mode + tx confirm mode + demo site mode + required proof sites
 
@@ -593,11 +586,11 @@ Keyboard shortcuts:
 - Baseline vs Actual chart
 - Payout breakdown chart
 
-5. Avalanche feature analysis completed:
+5. network integration analysis completed:
 - Scoped hackathon deliverables: DRT token + ICTT bridge + Custom L1 blueprint
 - Scoped startup vision: ICM multi-region + precompiles + HyperSDK + validator economy
 
-### Hackathon execution plan
+### Execution plan
 
 1. DRT token + claimReward transfer (P0, ~1 day)
 - Deploy `DRToken.sol` (ERC-20, initial mint to Settlement contract).
@@ -619,7 +612,7 @@ Keyboard shortcuts:
 - Return and persist `baseline_method`, `baseline_model_version`, `baseline_confidence`.
 
 5. Polish and evidence (P2)
-- Snowtrace explorer links in frontend (~10 lines).
+- Explorer links in frontend (~10 lines).
 - Prophet auto-invocation in baseline service (~30 lines).
 
 ## 9. Test Checklist
@@ -671,9 +664,11 @@ Keyboard shortcuts:
 - API setup script: `scripts/setup_python_env.sh`
 - API smoke script: `scripts/smoke_api_flow.py`
 - Fuji deployment script: `scripts/deploy_fuji.ts`
+- DRT-only Fuji deployment script: `scripts/deploy_drt_fuji.ts`
 - Pitch deck sync script: `scripts/sync_pitch_pptx.py`
-- Final judge pitch deck (PPTX): `guide/ppt/DR-Agent-Verifiable-Demand-Response-Auto-Settlement-final.pptx`
-- Evidence bundle script: `scripts/build_judge_evidence_bundle.py`
+- Final pitch deck (PPTX): `guide/ppt/DR-Agent-Verifiable-Demand-Response-Auto-Settlement-final.pptx`
+- Execution evidence bundle script: `scripts/build_execution_evidence_bundle.py`
+- DRT-only evidence bundle script: `scripts/build_drt_evidence_bundle.py`
 - Generated demo tx summary: `cache/demo-tx-<event_id>.json`
 - Generated demo evidence summary: `cache/demo-evidence-<event_id>.json`
 - Generated step raw responses: `cache/demo-raw-<event_id>/`
@@ -688,6 +683,7 @@ Status:
 
 - Fuji deployment completed on `2026-02-20`.
 - Evidence source: `cache/fuji-deployment-latest.json` (internal markdown bundle archived in `guide/`).
+- DRT-only evidence source: `cache/fuji-drt-deployment-latest.json` (internal markdown bundle archived in `guide/`).
 
 Current record:
 
@@ -699,8 +695,59 @@ Current record:
 | Fuji    | Settlement               | `0x69512B18109BA25Df3A5cA27d30521EE60b7a787`                         | https://testnet.snowtrace.io/address/0x69512B18109BA25Df3A5cA27d30521EE60b7a787                    |
 | Fuji    | setSettlementContract tx | `0xaffbb344ecfec8601313ec452e857f31346c72c5ba0a1e6b6166315b38a2831f` | https://testnet.snowtrace.io/tx/0xaffbb344ecfec8601313ec452e857f31346c72c5ba0a1e6b6166315b38a2831f |
 
+Latest DRT-only evidence index:
+
+- Generated at (UTC): `2026-03-06T11:31:13Z`
+- DRT contract: `0x7c3B54f956D95E7F5756dE7684Cf5D893556E6B2`  
+  Explorer: https://testnet.snowtrace.io/address/0x7c3B54f956D95E7F5756dE7684Cf5D893556E6B2
+- Deploy tx: `0x3aa757cfc293be3a801d663306cd3142ffc91a62eb177947809ff4d5d98ecdef`  
+  Explorer: https://testnet.snowtrace.io/tx/0x3aa757cfc293be3a801d663306cd3142ffc91a62eb177947809ff4d5d98ecdef
+- Total deploy fee (wei): `1977874`
+- One-shot reproduce command: `npm run deploy:fuji:drt:evidence`
+- Detailed evidence paths:
+  `cache/fuji-drt-deployment-latest.json`,
+  `guide/docs/Fuji-DRT-Evidence-Bundle-latest.md`
+
 Maintenance flow:
 
 1. Re-deploy when needed with `npm run deploy:fuji`.
-2. Rebuild evidence bundle with `npm run evidence:judge`.
-3. Keep this table in sync with generated cache artifacts; update internal docs in `guide/` only as needed.
+2. Rebuild evidence bundle with `npm run evidence:execution`.
+3. For DRT-only deploy, run `npm run deploy:fuji:drt`.
+4. For DRT-only evidence, run `npm run evidence:execution:drt` (or one-shot `npm run deploy:fuji:drt:evidence`).
+5. Keep this table in sync with generated cache artifacts; update internal docs in `guide/` only as needed.
+
+## 11.2 Stage-2 72-Hour Submission Kit (Minimum Winning Scope)
+
+One-click DRT deploy + evidence:
+
+```bash
+npm run deploy:fuji:drt:evidence
+# or
+make deploy-fuji-drt-evidence
+```
+
+If `@openzeppelin/contracts` is missing:
+
+```bash
+npm i -D @openzeppelin/contracts
+```
+
+3-day execution priorities:
+
+1. Day 1 (P0): lock a reproducible Fuji full loop with minimum evidence set (`event_id`, 6-step tx hashes, `tx_state`, total fee, audit match, explorer links).
+2. Day 2 (P1): tighten demo UX (4 key Story cards, latency split, one-click retry + actionable error hints).
+3. Day 3 (P2): final recording (<=5 min), README evidence sync, and command-level regression checks.
+
+5-minute demo timeline:
+
+1. `0:00-0:40` pain point.
+2. `0:40-1:40` solution architecture.
+3. `1:40-3:30` live flow + tx/audit evidence.
+4. `3:30-4:20` evidence bundle walkthrough.
+5. `4:20-5:00` value + next 4-week roadmap.
+
+Ready-to-submit answers were moved to:
+
+- `guide/stage2/stage2-submission-qa.md`
+
+Internal full playbook (history): `guide/docs/history/legacy-competition/DR-Agent-stage2-72h-min-winning-plan-2026-03-06.md`

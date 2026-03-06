@@ -17,7 +17,8 @@ RUN_WITH_SECRETS = DR_SECRETS_FILE="$(SECRETS_FILE)" bash scripts/run_with_secre
 
 .PHONY: help \
 	up newup ship sup fullpr-sub fullpr-main sync sync-sub-main new branch-check \
-	secrets-init secrets-check api-run demo-run smoke-api-secrets deploy-fuji evidence-judge
+	secrets-init secrets-check api-run demo-run smoke-api-secrets deploy-fuji deploy-fuji-drt deploy-fuji-drt-evidence \
+	evidence-execution evidence-execution-drt evidence-judge evidence-judge-drt
 
 # 默认命令：输入 make 就会显示帮助
 help:
@@ -38,7 +39,12 @@ help:
 	@echo "make demo-run                   # 使用外置 secrets 执行闭环演示"
 	@echo "make smoke-api-secrets          # 使用外置 secrets 执行 API 冒烟"
 	@echo "make deploy-fuji                # 使用外置 secrets 部署 Fuji"
-	@echo "make evidence-judge             # 生成评委提交证据包（Markdown）"
+	@echo "make deploy-fuji-drt            # 仅部署 DRT 合约（Fuji）"
+	@echo "make deploy-fuji-drt-evidence   # 仅部署 DRT 并生成 DRT 证据包"
+	@echo "make evidence-execution         # 生成执行证据包（Markdown）"
+	@echo "make evidence-execution-drt     # 生成 DRT-only 执行证据包（Markdown）"
+	@echo "make evidence-judge             # 兼容别名：同 evidence-execution"
+	@echo "make evidence-judge-drt         # 兼容别名：同 evidence-execution-drt"
 
 # 外置 secrets：在工作区外创建 secrets 文件（默认 ~/.config/dr-agent/secrets.env）
 secrets-init:
@@ -71,11 +77,28 @@ smoke-api-secrets:
 
 # 使用外置 secrets 部署 Fuji
 deploy-fuji:
-	@$(RUN_WITH_SECRETS) npx hardhat run scripts/deploy_fuji.ts --network fuji
+	@$(RUN_WITH_SECRETS) ./node_modules/.bin/hardhat run scripts/deploy_fuji.ts --network fuji
 
-# 生成评委证据包（从部署报告生成 Markdown）
-evidence-judge:
-	@python3 scripts/build_judge_evidence_bundle.py
+# 使用外置 secrets 仅部署 DRT（Fuji）
+deploy-fuji-drt:
+	@$(RUN_WITH_SECRETS) ./node_modules/.bin/hardhat run scripts/deploy_drt_fuji.ts --network fuji
+
+# 生成执行证据包（从部署报告生成 Markdown）
+evidence-execution:
+	@python3 scripts/build_execution_evidence_bundle.py
+
+# 生成 DRT-only 执行证据包（从 DRT 部署报告生成 Markdown）
+evidence-execution-drt:
+	@python3 scripts/build_drt_evidence_bundle.py
+
+# 兼容旧命名
+evidence-judge: evidence-execution
+evidence-judge-drt: evidence-execution-drt
+
+# 一键：仅部署 DRT 并生成 DRT 证据包
+deploy-fuji-drt-evidence:
+	@$(MAKE) deploy-fuji-drt
+	@$(MAKE) evidence-execution-drt
 
 # 1. 基础提交
 up:
