@@ -44,13 +44,16 @@ Direct routing and implicit guardrails can co-exist. Implicit guardrails do not 
 
 ***
 
-## Core Rules at a Glance (5 Rules)
+## Core Rules at a Glance (8 Rules)
 
 1. **Never read `.env*` files** (filename blacklist, auto-reject)
 2. **Never modify main branch; keep main repo + submodules on the same branch name**
-3. **Major decisions need approval** (present 3-5 options, wait for selection)
-4. **Code must be validated** (typecheck + project-specified test/demo scripts)
-5. **Ask for confirmation after key tasks** (report completion, ask "OK?")
+3. **Default development to the lowest-noise environment tier**
+4. **Dependent workflow steps need explicit state guards** (`submitted` is not `confirmed`)
+5. **Every production bug fix needs a regression check**
+6. **Critical-path module changes require smoke rerun**
+7. **Major decisions need approval** (present 3-5 options, wait for selection)
+8. **Code must be validated** (typecheck + project-specified test/demo scripts)
 
 ***
 
@@ -109,6 +112,26 @@ Naming convention: `feature/name`, `fix/description`, `docs/type`
 - All configs must have entries in `.env.example`
 - New variables must update `.env.example`
 
+### Defect Prevention Guardrails
+
+- Default day-to-day development to the lowest-noise environment tier available:
+  - prefer local/simulated dependencies over live ones
+  - prefer strict/synchronous confirmation over hybrid/asynchronous confirmation
+  - reserve live + hybrid/async paths for dedicated integration or final demo validation
+- For stateful or multi-step workflows, encode adjacent-step prerequisites in code:
+  - do not treat `submitted`, `broadcast`, or `accepted` as equivalent to `confirmed`, `mined`, or `readable`
+  - dependent actions must either wait, poll, or return a domain-level pending error before calling the next step
+  - surface readable errors such as `*_PENDING_CONFIRMATION` instead of leaking raw downstream revert/adapter errors
+- Every bug fix that reaches implementation must add at least one regression artifact:
+  - automated test preferred
+  - scripted repro / smoke checklist item acceptable only if automation is not feasible
+- If a change touches critical-path modules, rerun project smoke before closing the task:
+  - frontend action orchestration / state transitions
+  - backend workflow orchestration / submitter services
+  - external system adapters, chain/RPC callers, queue consumers, or workflow scripts
+- Do not mix UI refactor, workflow semantic changes, and regression hardening in one pass unless user explicitly approves
+- If live/integration verification fails, pause new feature work and fix workflow semantics first
+
 ***
 
 ## P2 - Collaboration Constraints (Recommended)
@@ -150,6 +173,8 @@ Naming convention: `feature/name`, `fix/description`, `docs/type`
 - [ ] Is this a major decision? -> present options and wait
 
 **After making changes**:
+- [ ] Regression coverage added for any bug fix?
+- [ ] Smoke rerun completed if critical-path modules changed?
 - [ ] typecheck 0 errors
 - [ ] test/demo scripts pass
 - [ ] commit message is clear, pushed

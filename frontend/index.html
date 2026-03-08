@@ -55,7 +55,6 @@
       <section class="panel mode-strip reveal" style="--delay: 0.04s">
         <div class="mode-toggle" role="tablist" aria-label="Experience mode" data-i18n-attr="aria-label:mode.experience">
           <button id="btnViewStory" class="mode-btn is-active" data-view="story" aria-selected="true" data-i18n="mode.story">Story Mode</button>
-          <button id="btnViewOps" class="mode-btn" data-view="ops" aria-selected="false" data-i18n="mode.ops">Ops Mode</button>
           <button id="btnViewEngineering" class="mode-btn" data-view="engineering" aria-selected="false" data-i18n="mode.engineering">Engineering Mode</button>
           <div class="lang-switch" data-i18n-attr="aria-label:mode.experience">
             <button id="btnLangEn" class="mode-btn is-active" aria-pressed="true" data-i18n="lang.en">EN</button>
@@ -94,6 +93,20 @@
             <p id="storyInsight" class="value">Waiting for mission data.</p>
           </article>
         </div>
+      </section>
+
+      <section id="storyEvidenceRow" class="panel story-evidence-row reveal" style="--delay: 0.065s">
+        <div class="story-evidence-tools">
+          <button id="btnStoryTechEvidence" class="btn btn-ghost" data-i18n="story.viewTxEvidence">View Tx Evidence</button>
+          <button id="btnStorySnapshot" class="btn" data-i18n="snapshot.copyJudge">Copy Snapshot</button>
+        </div>
+        <p id="storyEvidenceHint" class="hint" data-i18n="story.evidenceHint">
+          Open engineering evidence or copy a review snapshot.
+        </p>
+        <p id="storyLatestTxLine" class="hint story-tx-line">
+          <span data-i18n="story.latestTxLabel">Latest Tx</span>:
+          <a id="storyLatestTxLink" class="story-tx-link" href="#" target="_blank" rel="noopener noreferrer">--</a>
+        </p>
       </section>
 
       <section id="visualInsights" class="panel visual-insights hidden reveal" style="--delay: 0.07s">
@@ -255,7 +268,6 @@
           <div class="section-actions">
             <button id="btnTheme" class="btn btn-compact" aria-label="Toggle theme">Theme: Cobalt</button>
             <button id="btnCameraMode" class="btn btn-compact" aria-pressed="false">Enable Camera Mode</button>
-            <button id="btnJudgeMode" class="btn btn-compact" aria-pressed="false">Enable Review Mode</button>
           </div>
         </div>
 

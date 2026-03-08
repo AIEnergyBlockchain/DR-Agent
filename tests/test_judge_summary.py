@@ -3,12 +3,11 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from fastapi.testclient import TestClient
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from asgi_client import AppClient
 from services.api import create_app
 
 
@@ -16,7 +15,7 @@ def _headers(api_key: str, actor_id: str) -> dict[str, str]:
     return {"x-api-key": api_key, "x-actor-id": actor_id}
 
 
-def _create_event(client: TestClient, event_id: str):
+def _create_event(client: AppClient, event_id: str):
     operator = _headers("operator-key", "operator-1")
     response = client.post(
         "/events",
@@ -35,7 +34,7 @@ def _create_event(client: TestClient, event_id: str):
 
 def test_judge_summary_lifecycle(tmp_path: Path):
     app = create_app(db_path=str(tmp_path / "dr_agent_summary.db"))
-    client = TestClient(app)
+    client = AppClient(app)
 
     event_id = "event-summary-lifecycle"
     operator = _headers("operator-key", "operator-1")
@@ -98,7 +97,7 @@ def test_judge_summary_lifecycle(tmp_path: Path):
 
 def test_judge_summary_allows_participant_role(tmp_path: Path):
     app = create_app(db_path=str(tmp_path / "dr_agent_summary_role.db"))
-    client = TestClient(app)
+    client = AppClient(app)
 
     event_id = "event-summary-role"
     _create_event(client, event_id)
@@ -111,7 +110,7 @@ def test_judge_summary_allows_participant_role(tmp_path: Path):
 
 def test_judge_summary_returns_not_found_for_unknown_event(tmp_path: Path):
     app = create_app(db_path=str(tmp_path / "dr_agent_summary_missing.db"))
-    client = TestClient(app)
+    client = AppClient(app)
     auditor = _headers("auditor-key", "auditor-1")
 
     response = client.get("/judge/missing-event/summary", headers=auditor)

@@ -40,6 +40,14 @@
    - typecheck must be zero errors
    - project test/demo commands must pass
    - if unvalidated, explicitly state that it is untested
+4. Defect prevention gates for stateful workflows:
+   - default routine development to the lowest-noise environment tier available
+   - do not treat `submitted`/`broadcast` as equivalent to `confirmed`/`readable`
+   - dependent steps must wait, poll, or return a domain-level pending-precondition error
+   - every shipped bug fix needs a regression test or scripted repro check
+   - rerun smoke when critical-path orchestrators/adapters/UI flow modules change
+   - avoid mixing UI refactor and workflow semantics in one pass unless user approves
+   - if live/integration flow fails, stop new feature work and fix the broken semantics first
 
 ## P2 Collaboration (Recommended)
 
@@ -52,8 +60,11 @@
 Before work:
 - [ ] Main repo and submodules are not on `main` and share the same branch name
 - [ ] Major decision confirmed if applicable
+- [ ] Development environment tier is appropriate for the task (routine vs integration vs demo)
 
 After changes:
+- [ ] Regression coverage added for bug fixes
+- [ ] Smoke rerun completed if critical-path files/modules changed
 - [ ] typecheck passed
 - [ ] tests/demo passed
 - [ ] commit format is clear

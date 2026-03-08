@@ -3,13 +3,16 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from fastapi.testclient import TestClient
+import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from asgi_client import AppClient
 from services.api import create_app
+from services.dto import EventCreateRequest, ProofSubmitRequest
+from services.submitter import ServiceError, SubmitterService
 
 
 def _headers(api_key: str, actor_id: str) -> dict[str, str]:
@@ -18,7 +21,7 @@ def _headers(api_key: str, actor_id: str) -> dict[str, str]:
 
 def test_closed_loop_create_submit_settle_claim_audit(tmp_path: Path):
     app = create_app(db_path=str(tmp_path / "dr_agent_test.db"))
-    client = TestClient(app)
+    client = AppClient(app)
 
     operator = _headers("operator-key", "operator-1")
     participant_a = _headers("participant-key", "site-a")
@@ -99,7 +102,7 @@ def test_closed_loop_create_submit_settle_claim_audit(tmp_path: Path):
 
 def test_duplicate_proof_is_blocked(tmp_path: Path):
     app = create_app(db_path=str(tmp_path / "dr_agent_test.db"))
-    client = TestClient(app)
+    client = AppClient(app)
 
     operator = _headers("operator-key", "operator-1")
     participant = _headers("participant-key", "site-a")
@@ -135,7 +138,7 @@ def test_duplicate_proof_is_blocked(tmp_path: Path):
 
 def test_forbidden_settlement_for_non_operator(tmp_path: Path):
     app = create_app(db_path=str(tmp_path / "dr_agent_test.db"))
-    client = TestClient(app)
+    client = AppClient(app)
 
     operator = _headers("operator-key", "operator-1")
     participant = _headers("participant-key", "site-a")
@@ -180,7 +183,7 @@ def test_forbidden_settlement_for_non_operator(tmp_path: Path):
 
 def test_settle_requires_closed_event(tmp_path: Path):
     app = create_app(db_path=str(tmp_path / "dr_agent_test.db"))
-    client = TestClient(app)
+    client = AppClient(app)
 
     operator = _headers("operator-key", "operator-1")
     participant = _headers("participant-key", "site-a")
@@ -222,7 +225,7 @@ def test_settle_requires_closed_event(tmp_path: Path):
 
 def test_chain_mode_endpoint_includes_required_sites(tmp_path: Path):
     app = create_app(db_path=str(tmp_path / "dr_agent_chain_mode.db"))
-    client = TestClient(app)
+    client = AppClient(app)
     auditor = _headers("auditor-key", "auditor-1")
 
     response = client.get("/system/chain-mode", headers=auditor)
@@ -239,7 +242,7 @@ def test_default_demo_site_and_confirm_mode(tmp_path: Path, monkeypatch):
     monkeypatch.setenv("DR_CHAIN_MODE", "simulated")
 
     app = create_app(db_path=str(tmp_path / "dr_agent_default_modes.db"))
-    client = TestClient(app)
+    client = AppClient(app)
     auditor = _headers("auditor-key", "auditor-1")
 
     mode_resp = client.get("/system/chain-mode", headers=auditor)
@@ -255,7 +258,76 @@ def test_default_demo_site_and_confirm_mode(tmp_path: Path, monkeypatch):
     assert health_payload["tx_confirm_mode"] == "hybrid"
 
 
-if __name__ == "__main__":
-    import pytest
+def test_submit_proof_waits_for_create_confirmation_in_hybrid_live_mode(
+    tmp_path: Path, monkeypatch
+):
+    monkeypatch.setenv("DR_CHAIN_MODE", "fuji-live")
+    monkeypatch.setenv("DR_TX_CONFIRM_MODE", "hybrid")
+    monkeypatch.setenv("DR_PROOF_CREATE_WAIT_SECONDS", "1")
+    monkeypatch.setenv("DR_PROOF_CREATE_POLL_SECONDS", "0.2")
 
+    tx_action_log: list[str] = []
+
+    def fake_chain_tx(self, action: str, payload: dict):
+        tx_action_log.append(action)
+        if action == "create_event":
+            return {
+                "tx_hash": "0x" + "1" * 64,
+                "tx_fee_wei": None,
+                "tx_state": "submitted",
+                "tx_submitted_at": "2026-03-07T14:53:24Z",
+                "tx_confirmed_at": None,
+                "tx_error": None,
+            }
+        if action == "submit_proof":
+            raise AssertionError("submit_proof should not be called while create tx is pending")
+        raise AssertionError(f"unexpected chain tx action: {action}")
+
+    def fake_check_tx(self, tx_hash: str):
+        return {
+            "tx_state": "submitted",
+            "tx_fee_wei": None,
+            "tx_confirmed_at": None,
+            "tx_error": None,
+        }
+
+    monkeypatch.setattr(SubmitterService, "_chain_tx", fake_chain_tx)
+    monkeypatch.setattr(SubmitterService, "_check_tx", fake_check_tx)
+
+    svc = SubmitterService(db_path=str(tmp_path / "dr_agent_pending_create.db"))
+
+    created = svc.create_event(
+        EventCreateRequest(
+            event_id="event-create-pending",
+            start_time="2026-03-07T14:54:21Z",
+            end_time="2026-03-07T15:54:21Z",
+            target_kw=200,
+            reward_rate=10,
+            penalty_rate=5,
+        )
+    )
+    assert created.tx_state == "submitted"
+
+    with pytest.raises(ServiceError) as exc_info:
+        svc.submit_proof(
+            ProofSubmitRequest(
+                event_id="event-create-pending",
+                site_id="site-a",
+                baseline_kwh=150,
+                actual_kwh=40,
+                uri="ipfs://site-a-create-pending",
+                baseline_method="simple",
+            ),
+            actor_id="site-a",
+        )
+
+    err = exc_info.value
+    assert err.status_code == 409
+    assert err.code == "CREATE_TX_PENDING_CONFIRMATION"
+    assert err.message == "create transaction is submitted but not confirmed yet"
+    assert err.retryable is True
+    assert tx_action_log == ["create_event"]
+
+
+if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__]))

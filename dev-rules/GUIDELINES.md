@@ -1,7 +1,7 @@
 # AI Agent Work Constraints and Collaboration Guide (Detailed Version)
 
-> **Version**: v2.1
-> **Last Updated**: 2026-02-18
+> **Version**: v2.2
+> **Last Updated**: 2026-03-07
 > **Applicable Scope**: All AI Assistant collaboration scenarios (detailed reference)
 > **Core Rules**: See [RULES.md](RULES.md) (authoritative baseline, condensed version)
 
@@ -18,6 +18,7 @@
 
 - [Security Constraint Details](#security-constraint-details)
 - [Workflow Constraint Details](#workflow-constraint-details)
+- [Defect Prevention Constraint Details](#defect-prevention-constraint-details)
 - [Code Quality Constraint Details](#code-quality-constraint-details)
 - [Collaboration and Communication Best Practices](#collaboration-and-communication-best-practices)
 - [Decision-Making and Planning Guidelines](#decision-making-and-planning-guidelines)
@@ -192,9 +193,115 @@ git submodule foreach 'git checkout -b "$BRANCH" || git checkout "$BRANCH"'
 
 ---
 
+## Defect Prevention Constraint Details
+
+### P0-4: Choose the Lowest-Noise Development Tier by Default
+
+**Rule**:
+
+- ✓ Routine development should use the least noisy environment tier available
+- ✓ Prefer simulated/local dependencies over live dependencies for everyday changes
+- ✓ Prefer strict/synchronous confirmation over hybrid/asynchronous confirmation during debugging
+- ✗ Don't make hybrid/async confirmation the default development path unless the task is specifically validating that mode
+
+**Recommended Tiering Pattern**:
+
+1. Development baseline: local/simulated + strict confirmation
+2. Integration validation: live dependency + strict confirmation
+3. Demo/performance validation: live dependency + hybrid/async confirmation
+
+**Why**:
+
+- Lower-noise tiers isolate product logic bugs from timing-window bugs
+- Hybrid/async modes optimize experience, but they amplify sequencing noise during development
+
+### P0-5: Encode Explicit Step Preconditions
+
+**Rule**:
+
+- ✓ For any multi-step or stateful workflow, every dependent step must check the prior step's state explicitly
+- ✗ Don't assume that `submitted`, `broadcast`, `queued`, or `accepted` means the downstream state is already readable
+- ✓ Treat preconditions as code, not operator intuition
+
+**Required Patterns**:
+
+- Adjacent-step guard examples:
+  - `proof <- create confirmed`
+  - `settle <- close confirmed`
+  - `claim <- settle confirmed`
+- Guard behavior must do one of these before attempting the downstream action:
+  - wait/poll until precondition is satisfied
+  - return a domain-level pending error
+  - enter a documented waiting state in the UI/job controller
+
+**Error Contract Guidance**:
+
+- Prefer readable domain errors such as `CREATE_TX_PENDING_CONFIRMATION`
+- Message should explain both facts:
+  - previous transaction is submitted
+  - previous transaction is not yet confirmed/readable
+- ✗ Don't leak raw adapter, RPC, or revert errors when the real cause is unmet workflow precondition
+
+### P0-6: Every Bug Fix Must Leave a Regression Artifact
+
+**Rule**:
+
+- ✓ Every production or integration bug fix must add at least one regression artifact
+- ✓ Automated regression tests are preferred
+- ✓ If automation is not yet feasible, add a scripted repro or release-checklist item and state why
+- ✗ Don't close a bug fix with only a code change and no regression evidence
+
+**Minimum Bar**:
+
+1. Reproduce the failure mode
+2. Assert the protected behavior after the fix
+3. Cover the user-visible error contract if one was added
+
+### P1-5: Critical-Path Modules Trigger Smoke Reruns
+
+**Rule**:
+
+- ✓ Rerun smoke whenever a change touches critical-path orchestration modules
+- ✓ Critical path includes the modules that move workflow state across system boundaries
+- ✗ Don't skip smoke just because the edit "looks small"
+
+**Common Critical-Path Examples**:
+
+- frontend action orchestrators and state-transition handlers
+- backend submitter/orchestration services
+- chain/RPC adapters, queue consumers, workflow scripts
+- DTO or API contract layers that change workflow sequencing semantics
+
+### P1-6: Isolate UI Refactors from Workflow Semantic Changes
+
+**Rule**:
+
+- ✓ Split work into separate passes when possible:
+  - UI/presentation changes
+  - workflow semantic/orchestration changes
+  - regression and smoke hardening
+- ✓ If combining them is necessary, document the reason and verify each layer separately
+- ✗ Don't mix broad visual churn with core sequencing changes by default
+
+**Why**:
+
+- Mixing visual changes and workflow semantics increases diagnosis cost
+- Small regressions become harder to localize when both presentation and orchestration move together
+
+### P1-7: Integration Failure Stops Feature Expansion
+
+**Rule**:
+
+- ✓ If live/integration verification fails, stop adding new features in that path
+- ✓ Fix the broken workflow semantics, guards, or environment assumptions first
+- ✓ Record the failure mode in the regression checklist before resuming feature work
+- ✗ Don't treat a failing end-to-end path as "good enough" while continuing unrelated UI polish
+
+---
+
 ## Code Quality Constraint Details
 
-### P0-4: Code Must Be Verified Before Commit
+### P0-7: Code Must Be Verified Before Commit
 
 **Rule**:
 
@@ -212,7 +319,7 @@ git submodule foreach 'git checkout -b "$BRANCH" || git checkout "$BRANCH"'
 
 **Note**: Specific commands depend on project's package.json / Makefile / documentation. Agent should check project config first.
 
-### P1-5: Type Safety (TypeScript projects)
+### P1-8: Type Safety (TypeScript projects)
 
 **Rule**:
 
@@ -231,7 +338,7 @@ const data: any = fetchData();
 const data: any = thirdPartyLib.getData();
 ```
 
-### P1-6: Don't Break Existing Functionality
+### P1-9: Don't Break Existing Functionality
 
 **Rule**:
 

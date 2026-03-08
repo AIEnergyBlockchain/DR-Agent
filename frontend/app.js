@@ -6,7 +6,7 @@ const FLOW_STEPS = [
   { id: 'claim', label: 'Claim' },
   { id: 'audit', label: 'Audit' },
 ];
-const VIEW_MODES = ['story', 'ops', 'engineering'];
+const VIEW_MODES = ['story', 'engineering'];
 const DEFAULT_REQUIRED_PROOF_SITES = ['site-a', 'site-b'];
 
 const tabs = Array.from(document.querySelectorAll('.tab'));
@@ -20,11 +20,12 @@ const MAX_LOG_ENTRIES = 320;
 const MAX_STEP_TIMING_ENTRIES = 24;
 const PENDING_TX_WAIT_TIMEOUT_MS = 120000;
 const PENDING_TX_POLL_MS = 1200;
+const HERO_TITLE_MAX_CHARS = 55;
+const HERO_SUBTITLE_MAX_CHARS = 90;
 
 const el = {
   log: document.getElementById('log'),
   btnViewStory: document.getElementById('btnViewStory'),
-  btnViewOps: document.getElementById('btnViewOps'),
   btnViewEngineering: document.getElementById('btnViewEngineering'),
   btnLangEn: document.getElementById('btnLangEn'),
   btnLangZh: document.getElementById('btnLangZh'),
@@ -32,11 +33,15 @@ const el = {
   builderPanel: document.getElementById('builderPanel'),
   btnTheme: document.getElementById('btnTheme'),
   btnCameraMode: document.getElementById('btnCameraMode'),
-  btnJudgeMode: document.getElementById('btnJudgeMode'),
   btnNextStep: document.getElementById('btnNextStep'),
   btnRunAllHero: document.getElementById('btnRunAllHero'),
   btnExportSnapshot: document.getElementById('btnExportSnapshot'),
+  btnStoryTechEvidence: document.getElementById('btnStoryTechEvidence'),
+  btnStorySnapshot: document.getElementById('btnStorySnapshot'),
   snapshotFeedback: document.getElementById('snapshotFeedback'),
+  storyEvidenceHint: document.getElementById('storyEvidenceHint'),
+  storyLatestTxLine: document.getElementById('storyLatestTxLine'),
+  storyLatestTxLink: document.getElementById('storyLatestTxLink'),
   eventIdInput: document.getElementById('eventId'),
   baseUrl: document.getElementById('baseUrl'),
   operatorKey: document.getElementById('operatorKey'),
@@ -131,11 +136,9 @@ const I18N = {
     'mission.flowProgress': 'Flow Progress',
     'mode.experience': 'Experience mode',
     'mode.story': 'Story Mode',
-    'mode.ops': 'Ops Mode',
     'mode.engineering': 'Engineering Mode',
-    'mode.hint.story': 'Story Mode focuses on one next action and business impact.',
-    'mode.hint.ops': 'Ops Mode emphasizes flow status, guardrails, and execution detail.',
-    'mode.hint.engineering': 'Engineering Mode exposes raw evidence and diagnostic traces.',
+    'mode.hint.story': 'Story Mode is the judge-facing single-screen narrative.',
+    'mode.hint.engineering': 'Engineering Mode exposes flow detail, diagnostics, and raw evidence.',
     'lang.en': 'EN',
     'lang.zh': '中文',
     'story.command': 'Mission Command',
@@ -143,6 +146,10 @@ const I18N = {
     'story.totalPayout': 'Total Payout',
     'story.auditConfidence': 'Audit Confidence',
     'story.agentThinking': 'Agent Thinking',
+    'story.viewTxEvidence': 'View Tx Evidence',
+    'story.evidenceHint': 'Open engineering evidence or copy a review snapshot.',
+    'story.latestTxLabel': 'Latest Tx',
+    'story.latestTxNone': 'No transaction yet',
     'story.latency.idle': 'Delay: waiting for first API call.',
     'story.latency.running': 'Delay: running {step} | elapsed {elapsed} | API {api}.',
     'story.latency.breakdown': 'Delay: {step} => API {api} + {summary} = {total}; {pending}.',
@@ -225,8 +232,6 @@ const I18N = {
     'theme.neon': 'Theme: Neon',
     'camera.enable': 'Enable Camera Mode',
     'camera.disable': 'Disable Camera Mode',
-    'judgeMode.enable': 'Enable Review Mode',
-    'judgeMode.disable': 'Disable Review Mode',
     'status.pending': 'pending',
     'status.in-progress': 'in-progress',
     'status.done': 'done',
@@ -434,11 +439,9 @@ const I18N = {
     'mission.flowProgress': '流程进度',
     'mode.experience': '体验模式',
     'mode.story': '叙事模式',
-    'mode.ops': '运维模式',
     'mode.engineering': '工程模式',
-    'mode.hint.story': '叙事模式聚焦“下一步动作 + 业务结果”。',
-    'mode.hint.ops': '运维模式突出流程状态、护栏和执行细节。',
-    'mode.hint.engineering': '工程模式展示原始证据和诊断日志。',
+    'mode.hint.story': '叙事模式就是默认评审视角。',
+    'mode.hint.engineering': '工程模式展示流程细节、诊断信息和原始证据。',
     'lang.en': 'EN',
     'lang.zh': '中文',
     'story.command': '任务指挥',
@@ -446,6 +449,10 @@ const I18N = {
     'story.totalPayout': '总结算',
     'story.auditConfidence': '审计可信度',
     'story.agentThinking': 'Agent 思考',
+    'story.viewTxEvidence': '查看交易证据',
+    'story.evidenceHint': '可切换工程模式查看证据，或复制评审快照。',
+    'story.latestTxLabel': '最新交易',
+    'story.latestTxNone': '暂无交易',
     'story.latency.idle': '延迟：等待首次 API 调用。',
     'story.latency.running': '延迟：执行 {step} 中 | 已耗时 {elapsed} | API {api}。',
     'story.latency.breakdown': '延迟：{step} => API {api} + {summary} = {total}；{pending}。',
@@ -528,8 +535,6 @@ const I18N = {
     'theme.neon': '主题：霓虹',
     'camera.enable': '开启 Camera 模式',
     'camera.disable': '关闭 Camera 模式',
-    'judgeMode.enable': '开启 Review 模式',
-    'judgeMode.disable': '关闭 Review 模式',
     'status.pending': '待处理',
     'status.in-progress': '进行中',
     'status.done': '已完成',
@@ -789,9 +794,7 @@ function renderStaticI18n() {
 function refreshToggleText() {
   if (el.btnCameraMode) {
     el.btnCameraMode.textContent = state.cameraMode ? t('camera.disable') : t('camera.enable');
-  }
-  if (el.btnJudgeMode) {
-    el.btnJudgeMode.textContent = state.judgeMode ? t('judgeMode.disable') : t('judgeMode.enable');
+    el.btnCameraMode.setAttribute('aria-pressed', String(state.cameraMode));
   }
   if (el.btnTheme) {
     el.btnTheme.textContent = state.theme === 'neon' ? t('theme.neon') : t('theme.cobalt');
@@ -840,7 +843,6 @@ const state = {
   builderOpen: false,
   theme: 'cobalt',
   cameraMode: false,
-  judgeMode: false,
   lang: 'en',
   viewMode: 'story',
   judgeSummary: null,
@@ -869,18 +871,14 @@ if (state.cameraMode) {
   document.body.classList.add('camera-mode');
 }
 
-state.judgeMode = localStorage.getItem('dr_judge_mode') === '1';
-if (state.judgeMode) {
-  document.body.classList.add('judge-mode');
-}
-
 const persistedTheme = localStorage.getItem('dr_theme');
 state.theme = persistedTheme === 'neon' ? 'neon' : 'cobalt';
 document.body.dataset.theme = state.theme;
 
 const persistedViewMode = localStorage.getItem('dr_view_mode');
-state.viewMode = VIEW_MODES.includes(persistedViewMode) ? persistedViewMode : 'story';
+state.viewMode = persistedViewMode === 'engineering' ? 'engineering' : 'story';
 document.body.dataset.view = state.viewMode;
+document.body.classList.toggle('judge-mode', state.viewMode === 'story');
 
 const persistedLang = localStorage.getItem('dr_lang');
 state.lang = persistedLang === 'zh' ? 'zh' : 'en';
@@ -1063,6 +1061,38 @@ function formatStepForSummary(stepId) {
   return stepLabel(stepId);
 }
 
+function explorerTxBaseUrl(mode) {
+  const normalized = String(mode || '').toLowerCase();
+  if (normalized === 'fuji' || normalized === 'fuji-live') {
+    return 'https://testnet.snowtrace.io/tx/';
+  }
+  if (normalized === 'mainnet') {
+    return 'https://snowtrace.io/tx/';
+  }
+  return '';
+}
+
+function getLatestTxHash() {
+  for (let i = state.timing.history.length - 1; i >= 0; i -= 1) {
+    const txHash = state.timing.history[i]?.txHash;
+    if (txHash) return txHash;
+  }
+
+  const settlementClaim = state.settlements.find((row) => row?.claim_tx_hash)?.claim_tx_hash;
+  if (settlementClaim) return settlementClaim;
+  const settlementTx = state.settlements.find((row) => row?.tx_hash)?.tx_hash;
+  if (settlementTx) return settlementTx;
+  const closeTx = state.event?.close_tx_hash;
+  if (closeTx) return closeTx;
+  const eventTx = state.event?.tx_hash;
+  if (eventTx) return eventTx;
+
+  for (const proof of Object.values(state.proofs)) {
+    if (proof?.tx_hash) return proof.tx_hash;
+  }
+  return '';
+}
+
 function siteDisplay(siteId) {
   if (state.viewMode === 'story') {
     if (siteId === 'site-a') return t('label.participantA');
@@ -1071,15 +1101,30 @@ function siteDisplay(siteId) {
   return siteId;
 }
 
+function truncateForDisplay(text, maxChars) {
+  const raw = String(text ?? '').trim();
+  if (!maxChars || raw.length <= maxChars) return raw;
+  return `${raw.slice(0, Math.max(0, maxChars - 1)).trimEnd()}…`;
+}
+
+function setTruncatedText(node, text, maxChars) {
+  if (!node) return;
+  const raw = String(text ?? '').trim();
+  const display = truncateForDisplay(raw, maxChars);
+  node.textContent = display;
+  if (display !== raw) node.setAttribute('title', raw);
+  else node.removeAttribute('title');
+}
+
 function applyViewMode(mode) {
   const next = VIEW_MODES.includes(mode) ? mode : 'story';
   state.viewMode = next;
   document.body.dataset.view = next;
+  document.body.classList.toggle('judge-mode', next === 'story');
   localStorage.setItem('dr_view_mode', next);
 
   const mapping = [
     { node: el.btnViewStory, mode: 'story' },
-    { node: el.btnViewOps, mode: 'ops' },
     { node: el.btnViewEngineering, mode: 'engineering' },
   ];
   for (const item of mapping) {
@@ -1097,7 +1142,6 @@ function applyViewMode(mode) {
 function renderViewMode() {
   if (el.modeHint) {
     if (state.viewMode === 'story') el.modeHint.textContent = t('mode.hint.story');
-    else if (state.viewMode === 'ops') el.modeHint.textContent = t('mode.hint.ops');
     else el.modeHint.textContent = t('mode.hint.engineering');
   }
   refreshToggleText();
@@ -1137,6 +1181,8 @@ function decodeError(message) {
   }
 
   if (
+    normalized.includes('create_tx_pending_confirmation') ||
+    normalized.includes('create transaction is submitted but not confirmed yet') ||
     normalized.includes('close_tx_pending_confirmation') ||
     normalized.includes('event_not_closed_onchain') ||
     normalized.includes('close transaction still pending confirmation') ||
@@ -1903,39 +1949,44 @@ function renderStoryHero(ui) {
   const auditMatch = summary?.audit_match ?? (state.audit ? !!state.audit.match : null);
   const insight = buildAgentInsight(ui);
   const txPipeline = collectTxPipeline();
+  let heroTitle = '';
+  let heroSubtitle = '';
 
   if (activeStep === 'completed') {
-    el.heroTitle.textContent = t('hero.finalized.title');
-    el.heroSubtitle.textContent = t('hero.finalized.subtitle');
+    heroTitle = t('hero.finalized.title');
+    heroSubtitle = t('hero.finalized.subtitle');
   } else if (state.lastError) {
-    el.heroTitle.textContent = t('hero.error.title', {
+    heroTitle = t('hero.error.title', {
       step: formatStepForSummary(endpointToStep(state.lastError) || activeStep),
     });
-    el.heroSubtitle.textContent = t('hero.error.subtitle');
+    heroSubtitle = t('hero.error.subtitle');
   } else if (activeStep === 'proofs') {
     const needed = ui.requiredSites.map((siteId) => siteDisplay(siteId)).join(' + ');
-    el.heroTitle.textContent = t('hero.proofs.title');
-    el.heroSubtitle.textContent = t('hero.proofs.subtitle', {
+    heroTitle = t('hero.proofs.title');
+    heroSubtitle = t('hero.proofs.subtitle', {
       need: ui.requiredSites.length,
       participants: needed || `${t('label.participantA')} + ${t('label.participantB')}`,
     });
   } else if (activeStep === 'settle') {
-    el.heroTitle.textContent = t('hero.settle.title');
-    el.heroSubtitle.textContent = t('hero.settle.subtitle');
+    heroTitle = t('hero.settle.title');
+    heroSubtitle = t('hero.settle.subtitle');
   } else if (activeStep === 'audit') {
-    el.heroTitle.textContent = t('hero.audit.title');
-    el.heroSubtitle.textContent = t('hero.audit.subtitle');
+    heroTitle = t('hero.audit.title');
+    heroSubtitle = t('hero.audit.subtitle');
   } else {
-    el.heroTitle.textContent = t('hero.awaiting.title', { step: formatStepForSummary(activeStep) });
-    el.heroSubtitle.textContent = insight.reason;
+    heroTitle = t('hero.awaiting.title', { step: formatStepForSummary(activeStep) });
+    heroSubtitle = insight.reason;
   }
 
   if (!state.lastError && txPipeline.submitted > 0) {
-    el.heroSubtitle.textContent = t('hero.txPending', {
-      subtitle: el.heroSubtitle.textContent,
+    heroSubtitle = t('hero.txPending', {
+      subtitle: heroSubtitle,
       count: txPipeline.submitted,
     });
   }
+
+  setTruncatedText(el.heroTitle, heroTitle, HERO_TITLE_MAX_CHARS);
+  setTruncatedText(el.heroSubtitle, heroSubtitle, HERO_SUBTITLE_MAX_CHARS);
 
   if (el.storyEnergy) el.storyEnergy.textContent = formatKwh(totalReduction);
   if (el.storyPayout) el.storyPayout.textContent = formatPayout(totalPayout);
@@ -1944,6 +1995,32 @@ function renderStoryHero(ui) {
     else el.storyAudit.textContent = auditMatch ? t('status.pass') : t('status.mismatch');
   }
   if (el.storyLatencyLine) el.storyLatencyLine.textContent = buildStoryLatencyLine();
+}
+
+function renderStoryEvidenceRow() {
+  if (!el.storyLatestTxLine || !el.storyLatestTxLink) return;
+
+  const latestTx = getLatestTxHash();
+  const mode = state.judgeSummary?.network_mode || state.chainMode || '';
+  const baseUrl = explorerTxBaseUrl(mode);
+
+  if (!latestTx) {
+    el.storyLatestTxLink.textContent = t('story.latestTxNone');
+    el.storyLatestTxLink.removeAttribute('href');
+    el.storyLatestTxLink.removeAttribute('title');
+    el.storyLatestTxLink.classList.add('is-empty');
+    return;
+  }
+
+  el.storyLatestTxLink.textContent = shortHash(latestTx);
+  el.storyLatestTxLink.setAttribute('title', latestTx);
+  el.storyLatestTxLink.classList.remove('is-empty');
+
+  if (baseUrl) {
+    el.storyLatestTxLink.setAttribute('href', `${baseUrl}${latestTx}`);
+  } else {
+    el.storyLatestTxLink.removeAttribute('href');
+  }
 }
 
 function setVisualBarWidth(node, ratio) {
@@ -2143,20 +2220,13 @@ function toggleCameraMode() {
   renderAll();
 }
 
-function toggleJudgeMode() {
-  state.judgeMode = !state.judgeMode;
-  document.body.classList.toggle('judge-mode', state.judgeMode);
-  localStorage.setItem('dr_judge_mode', state.judgeMode ? '1' : '0');
-  refreshToggleText();
-  if (el.btnJudgeMode) el.btnJudgeMode.setAttribute('aria-pressed', String(state.judgeMode));
-}
-
 function renderAll() {
   const ui = deriveUiState();
   renderStaticI18n();
   renderViewMode();
   renderMissionStrip(ui);
   renderStoryHero(ui);
+  renderStoryEvidenceRow();
   renderVisualInsights();
   renderFlowTimeline(ui);
   renderKpiGrid(ui);
@@ -2214,6 +2284,14 @@ function isClosePendingConfirmationError(err) {
     text.includes('close_tx_pending_confirmation') ||
     text.includes('event_not_closed_onchain') ||
     text.includes('close transaction still pending confirmation')
+  );
+}
+
+function isCreatePendingConfirmationError(err) {
+  const text = String(err?.message || err || '').toLowerCase();
+  return (
+    text.includes('create_tx_pending_confirmation') ||
+    text.includes('create transaction is submitted but not confirmed yet')
   );
 }
 
@@ -2684,10 +2762,17 @@ async function runFullFlow() {
       for (const siteId of requiredSites) {
         if (!state.proofs[siteId]) {
           const scenario = defaultProofScenario(siteId);
-          await submitProof(siteId, scenario.baseline, scenario.actual, {
-            deferSummary: true,
-          });
-          submittedOne = true;
+          try {
+            await submitProof(siteId, scenario.baseline, scenario.actual, {
+              deferSummary: true,
+            });
+            submittedOne = true;
+          } catch (err) {
+            if (!isCreatePendingConfirmationError(err)) throw err;
+            appendLog('run', 'proof waiting for create confirmation; retrying...');
+            await sleep(PENDING_TX_POLL_MS);
+            await refreshJudgeSummary();
+          }
           break;
         }
       }
@@ -2820,7 +2905,11 @@ function triggerButton(id) {
 }
 
 function handleActionError(err, fallbackStep) {
-  if (isClosePendingConfirmationError(err) || isSettlePendingConfirmationError(err)) {
+  if (
+    isCreatePendingConfirmationError(err) ||
+    isClosePendingConfirmationError(err) ||
+    isSettlePendingConfirmationError(err)
+  ) {
     const activeTiming = state.timing.current;
     if (activeTiming) {
       finishStepTiming({
@@ -2828,6 +2917,7 @@ function handleActionError(err, fallbackStep) {
         deferredSummary: true,
       });
     }
+    if (isCreatePendingConfirmationError(err)) delete state.stepErrors.proofs;
     if (isClosePendingConfirmationError(err)) delete state.stepErrors.settle;
     if (isSettlePendingConfirmationError(err)) delete state.stepErrors.claim;
     clearErrorState();
@@ -2885,13 +2975,6 @@ if (el.btnViewStory) {
   });
 }
 
-if (el.btnViewOps) {
-  el.btnViewOps.addEventListener('click', () => {
-    applyViewMode('ops');
-    renderAll();
-  });
-}
-
 if (el.btnViewEngineering) {
   el.btnViewEngineering.addEventListener('click', () => {
     applyViewMode('engineering');
@@ -2921,12 +3004,25 @@ if (el.btnExportSnapshot) {
   });
 }
 
-if (el.btnCameraMode) {
-  el.btnCameraMode.addEventListener('click', toggleCameraMode);
+if (el.btnStorySnapshot) {
+  el.btnStorySnapshot.addEventListener('click', async () => {
+    await exportJudgeSnapshot();
+  });
 }
 
-if (el.btnJudgeMode) {
-  el.btnJudgeMode.addEventListener('click', toggleJudgeMode);
+if (el.btnStoryTechEvidence) {
+  el.btnStoryTechEvidence.addEventListener('click', () => {
+    state.evidenceOpen = true;
+    applyViewMode('engineering');
+    renderAll();
+    if (el.technicalEvidence) {
+      el.technicalEvidence.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
+}
+
+if (el.btnCameraMode) {
+  el.btnCameraMode.addEventListener('click', toggleCameraMode);
 }
 
 if (el.builderPanel) {

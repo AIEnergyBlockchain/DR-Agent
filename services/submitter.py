@@ -474,6 +474,66 @@ class SubmitterService:
 
             time.sleep(poll_seconds)
 
+    def _ensure_create_confirmed_before_proof(self, event_id: str) -> None:
+        if not self.live_chain or self.tx_confirm_mode != "hybrid":
+            return
+
+        timeout_seconds = _int_env("DR_PROOF_CREATE_WAIT_SECONDS", default=6, minimum=1)
+        poll_seconds = _float_env(
+            "DR_PROOF_CREATE_POLL_SECONDS", default=0.8, minimum=0.2
+        )
+        started = time.monotonic()
+
+        while True:
+            self._reconcile_pending_txs(event_id)
+            row = self.conn.execute(
+                """
+                SELECT tx_hash,tx_state,tx_error
+                FROM events
+                WHERE event_id = ?
+                """,
+                (event_id,),
+            ).fetchone()
+            if row is None:
+                raise ServiceError(404, "EVENT_NOT_FOUND", "event not found")
+
+            create_tx_hash = row["tx_hash"]
+            create_tx_state = _normalize_tx_state(row["tx_state"])
+            create_tx_error = row["tx_error"]
+
+            if create_tx_state == "confirmed":
+                return
+            if create_tx_state == "failed":
+                raise ServiceError(
+                    409,
+                    "CREATE_TX_FAILED",
+                    "create transaction failed on-chain; recreate event before proof submission",
+                    retryable=True,
+                    details={
+                        "event_id": event_id,
+                        "create_tx_hash": create_tx_hash,
+                        "create_tx_error": create_tx_error,
+                    },
+                )
+            if not create_tx_hash:
+                return
+
+            elapsed = time.monotonic() - started
+            if elapsed >= timeout_seconds:
+                raise ServiceError(
+                    409,
+                    "CREATE_TX_PENDING_CONFIRMATION",
+                    "create transaction is submitted but not confirmed yet",
+                    retryable=True,
+                    details={
+                        "event_id": event_id,
+                        "create_tx_hash": create_tx_hash,
+                        "create_tx_state": create_tx_state,
+                    },
+                )
+
+            time.sleep(poll_seconds)
+
     def create_event(self, req: EventCreateRequest) -> EventDTO:
         start_time = _to_rfc3339(req.start_time)
         end_time = _to_rfc3339(req.end_time)
@@ -651,6 +711,8 @@ class SubmitterService:
             raise ServiceError(404, "EVENT_NOT_FOUND", "event not found")
         if event["status"] != "active":
             raise ServiceError(409, "EVENT_NOT_ACTIVE", "event must be active")
+
+        self._ensure_create_confirmed_before_proof(req.event_id)
 
         payload_json, computed_hash, reduction_kwh = build_proof_artifacts(
             event_id=req.event_id,

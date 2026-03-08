@@ -40,7 +40,7 @@ def _role_map() -> dict[str, str]:
 
 
 def _require_role(*roles: str) -> Callable:
-    def dependency(request: Request) -> str:
+    async def dependency(request: Request) -> str:
         api_key = request.headers.get("x-api-key", "")
         role = _role_map().get(api_key)
         if role is None:
@@ -52,11 +52,11 @@ def _require_role(*roles: str) -> Callable:
     return dependency
 
 
-def _actor_id(request: Request) -> str:
+async def _actor_id(request: Request) -> str:
     return request.headers.get("x-actor-id", "anonymous")
 
 
-def _service(request: Request) -> SubmitterService:
+async def _service(request: Request) -> SubmitterService:
     return request.app.state.submitter
 
 
@@ -120,7 +120,7 @@ def create_app(db_path: str | None = None) -> FastAPI:
         return JSONResponse(status_code=exc.status_code, content=payload)
 
     @app.get("/")
-    def root():
+    async def root():
         return {
             "service": "dr-agent-api",
             "status": "ok",
@@ -129,7 +129,7 @@ def create_app(db_path: str | None = None) -> FastAPI:
         }
 
     @app.get("/healthz")
-    def healthz():
+    async def healthz():
         mode = _chain_mode()
         return {
             "status": "ok",
@@ -140,7 +140,7 @@ def create_app(db_path: str | None = None) -> FastAPI:
         }
 
     @app.post("/events", response_model=EventDTO)
-    def create_event(
+    async def create_event(
         payload: EventCreateRequest,
         _role: str = Depends(_require_role("operator")),
         svc: SubmitterService = Depends(_service),
@@ -148,7 +148,7 @@ def create_app(db_path: str | None = None) -> FastAPI:
         return svc.create_event(payload)
 
     @app.post("/events/{event_id}/close", response_model=EventDTO)
-    def close_event(
+    async def close_event(
         event_id: str,
         _role: str = Depends(_require_role("operator")),
         svc: SubmitterService = Depends(_service),
@@ -156,7 +156,7 @@ def create_app(db_path: str | None = None) -> FastAPI:
         return svc.close_event(event_id)
 
     @app.post("/proofs", response_model=ProofDTO)
-    def submit_proof(
+    async def submit_proof(
         payload: ProofSubmitRequest,
         _role: str = Depends(_require_role("participant", "operator")),
         actor_id: str = Depends(_actor_id),
@@ -165,7 +165,7 @@ def create_app(db_path: str | None = None) -> FastAPI:
         return svc.submit_proof(payload, actor_id=actor_id)
 
     @app.post("/settle/{event_id}", response_model=list[SettlementDTO])
-    def settle_event(
+    async def settle_event(
         event_id: str,
         payload: SettleRequest = Body(default_factory=SettleRequest),
         _role: str = Depends(_require_role("operator")),
@@ -174,7 +174,7 @@ def create_app(db_path: str | None = None) -> FastAPI:
         return svc.settle_event(event_id=event_id, site_ids=payload.site_ids)
 
     @app.post("/claim/{event_id}/{site_id}", response_model=SettlementDTO)
-    def claim_reward(
+    async def claim_reward(
         event_id: str,
         site_id: str,
         _role: str = Depends(_require_role("participant", "operator")),
@@ -184,7 +184,7 @@ def create_app(db_path: str | None = None) -> FastAPI:
         return svc.claim_reward(event_id=event_id, site_id=site_id, actor_id=actor_id)
 
     @app.get("/events/{event_id}", response_model=EventDTO)
-    def get_event(
+    async def get_event(
         event_id: str,
         _role: str = Depends(_require_role("operator", "participant", "auditor")),
         svc: SubmitterService = Depends(_service),
@@ -192,7 +192,7 @@ def create_app(db_path: str | None = None) -> FastAPI:
         return svc.get_event(event_id)
 
     @app.get("/events/{event_id}/records", response_model=list[SettlementDTO])
-    def get_records(
+    async def get_records(
         event_id: str,
         _role: str = Depends(_require_role("operator", "auditor")),
         svc: SubmitterService = Depends(_service),
@@ -200,7 +200,7 @@ def create_app(db_path: str | None = None) -> FastAPI:
         return svc.list_settlements(event_id)
 
     @app.get("/audit/{event_id}/{site_id}", response_model=AuditDTO)
-    def get_audit(
+    async def get_audit(
         event_id: str,
         site_id: str,
         _role: str = Depends(_require_role("operator", "auditor")),
@@ -209,7 +209,7 @@ def create_app(db_path: str | None = None) -> FastAPI:
         return svc.get_audit(event_id, site_id)
 
     @app.get("/system/chain-mode")
-    def get_chain_mode(
+    async def get_chain_mode(
         _role: str = Depends(_require_role("operator", "participant", "auditor")),
     ):
         mode = _chain_mode()
@@ -221,14 +221,12 @@ def create_app(db_path: str | None = None) -> FastAPI:
         }
 
     @app.get("/judge/{event_id}/summary", response_model=JudgeSummaryDTO)
-    def get_judge_summary(
+    async def get_judge_summary(
         event_id: str,
         _role: str = Depends(_require_role("operator", "participant", "auditor")),
         svc: SubmitterService = Depends(_service),
     ):
-        return svc.get_judge_summary(
-            event_id=event_id, network_mode=_chain_mode()
-        )
+        return svc.get_judge_summary(event_id=event_id, network_mode=_chain_mode())
 
     return app
 

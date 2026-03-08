@@ -1234,6 +1234,44 @@ input:focus {
   padding: 10px 14px;
 }
 
+.story-evidence-row {
+  padding: 10px 14px;
+}
+
+.story-evidence-tools {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.story-evidence-tools .btn-ghost {
+  width: auto;
+}
+
+.story-evidence-row .hint {
+  margin-top: 8px;
+}
+
+.story-tx-line {
+  margin-top: 4px;
+}
+
+.story-tx-link {
+  color: var(--accent-cyan);
+  text-decoration: none;
+  border-bottom: 1px dashed rgba(39, 211, 255, 0.45);
+}
+
+.story-tx-link:hover {
+  border-bottom-color: rgba(39, 211, 255, 0.9);
+}
+
+.story-tx-link.is-empty {
+  color: var(--text-muted);
+  border-bottom-color: transparent;
+  pointer-events: none;
+}
+
 .evidence-console.collapsed {
   display: none;
 }
@@ -1298,7 +1336,51 @@ body[data-view="story"] #technicalEvidence {
 
 body[data-view="story"] .judge-view .section-head-main p,
 body[data-view="story"] .judge-view .evidence-grid,
-body[data-view="story"] .kpi-hint {
+body[data-view="story"] .judge-view .kpi-hint {
+  display: none;
+}
+
+body[data-view="story"] .judge-view {
+  padding: 12px 14px;
+}
+
+body[data-view="story"] .judge-view .section-head {
+  display: none;
+}
+
+body[data-view="story"] .flow-timeline {
+  margin-top: 0;
+  gap: 8px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+body[data-view="story"] .flow-timeline::before {
+  display: none;
+}
+
+body[data-view="story"] .step-pill {
+  min-width: auto;
+  padding: 6px 10px;
+  border-radius: 10px;
+}
+
+body[data-view="story"] .step-pill .step-state {
+  display: none;
+}
+
+body[data-view="story"] .step-pill .step-name {
+  font-size: 0.94rem;
+}
+
+body[data-view="story"] .step-pill .step-num {
+  width: 18px;
+  height: 18px;
+  font-size: 0.72rem;
+}
+
+body[data-view="story"] .judge-view .kpi-grid {
   display: none;
 }
 
@@ -1315,7 +1397,8 @@ body[data-view="story"] .mission-item-latency {
   display: none;
 }
 
-body[data-view="story"] .judge-view .section-actions .btn-compact {
+body[data-view="story"] .judge-view .section-actions #btnTheme,
+body[data-view="story"] .judge-view .section-actions #btnCameraMode {
   display: none;
 }
 
@@ -1323,7 +1406,7 @@ body[data-view="engineering"] #visualInsights {
   display: none !important;
 }
 
-body[data-view="ops"] #technicalEvidence {
+body[data-view="engineering"] #storyEvidenceRow {
   display: none !important;
 }
 
@@ -1335,18 +1418,162 @@ body[data-view="engineering"] .card-diagnostics {
   opacity: 1;
 }
 
-body[data-view="ops"] .card-diagnostics,
-body[data-view="ops"] .kpi-secondary {
-  opacity: 0.92;
+body.judge-mode {
+  --text-muted: #bbcfef;
+  --line: #355884;
+  --line-soft: #4a72a3;
+}
+
+body.judge-mode .bg-noise,
+body.judge-mode .bg-aurora,
+body.judge-mode .bg-glow {
+  display: none;
+}
+
+body.judge-mode .bg-vignette {
+  background: linear-gradient(180deg, rgba(2, 6, 14, 0.18), rgba(2, 6, 14, 0.52));
+}
+
+body.judge-mode .panel {
+  border-color: rgba(95, 134, 188, 0.78);
+  background: linear-gradient(160deg, rgba(11, 20, 39, 0.98), rgba(7, 13, 25, 0.98));
+  box-shadow: 0 14px 24px rgba(0, 0, 0, 0.34);
+}
+
+body.judge-mode .panel::after {
+  opacity: 0.08;
+}
+
+body.judge-mode .mode-hint,
+body.judge-mode .section-actions #btnTheme,
+body.judge-mode .section-actions #btnCameraMode,
+body.judge-mode #storyEvidenceHint {
+  display: none !important;
+}
+
+body.judge-mode .hero .subtitle {
+  display: none;
+}
+
+body.judge-mode .hero h1 {
+  font-size: clamp(2.05rem, 3.6vw, 3rem);
+  letter-spacing: 0.01em;
+}
+
+body.judge-mode .mission-strip {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+body.judge-mode .mission-item {
+  padding: 12px;
+}
+
+body.judge-mode .mission-item .value {
+  font-size: 1.12rem;
+}
+
+body.judge-mode .action-hero {
+  border-color: rgba(90, 225, 255, 0.78);
+  box-shadow: 0 18px 30px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(85, 206, 255, 0.28) inset;
+}
+
+body.judge-mode .action-hero-main h2 {
+  font-size: clamp(1.5rem, 2vw, 1.95rem);
+}
+
+body.judge-mode .action-hero-main .subtitle,
+body.judge-mode #storyLatencyLine {
+  display: none;
+}
+
+body.judge-mode .btn-main-cta {
+  color: #04151f;
+  border-color: rgba(92, 255, 205, 0.92);
+  background: linear-gradient(120deg, rgba(71, 224, 255, 0.98), rgba(92, 255, 185, 0.95));
+  box-shadow: 0 10px 18px rgba(2, 15, 33, 0.45);
+}
+
+body.judge-mode .story-kpi .value {
+  font-size: 1.18rem;
+}
+
+body.judge-mode .story-kpi-row {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+body.judge-mode .story-tx-link {
+  color: #86edff;
+}
+
+body[data-view="story"] .visual-insights {
+  padding: 10px 14px;
+}
+
+body[data-view="story"] .visual-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+body[data-view="story"] .visual-card {
+  padding: 10px 12px;
+}
+
+body[data-view="story"] .visual-site-row {
+  padding: 6px 0;
+}
+
+body[data-view="story"] .visual-site-head {
+  margin-bottom: 4px;
+  font-size: 0.8rem;
+}
+
+body[data-view="story"] .visual-metric {
+  grid-template-columns: 54px 1fr auto;
+  gap: 6px;
+  margin-bottom: 4px;
+  font-size: 0.76rem;
+}
+
+body[data-view="story"] .visual-track {
+  height: 7px;
+}
+
+body[data-view="story"] .payout-row {
+  grid-template-columns: 72px 1fr auto;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-size: 0.78rem;
+}
+
+body[data-view="story"] .payout-track {
+  height: 8px;
 }
 
 body.judge-mode #builderPanel,
 body.judge-mode .tabs,
+body.judge-mode #tab-control,
 body.judge-mode #tab-event,
-body.judge-mode #tab-audit,
-body.judge-mode .evidence-toggle-row,
-body.judge-mode #technicalEvidence {
+body.judge-mode #tab-audit {
   display: none !important;
+}
+
+body.judge-mode[data-view="story"] .evidence-toggle-row,
+body.judge-mode[data-view="story"] #technicalEvidence {
+  display: none !important;
+}
+
+body.judge-mode[data-view="story"] .visual-insights {
+  border-color: rgba(86, 216, 255, 0.62);
+  background: linear-gradient(160deg, rgba(8, 18, 35, 0.98), rgba(5, 12, 24, 0.98));
+}
+
+body.judge-mode[data-view="story"] .visual-card {
+  background: rgba(9, 18, 34, 0.82);
+}
+
+body.judge-mode[data-view="engineering"] .evidence-toggle-row,
+body.judge-mode[data-view="engineering"] #technicalEvidence {
+  display: block !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

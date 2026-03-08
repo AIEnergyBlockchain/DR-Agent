@@ -18,7 +18,7 @@ def fail(msg: str) -> None:
 
 
 try:
-    from fastapi.testclient import TestClient
+    from asgi_client import AppClient
     from services.api import create_app
 except Exception as exc:  # pragma: no cover
     fail(f"missing runtime dependency: {exc}")
@@ -28,7 +28,7 @@ def main() -> None:
     with tempfile.TemporaryDirectory(prefix="dr-agent-smoke-") as tmp:
         db_path = str(Path(tmp) / "smoke.db")
         app = create_app(db_path=db_path)
-        client = TestClient(app)
+        client = AppClient(app)
 
         headers = {"x-api-key": "operator-key", "x-actor-id": "operator-1"}
         payload = {

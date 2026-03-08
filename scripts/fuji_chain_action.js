@@ -130,6 +130,35 @@ async function sendTx(txPromise, chainName, confirmMode) {
   };
 }
 
+function isNonceConflictError(err) {
+  const text = String(err && err.message ? err.message : err || "").toLowerCase();
+  return (
+    text.includes("nonce has already been used") ||
+    text.includes("nonce too low") ||
+    text.includes("nonce expired")
+  );
+}
+
+async function sendManagedTx(sendFn, provider, wallet, chainName, confirmMode) {
+  const maxAttempts = 3;
+  let lastError = null;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    try {
+      const pendingNonce = await provider.getTransactionCount(wallet.address, "pending");
+      return await sendTx(sendFn({ nonce: pendingNonce }), chainName, confirmMode);
+    } catch (err) {
+      lastError = err;
+      if (!isNonceConflictError(err) || attempt === maxAttempts - 1) {
+        throw err;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
+    }
+  }
+
+  throw lastError || new Error("sendManagedTx failed");
+}
+
 async function checkTx(provider, txHash, chainName) {
   if (!txHash || !ethers.isHexString(txHash)) {
     throw new Error("tx_hash is required for check_tx");
@@ -257,21 +286,27 @@ async function main() {
 
   let txInfo;
   if (action === "create_event") {
-    txInfo = await sendTx(
-      eventManager.createEvent(
+    txInfo = await sendManagedTx(
+      (overrides) =>
+        eventManager.createEvent(
         toBytes32Label(payload.event_id),
         toUnixSeconds(payload.start_time),
         toUnixSeconds(payload.end_time),
         toBigInt(payload.target_kw, "target_kw"),
         toBigInt(payload.reward_rate, "reward_rate"),
-        toBigInt(payload.penalty_rate, "penalty_rate")
+        toBigInt(payload.penalty_rate, "penalty_rate"),
+        overrides
       ),
+      provider,
+      wallet,
       chainName,
       confirmMode
     );
   } else if (action === "close_event") {
-    txInfo = await sendTx(
-      eventManager.closeEvent(toBytes32Label(payload.event_id)),
+    txInfo = await sendManagedTx(
+      (overrides) => eventManager.closeEvent(toBytes32Label(payload.event_id), overrides),
+      provider,
+      wallet,
       chainName,
       confirmMode
     );
@@ -280,15 +315,19 @@ async function main() {
     if (!ethers.isHexString(proofHash, 32)) {
       throw new Error("proof_hash must be 32-byte hex string");
     }
-    txInfo = await sendTx(
-      proofRegistry.submitProof(
+    txInfo = await sendManagedTx(
+      (overrides) =>
+        proofRegistry.submitProof(
         toBytes32Label(payload.event_id),
         toBytes32Label(payload.site_id),
         toBigInt(payload.baseline_kwh, "baseline_kwh"),
         toBigInt(payload.actual_kwh, "actual_kwh"),
         proofHash,
-        String(payload.uri || "")
+        String(payload.uri || ""),
+        overrides
       ),
+      provider,
+      wallet,
       chainName,
       confirmMode
     );
@@ -297,20 +336,28 @@ async function main() {
     if (!siteIds.length) {
       throw new Error("site_ids is required for settle_event");
     }
-    txInfo = await sendTx(
-      settlement.settleEvent(
+    txInfo = await sendManagedTx(
+      (overrides) =>
+        settlement.settleEvent(
         toBytes32Label(payload.event_id),
-        siteIds.map((siteId) => toBytes32Label(siteId))
+        siteIds.map((siteId) => toBytes32Label(siteId)),
+        overrides
       ),
+      provider,
+      wallet,
       chainName,
       confirmMode
     );
   } else if (action === "claim_reward") {
-    txInfo = await sendTx(
-      settlement.claimReward(
+    txInfo = await sendManagedTx(
+      (overrides) =>
+        settlement.claimReward(
         toBytes32Label(payload.event_id),
-        toBytes32Label(payload.site_id)
+        toBytes32Label(payload.site_id),
+        overrides
       ),
+      provider,
+      wallet,
       chainName,
       confirmMode
     );
