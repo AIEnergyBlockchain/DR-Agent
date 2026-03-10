@@ -55,7 +55,9 @@ class SubmitterService:
         )
         self.live_chain = _is_live_chain_mode(self.chain_mode)
         self.chain_action_script = (
-            Path(__file__).resolve().parents[1] / "scripts" / "fuji_chain_action.js"
+            Path(__file__).resolve().parents[1]
+            / "scripts"
+            / _chain_action_script_for_mode(self.chain_mode)
         )
 
     def _required_sites(self) -> list[str]:
@@ -1375,4 +1377,10 @@ def _tx_needs_reconcile(
 
 
 def _is_live_chain_mode(mode: str) -> bool:
-    return mode in {"fuji-live", "fuji"}
+    return mode in {"fuji-live", "fuji", "custom-l1", "dr-l1"}
+
+
+def _chain_action_script_for_mode(mode: str) -> str:
+    if mode in {"custom-l1", "dr-l1"}:
+        return "l1_chain_action.js"
+    return "fuji_chain_action.js"
