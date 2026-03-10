@@ -136,24 +136,26 @@
 
 ## 9. 已完成进度与后续里程碑
 
-已完成（截至 2026-02-24）：
+已完成（截至 2026-03-09）：
 - 主流程闭环已跑通：`create -> proofs -> close -> settle -> claim -> audit`
-- 合约测试稳定通过（`15 passing`）
+- 合约测试稳定通过（`15 passing`）；API/judge summary 测试通过（`10 passed`）
+- DRT 代币（ERC-20）已部署至 Fuji；`claimReward()` 触发真实链上 DRT 转账
+- Settlement 合约于 `2026-03-06` 重部署并充值 1,000,000 DRT
 - 前端三模式、双语切换、证据快照与图形化读数已接入
 - 网络集成分析完成：交付范围与长期架构边界已明确
+- Stage 3 GTM & Vision 文档已交付并完成质量审查
 
-黑客松交付（按优先级）：
-- **P0**：DRT 代币（ERC-20）+ `claimReward()` 真实代币转账（约 1 天）
-- **P0**：Custom L1 配置蓝图，含多区域扩展架构图（约 0.5 天）
-- **P1**：ICTT 跨链代币桥接（ERC20TokenHome + ERC20TokenRemote）（约 1-2 天）
-- **P1**：能源预言机层默认接入主路径，落库模型元信息
-- **P2**：浏览器链接、Prophet 自动调用
+Stage 4 Finals 冲刺（截止日期：2026 年 3 月 27 日）：
+- **P0**：演示稳定性——确保 Fuji 全流程演示可在 5 分钟内可复现完成
+- **P0**：证据一致性——所有文档、README 与证据包对齐当前 Fuji 部署状态
+- **P1**：完整文档套件——Stage 4 finals 材料（优先级计划、演示 runbook、评委 Q&A 准备）
+- **P1**：路演表达——5 分钟脚本含现场演示序列与失败 fallback 路径
+- **P2**：Q&A 准备——统一技术、市场、商业、Avalanche、合规答辩口径
 
-创业愿景（写入路线图文档，不写代码）：
-- 6 个月：ICM 多区域证明互认
-- 12 个月：自定义预编译 zk-SNARK 证明验证
-- 18 个月：HyperSDK DR-VM 原生结算
-- 24 个月：验证者经济——电表运营商质押为 DR-L1 验证者
+已交付 / 已计划 / 远景 边界：
+- **已交付**：4 合约部署至 Fuji（EventManager、ProofRegistry、DRToken、Settlement），双链 API，Mission Cockpit，DRT 代币结算
+- **已计划**：ICTT 跨链代币桥接、Custom DR-L1 部署、ICM 多区域验证
+- **远景**：自定义预编译（zk-SNARK）、HyperSDK DR-VM、验证者经济（电表运营商质押为 DR-L1 验证者）
 
 ## 10. 为什么是我们
 
@@ -572,54 +574,65 @@ sequenceDiagram
 
 ## 8. 已完成进度与后续开发计划（按周）
 
-### 已完成进度（截至 2026-02-24）
+### 已完成进度（截至 2026-03-09）
 
 1. MVP 闭环已跑通：
 - `create -> proofs -> close -> settle -> claim -> audit`
-- 合约测试持续全绿（`15 passing`）。
+- 合约测试持续全绿（`15 passing`）；API/judge summary 测试通过（`10 passed`）。
 
-2. 真实链演示能力已具备：
+2. DRT 代币结算已在 Fuji 上线：
+- DRToken（ERC-20）已部署至 `0x7c3B54f956D95E7F5756dE7684Cf5D893556E6B2`。
+- Settlement 重部署至 `0xE44371c77fdB3bCE4a52126a1EEcCb7634Cf66cc`，充值 1,000,000 DRT。
+- `claimReward()` 触发真实链上 DRT 转账。
+
+3. 真实链演示能力已具备：
 - `DR_CHAIN_MODE=fuji-live` 可执行真实 Fuji 交易。
 - 已接入 `submitted/confirmed/failed` 状态语义与证据输出链路。
 
-3. Mission Cockpit 可演示性已达标：
+4. Mission Cockpit 可演示性已达标：
 - `Story / Ops / Engineering` 三模式
 - `Execute Next Step` / `Auto Run Full Flow`
 - EN/中文切换与持久化
 - 动态 KPI/证据展示与快照导出
 
-4. Story 模式图形证据已补齐：
+5. Story 模式图形证据已补齐：
 - baseline vs actual 图表
 - payout breakdown 图表
 
-5. 网络集成分析完成：
-- 黑客松交付范围：DRT 代币 + ICTT 桥接 + Custom L1 蓝图
-- 创业愿景范围：ICM 多区域 + 自定义预编译 + HyperSDK + 验证者经济
+6. 网络集成分析完成：
+- 已交付：DRT 代币 + Settlement 真实代币转账
+- 已计划：ICTT 桥接 + Custom L1 部署
+- 远景：ICM 多区域 + 自定义预编译 + HyperSDK + 验证者经济
 
-### 执行计划
+7. Stage 3 GTM & Vision 文档已交付并完成质量审查。
 
-1. DRT 代币 + claimReward 转账（P0，约 1 天）
-- 部署 `DRToken.sol`（ERC-20，初始铸造到 Settlement 合约）。
-- 修改 `Settlement.sol`，Claim 时调用 `rewardToken.transfer()`。
-- 前端展示 DRT 代币余额。
+### Stage 4 Finals 执行计划（截止日期：2026 年 3 月 27 日）
 
-2. Custom L1 配置蓝图（P0，约 0.5 天）
-- `genesis.json` 配置：`txAllowList`、`deployerAllowList`、自定义费率参数。
-- 技术论证：为什么 DR 结算需要专属 L1。
-- 多区域扩展架构图（ICM 愿景载体）。
+1. 演示稳定性（P0）
+- 确保 Fuji 全流程演示可在 5 分钟内完成。
+- 验证所有证据包与 README 数据匹配当前 Fuji 部署。
+- 锁定演示脚本，含网络异常 fallback 路径。
 
-3. ICTT 跨链代币桥接（P1，约 1-2 天）
-- 在 Fuji C-Chain 部署 `ERC20TokenHome`。
-- 在测试 L1 部署 `ERC20TokenRemote`。
-- 演示 DRT 跨链转移流程。
+2. 证据一致性（P0）
+- 所有文档同步当前 Settlement 地址与 DRT 部署状态。
+- 消除对旧 Settlement 地址或过时合约状态的引用。
+- 所有材料维持已交付 / 已计划 / 远景三层边界。
 
-4. 能源预言机层默认接入（P1）
-- 将 `telemetry -> baseline -> confidence -> proof hash` 作为默认 proof 生成链路。
-- 落库并返回 `baseline_method`、`baseline_model_version`、`baseline_confidence`。
+3. Finals 文档套件（P1）
+- Stage 4 README：含 finals 时间线与评估标准。
+- 优先级计划：P0/P1/P2 排序。
+- 路演 demo runbook：现场演示序列与失败 fallback。
+- 评委 Q&A 准备：统一答辩口径。
 
-5. 收尾与证据打磨（P2）
-- 浏览器链接（前端约 10 行）。
-- Prophet 自动调用（后端约 30 行）。
+4. 路演与表达（P1）
+- 5 分钟演示脚本含证据 walkthrough。
+- 关键截图与证据锚点准备。
+- 中英双语答辩要点。
+
+5. 剩余技术项（P2）
+- ICTT 跨链桥接设计文档（finals 无需部署）。
+- Custom L1 蓝图文档细化。
+- 能源预言机层默认接入（如时间允许）。
 
 ## 9. 测试清单
 
@@ -728,38 +741,28 @@ sequenceDiagram
 5. 如需仅生成 DRT 证据，执行 `npm run evidence:execution:drt`（或一键 `npm run deploy:fuji:drt:evidence`）。
 6. 保持本表与 `cache/` 自动产物一致；`guide/` 内部文档按需同步。
 
-## 11.2 阶段2 72小时最小可获奖提交包
+## 11.2 阶段 2 提交包（已完成）
 
-DRT-only 一键部署并生成证据：
+Stage 2 提交已完成并合并。DRT 代币和 Settlement 已部署并充值至 Fuji。
 
-```bash
-npm run deploy:fuji:drt:evidence
-# 或
-make deploy-fuji-drt-evidence
-```
-
-若缺少 `@openzeppelin/contracts` 依赖：
+关键命令（供参考）：
 
 ```bash
-npm i -D @openzeppelin/contracts
+npm run deploy:fuji:drt:evidence   # DRT-only 部署 + 证据
+make deploy-fuji-drt-evidence      # Makefile 等效
 ```
 
-3 天执行优先级：
+历史材料：`guide/stage2/stage2-submission-qa.md`、`guide/docs/history/`
 
-1. Day 1（P0）：固定可复现 Fuji 全流程，沉淀最小证据集（`event_id`、6 步 tx hash、`tx_state`、总费用、审计匹配、浏览器链接）。
-2. Day 2（P1）：收敛演示体验（Story 模式 4 核心卡、延迟拆解、失败一键重试+可执行提示）。
-3. Day 3（P2）：封版录制（<=5 分钟）、README 与证据同步、关键命令回归复跑。
+## 11.3 Stage 4 Finals 冲刺（当前）
 
-5 分钟演示时间轴：
+Finals 截止日期：**2026 年 3 月 27 日**。
 
-1. `0:00-0:40` 讲痛点。  
-2. `0:40-1:40` 讲方案架构。  
-3. `1:40-3:30` 实机演示 6 步并展示 tx/audit 证据。  
-4. `3:30-4:20` 展示证据包。  
-5. `4:20-5:00` 讲价值和 4 周路线。
+当前优先级：
+1. **P0**：演示稳定性——可复现 5 分钟 Fuji 全流程演示
+2. **P0**：证据一致性——所有文档对齐当前部署
+3. **P1**：Finals 文档——优先级计划、演示 runbook、评委 Q&A 准备
+4. **P1**：路演表达——5 分钟脚本含现场演示 + fallback 路径
+5. **P2**：Q&A 准备——统一全维度答辩口径
 
-提交问答（英文 <=250 chars + 中文口径）已移动到：
-
-- `guide/stage2/stage2-submission-qa.md`
-
-内部完整执行文档（历史归档）：`guide/docs/history/legacy-competition/DR-Agent-stage2-72h-min-winning-plan-2026-03-06.md`
+Stage 4 内部文档：`guide/stage4/`

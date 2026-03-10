@@ -139,24 +139,26 @@ One sentence:
 
 ## 9. Completed Progress and Next Milestones
 
-Completed (as of 2026-02-24):
+Completed (as of 2026-03-09):
 - Core loop is running end-to-end: `create -> proofs -> close -> settle -> claim -> audit`
-- Contract suite remains stable (`15 passing`)
+- Contract suite remains stable (`15 passing`); API/judge summary tests pass (`10 passed`)
+- DRT token (ERC-20) deployed on Fuji; `claimReward()` triggers real on-chain DRT transfer
+- Settlement contract redeployed and funded with 1,000,000 DRT on `2026-03-06`
 - Frontend modes, bilingual toggle, snapshot export, and chart-based readouts are in place
-- network integration analysis completed: delivery scope vs long-term architecture clearly scoped
+- Network integration analysis completed: delivery scope vs long-term architecture clearly scoped
+- Stage 3 GTM & Vision documentation delivered and quality-reviewed
 
-Hackathon deliverables (prioritized):
-- **P0**: DRT token (ERC-20) + `claimReward()` real token transfer (~1 day)
-- **P0**: Custom L1 configuration blueprint with multi-region architecture diagram (~0.5 day)
-- **P1**: ICTT cross-chain token bridge (ERC20TokenHome on C-Chain + ERC20TokenRemote) (~1-2 days)
-- **P1**: Energy Oracle Layer default-in-path with model metadata persistence
-- **P2**: explorer links in frontend, Prophet auto-invocation
+Stage 4 Finals sprint (deadline: March 27, 2026):
+- **P0**: Demo stability — ensure reproducible Fuji full-loop demo within 5 minutes
+- **P0**: Evidence consistency — all docs, README, and evidence bundles aligned with current Fuji deployment
+- **P1**: Complete documentation suite — Stage 4 finals materials (priority plan, demo runbook, judge Q&A prep)
+- **P1**: Pitch expression — 5-minute script with live demo sequence and fallback paths
+- **P2**: Q&A preparation — unified technical, market, business, Avalanche, compliance talking points
 
-Startup vision (documented in roadmap, no code):
-- 6 months: ICM multi-region proof verification across grid operators
-- 12 months: Custom precompiles for zk-SNARK proof validation
-- 18 months: HyperSDK DR-VM for native settlement throughput
-- 24 months: Validator economy — meter operators stake as DR-L1 validators
+Delivered / Planned / Vision boundary:
+- **Delivered**: 4 contracts on Fuji (EventManager, ProofRegistry, DRToken, Settlement), dual-chain API, Mission Cockpit, DRT token settlement
+- **Planned**: ICTT cross-chain token bridge, Custom DR-L1 deployment, ICM multi-region verification
+- **Vision**: Custom precompiles (zk-SNARK), HyperSDK DR-VM, validator economy (meter operators stake as DR-L1 validators)
 
 ## 10. Why This Builder
 
@@ -568,54 +570,65 @@ Keyboard shortcuts:
 
 ## 8. Completed Progress and Weekly Plan
 
-### Completed progress (as of 2026-02-24)
+### Completed progress (as of 2026-03-09)
 
 1. End-to-end MVP loop is running:
 - `create -> proofs -> close -> settle -> claim -> audit`
-- Contract tests remain green (`15 passing`).
+- Contract tests remain green (`15 passing`); API/judge summary tests pass (`10 passed`).
 
-2. Live-chain demo capability is available:
+2. DRT token settlement is live on Fuji:
+- DRToken (ERC-20) deployed at `0x7c3B54f956D95E7F5756dE7684Cf5D893556E6B2`.
+- Settlement redeployed at `0xE44371c77fdB3bCE4a52126a1EEcCb7634Cf66cc`, funded with 1,000,000 DRT.
+- `claimReward()` triggers real on-chain DRT transfer.
+
+3. Live-chain demo capability is available:
 - `DR_CHAIN_MODE=fuji-live` supports real Fuji transactions.
 - Tx status model (`submitted/confirmed/failed`) and evidence outputs are wired.
 
-3. Mission Cockpit has reached demo-ready usability:
+4. Mission Cockpit has reached demo-ready usability:
 - `Story / Ops / Engineering` modes
 - `Execute Next Step` / `Auto Run Full Flow`
 - EN/中文 switching with persistence
 - Dynamic KPI/evidence rendering and snapshot export
 
-4. Baseline/payout visual evidence has been added to Story flow:
+5. Baseline/payout visual evidence has been added to Story flow:
 - Baseline vs Actual chart
 - Payout breakdown chart
 
-5. network integration analysis completed:
-- Scoped hackathon deliverables: DRT token + ICTT bridge + Custom L1 blueprint
-- Scoped startup vision: ICM multi-region + precompiles + HyperSDK + validator economy
+6. Network integration analysis completed:
+- Delivered: DRT token + Settlement with real token transfer
+- Planned: ICTT bridge + Custom L1 deployment
+- Vision: ICM multi-region + precompiles + HyperSDK + validator economy
 
-### Execution plan
+7. Stage 3 GTM & Vision documentation delivered and quality-reviewed.
 
-1. DRT token + claimReward transfer (P0, ~1 day)
-- Deploy `DRToken.sol` (ERC-20, initial mint to Settlement contract).
-- Modify `Settlement.sol` to call `rewardToken.transfer()` on claim.
-- Frontend: display DRT token balance after claim.
+### Stage 4 Finals execution plan (deadline: March 27, 2026)
 
-2. Custom L1 configuration blueprint (P0, ~0.5 day)
-- `genesis.json` config with `txAllowList`, `deployerAllowList`, custom fee parameters.
-- Technical justification: why DR settlement needs a dedicated L1.
-- Multi-region expansion architecture diagram (ICM vision).
+1. Demo stability (P0)
+- Ensure reproducible Fuji full-loop demo completes within 5 minutes.
+- Verify all evidence bundles and README data match current Fuji deployment.
+- Lock demo script with fallback paths for network issues.
 
-3. ICTT cross-chain token bridge (P1, ~1-2 days)
-- Deploy `ERC20TokenHome` on Fuji C-Chain.
-- Deploy `ERC20TokenRemote` on test L1.
-- Demo: DRT cross-chain transfer flow.
+2. Evidence consistency (P0)
+- Sync all documentation with current Settlement address and DRT deployment.
+- Eliminate any references to old Settlement address or outdated contract states.
+- Maintain delivered / planned / vision boundary in all materials.
 
-4. Energy Oracle Layer default path (P1)
-- Make `telemetry -> baseline -> confidence -> proof hash` the default proof-generation path.
-- Return and persist `baseline_method`, `baseline_model_version`, `baseline_confidence`.
+3. Finals documentation suite (P1)
+- Stage 4 README with finals timeline and evaluation criteria.
+- Priority plan with P0/P1/P2 ranking for remaining work.
+- Pitch demo runbook with live demo sequence and failure fallbacks.
+- Judge Q&A preparation with unified talking points.
 
-5. Polish and evidence (P2)
-- Explorer links in frontend (~10 lines).
-- Prophet auto-invocation in baseline service (~30 lines).
+4. Pitch and presentation (P1)
+- 5-minute demo script with evidence walkthrough.
+- Key screenshots and evidence anchors prepared.
+- Bilingual talking points for live Q&A.
+
+5. Remaining technical items (P2)
+- ICTT cross-chain bridge design documentation (no deployment required for finals).
+- Custom L1 blueprint documentation refinement.
+- Energy Oracle Layer default path (if time permits).
 
 ## 9. Test Checklist
 
@@ -724,38 +737,28 @@ Maintenance flow:
 5. For DRT-only evidence, run `npm run evidence:execution:drt` (or one-shot `npm run deploy:fuji:drt:evidence`).
 6. Keep this table in sync with generated cache artifacts; update internal docs in `guide/` only as needed.
 
-## 11.2 Stage-2 72-Hour Submission Kit (Minimum Winning Scope)
+## 11.2 Stage-2 Submission Kit (Completed)
 
-One-click DRT deploy + evidence:
+Stage 2 submission has been completed and merged. DRT token and Settlement are deployed and funded on Fuji.
 
-```bash
-npm run deploy:fuji:drt:evidence
-# or
-make deploy-fuji-drt-evidence
-```
-
-If `@openzeppelin/contracts` is missing:
+Key commands (for reference):
 
 ```bash
-npm i -D @openzeppelin/contracts
+npm run deploy:fuji:drt:evidence   # DRT-only deploy + evidence
+make deploy-fuji-drt-evidence      # same via Makefile
 ```
 
-3-day execution priorities:
+Historical materials: `guide/stage2/stage2-submission-qa.md`, `guide/docs/history/`
 
-1. Day 1 (P0): lock a reproducible Fuji full loop with minimum evidence set (`event_id`, 6-step tx hashes, `tx_state`, total fee, audit match, explorer links).
-2. Day 2 (P1): tighten demo UX (4 key Story cards, latency split, one-click retry + actionable error hints).
-3. Day 3 (P2): final recording (<=5 min), README evidence sync, and command-level regression checks.
+## 11.3 Stage 4 Finals Sprint (Current)
 
-5-minute demo timeline:
+Finals deadline: **March 27, 2026**.
 
-1. `0:00-0:40` pain point.
-2. `0:40-1:40` solution architecture.
-3. `1:40-3:30` live flow + tx/audit evidence.
-4. `3:30-4:20` evidence bundle walkthrough.
-5. `4:20-5:00` value + next 4-week roadmap.
+Current priorities:
+1. **P0**: Demo stability — reproducible 5-minute Fuji full-loop demo
+2. **P0**: Evidence consistency — all docs aligned with current deployment
+3. **P1**: Finals documentation — priority plan, demo runbook, judge Q&A prep
+4. **P1**: Pitch expression — 5-minute script with live demo + fallback paths
+5. **P2**: Q&A preparation — unified talking points across all dimensions
 
-Ready-to-submit answers were moved to:
-
-- `guide/stage2/stage2-submission-qa.md`
-
-Internal full playbook (history): `guide/docs/history/legacy-competition/DR-Agent-stage2-72h-min-winning-plan-2026-03-06.md`
+Stage 4 internal documentation: `guide/stage4/`
