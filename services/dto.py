@@ -32,6 +32,55 @@ class SettleRequest(BaseModel):
     site_ids: list[str] = Field(default_factory=list)
 
 
+class BridgeTransferCreateRequest(BaseModel):
+    sender: str
+    amount_wei: str
+    direction: Literal["home_to_remote", "remote_to_home"]
+
+
+class BridgeSourceSubmittedRequest(BaseModel):
+    source_tx_hash: str
+
+
+class BridgeDestSubmittedRequest(BaseModel):
+    dest_tx_hash: str
+
+
+class BridgeSendTokensRequest(BaseModel):
+    amount_wei: str
+
+
+class BridgeReceiveTokensRequest(BaseModel):
+    source_nonce: int
+    recipient: str
+    amount_wei: str
+    source_chain_id: str
+
+
+class ICMMessageCreateRequest(BaseModel):
+    source_chain: str
+    dest_chain: str
+    message_type: Literal["bridge_transfer", "settlement_sync", "proof_attestation"]
+    sender: str
+    payload: dict[str, Any]
+
+
+class ICMSentRequest(BaseModel):
+    tx_hash: str
+
+
+class ICMDeliveredRequest(BaseModel):
+    dest_tx_hash: str
+
+
+class ICMFailedRequest(BaseModel):
+    error: str
+
+
+class ICMProcessOnchainRequest(BaseModel):
+    success: bool = True
+
+
 class EventDTO(BaseModel):
     event_id: str
     start_time: str
@@ -89,6 +138,33 @@ class SettlementDTO(BaseModel):
     claim_tx_submitted_at: str | None = None
     claim_tx_confirmed_at: str | None = None
     claim_tx_error: str | None = None
+
+
+class BridgeTransferDTO(BaseModel):
+    transfer_id: str
+    sender: str
+    amount_wei: str
+    direction: str
+    status: str
+    source_tx_hash: str | None = None
+    dest_tx_hash: str | None = None
+    created_at: str
+    updated_at: str
+
+
+class ICMMessageDTO(BaseModel):
+    message_id: str
+    source_chain: str
+    dest_chain: str
+    message_type: str
+    sender: str
+    payload: dict[str, Any]
+    status: str
+    source_tx_hash: str | None = None
+    dest_tx_hash: str | None = None
+    error: str | None = None
+    created_at: str
+    updated_at: str
 
 
 class AuditDTO(BaseModel):

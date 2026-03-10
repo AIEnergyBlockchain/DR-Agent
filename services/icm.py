@@ -7,12 +7,15 @@ Tracks the lifecycle of Avalanche Warp Messages between chains:
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
+import subprocess
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
+from pathlib import Path
 
 from services.db import connect as db_connect
 
@@ -50,6 +53,7 @@ class ICMMessage:
 ICM_SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS icm_messages (
     message_id TEXT PRIMARY KEY,
+    idempotency_key TEXT UNIQUE,
     source_chain TEXT NOT NULL,
     dest_chain TEXT NOT NULL,
     message_type TEXT NOT NULL,
@@ -73,6 +77,22 @@ class ICMService:
     def __init__(self, db_path: str | None = None):
         self.conn = db_connect(db_path)
         self.conn.executescript(ICM_SCHEMA_SQL)
+        self._ensure_idempotency_key()
+        self.conn.commit()
+        self.chain_mode = os.getenv("DR_CHAIN_MODE", "simulated")
+        self.chain_action_script = (
+            Path(__file__).resolve().parents[1]
+            / "scripts"
+            / _chain_action_script_for_mode(self.chain_mode)
+        )
+
+    def _ensure_idempotency_key(self) -> None:
+        columns = {row["name"] for row in self.conn.execute("PRAGMA table_info(icm_messages)")}
+        if "idempotency_key" not in columns:
+            self.conn.execute("ALTER TABLE icm_messages ADD COLUMN idempotency_key TEXT")
+        self.conn.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS icm_messages_idempotency_key ON icm_messages(idempotency_key)"
+        )
         self.conn.commit()
 
     def create_message(
@@ -82,18 +102,19 @@ class ICMService:
         message_type: MessageType,
         sender: str,
         payload: dict[str, Any],
+        idempotency_key: str | None = None,
     ) -> ICMMessage:
         message_id = f"icm-{uuid.uuid4().hex[:12]}"
         now = _utc_now()
         self.conn.execute(
             """
             INSERT INTO icm_messages
-                (message_id, source_chain, dest_chain, message_type, sender,
+                (message_id, idempotency_key, source_chain, dest_chain, message_type, sender,
                  payload, status, source_tx_hash, dest_tx_hash, error,
                  created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, 'pending', NULL, NULL, NULL, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', NULL, NULL, NULL, ?, ?)
             """,
-            (message_id, source_chain, dest_chain, message_type.value,
+            (message_id, idempotency_key, source_chain, dest_chain, message_type.value,
              sender, json.dumps(payload), now, now),
         )
         self.conn.commit()
@@ -124,6 +145,15 @@ class ICMService:
             return None
         return self._row_to_message(row)
 
+    def get_by_idempotency(self, idempotency_key: str) -> ICMMessage | None:
+        row = self.conn.execute(
+            "SELECT * FROM icm_messages WHERE idempotency_key = ?",
+            (idempotency_key,),
+        ).fetchone()
+        if row is None:
+            return None
+        return self._row_to_message(row)
+
     def list_pending_messages(self) -> list[ICMMessage]:
         rows = self.conn.execute(
             "SELECT * FROM icm_messages WHERE status NOT IN ('processed', 'failed') ORDER BY created_at",
@@ -136,6 +166,20 @@ class ICMService:
             (message_type.value,),
         ).fetchall()
         return [self._row_to_message(r) for r in rows]
+
+    def relay_message(self, message: ICMMessage) -> dict:
+        payload = {
+            "source_chain_id": message.source_chain,
+            "message_id": message.message_id,
+            "message_type": message.message_type.value,
+            "sender": message.sender,
+            "payload": message.payload,
+        }
+        return self._chain_action("receive_message", payload)
+
+    def mark_processed_onchain(self, message: ICMMessage, success: bool) -> dict:
+        payload = {"message_id": message.message_id, "success": success}
+        return self._chain_action("mark_processed", payload)
 
     # -- internal --
 
@@ -188,3 +232,36 @@ class ICMService:
             created_at=row["created_at"],
             updated_at=row["updated_at"],
         )
+
+    def _chain_action(self, action: str, payload: dict) -> dict:
+        if not self.chain_action_script.exists():
+            raise RuntimeError(f"icm chain action script not found: {self.chain_action_script}")
+        cmd = ["node", str(self.chain_action_script), action]
+        result = subprocess.run(
+            cmd,
+            input=json.dumps(payload),
+            text=True,
+            capture_output=True,
+            check=False,
+            env=os.environ.copy(),
+        )
+        if result.returncode != 0:
+            stderr = (result.stderr or "").strip()
+            stdout = (result.stdout or "").strip()
+            detail = stderr or stdout or f"exit={result.returncode}"
+            raise RuntimeError(f"icm chain action failed: {detail}")
+        raw = (result.stdout or "").strip()
+        if not raw:
+            raise RuntimeError("icm chain action returned empty output")
+        try:
+            return json.loads(raw.splitlines()[-1])
+        except json.JSONDecodeError as exc:
+            raise RuntimeError("icm chain action returned non-json output") from exc
+
+
+def _chain_action_script_for_mode(chain_mode: str) -> str:
+    if chain_mode in {"dr_l1", "l1"}:
+        return "icm_chain_action.js"
+    if chain_mode in {"fuji", "fuji-live"}:
+        return "icm_chain_action.js"
+    return "icm_chain_action.js"
