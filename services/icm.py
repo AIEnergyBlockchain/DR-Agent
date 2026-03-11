@@ -154,6 +154,29 @@ class ICMService:
             return None
         return self._row_to_message(row)
 
+    def get_stats(self) -> dict:
+        rows = self.conn.execute(
+            "SELECT status, COUNT(*) as cnt FROM icm_messages GROUP BY status"
+        ).fetchall()
+        by_status = {"pending": 0, "sent": 0, "delivered": 0, "processed": 0, "failed": 0}
+        total = 0
+        for r in rows:
+            by_status[r["status"]] = r["cnt"]
+            total += r["cnt"]
+
+        type_rows = self.conn.execute(
+            "SELECT message_type, COUNT(*) as cnt FROM icm_messages GROUP BY message_type"
+        ).fetchall()
+        by_type = {"bridge_transfer": 0, "settlement_sync": 0, "proof_attestation": 0}
+        for r in type_rows:
+            by_type[r["message_type"]] = r["cnt"]
+
+        return {
+            "total_messages": total,
+            "by_status": by_status,
+            "by_type": by_type,
+        }
+
     def list_pending_messages(self) -> list[ICMMessage]:
         rows = self.conn.execute(
             "SELECT * FROM icm_messages WHERE status NOT IN ('processed', 'failed') ORDER BY created_at",

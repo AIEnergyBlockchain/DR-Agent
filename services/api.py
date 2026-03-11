@@ -10,15 +10,24 @@ from fastapi import Body, Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+import pandas as pd
+
+from services.baseline_engine import BaselineEngine
 from services.bridge import BridgeDirection, BridgeService
 from services.dto import (
     AuditDTO,
+    BaselineCompareRequest,
+    BaselineCompareResponse,
+    BaselineMethodsResponse,
+    BaselineResultDTO,
+    BridgeStatsDTO,
     BridgeTransferCreateRequest,
     BridgeSourceSubmittedRequest,
     BridgeDestSubmittedRequest,
     BridgeSendTokensRequest,
     BridgeReceiveTokensRequest,
     BridgeTransferDTO,
+    DashboardSummaryDTO,
     ErrorEnvelope,
     EventCreateRequest,
     EventDTO,
@@ -28,6 +37,7 @@ from services.dto import (
     ICMFailedRequest,
     ICMProcessOnchainRequest,
     ICMMessageDTO,
+    ICMStatsDTO,
     JudgeSummaryDTO,
     ProofDTO,
     ProofSubmitRequest,
@@ -685,6 +695,77 @@ def create_app(db_path: str | None = None) -> FastAPI:
         if not message:
             raise ServiceError(404, "ICM_MESSAGE_NOT_FOUND", "icm message not found")
         return _icm_to_dto(message)
+
+    # ---------- Stats Endpoints ----------
+
+    @app.get("/v1/bridge/stats", response_model=BridgeStatsDTO)
+    async def get_bridge_stats(
+        _role: str = Depends(_require_role("operator", "auditor")),
+        svc: BridgeService = Depends(_bridge_service),
+    ):
+        return svc.get_stats()
+
+    @app.get("/v1/icm/stats", response_model=ICMStatsDTO)
+    async def get_icm_stats(
+        _role: str = Depends(_require_role("operator", "auditor")),
+        svc: ICMService = Depends(_icm_service),
+    ):
+        return svc.get_stats()
+
+    # ---------- Baseline Endpoints ----------
+
+    @app.get("/v1/baseline/methods", response_model=BaselineMethodsResponse)
+    async def get_baseline_methods(
+        _role: str = Depends(_require_role("operator", "participant", "auditor")),
+    ):
+        engine = BaselineEngine()
+        return BaselineMethodsResponse(methods=engine.available_methods())
+
+    @app.post("/v1/baseline/compare", response_model=BaselineCompareResponse)
+    async def compare_baselines(
+        payload: BaselineCompareRequest,
+        _role: str = Depends(_require_role("operator", "participant", "auditor")),
+    ):
+        if not payload.history:
+            raise ServiceError(422, "EMPTY_HISTORY", "history data is required")
+        df = pd.DataFrame(payload.history)
+        engine = BaselineEngine()
+        all_results = engine.compute_all(df, payload.event_hour)
+        result_dtos = [
+            BaselineResultDTO(
+                baseline_kwh=r.baseline_kwh,
+                method=r.method,
+                confidence=r.confidence,
+                details=r.details,
+            )
+            for r in all_results
+        ]
+        best = max(all_results, key=lambda r: r.confidence)
+        recommended = BaselineResultDTO(
+            baseline_kwh=best.baseline_kwh,
+            method=best.method,
+            confidence=best.confidence,
+            details=best.details,
+        )
+        return BaselineCompareResponse(results=result_dtos, recommended=recommended)
+
+    # ---------- Dashboard Summary ----------
+
+    @app.get("/v1/dashboard/summary", response_model=DashboardSummaryDTO)
+    async def get_dashboard_summary(
+        _role: str = Depends(_require_role("operator", "participant", "auditor")),
+        bridge_svc: BridgeService = Depends(_bridge_service),
+        icm_svc: ICMService = Depends(_icm_service),
+    ):
+        bridge_stats = bridge_svc.get_stats()
+        icm_stats = icm_svc.get_stats()
+        engine = BaselineEngine()
+        return DashboardSummaryDTO(
+            chain_mode=_chain_mode(),
+            bridge=BridgeStatsDTO(**bridge_stats),
+            icm=ICMStatsDTO(**icm_stats),
+            baseline_methods=engine.available_methods(),
+        )
 
     return app
 

@@ -204,6 +204,46 @@ class JudgeSummaryDTO(BaseModel):
     agent_hint: str
 
 
+class BridgeStatsDTO(BaseModel):
+    total_transfers: int
+    pending_count: int
+    completed_count: int
+
+
+class ICMStatsDTO(BaseModel):
+    total_messages: int
+    by_status: dict[str, int]
+    by_type: dict[str, int]
+
+
+class BaselineCompareRequest(BaseModel):
+    history: list[dict[str, Any]]
+    event_hour: int = Field(ge=0, le=23)
+
+
+class BaselineResultDTO(BaseModel):
+    baseline_kwh: float
+    method: str
+    confidence: float
+    details: dict[str, Any]
+
+
+class BaselineCompareResponse(BaseModel):
+    results: list[BaselineResultDTO]
+    recommended: BaselineResultDTO
+
+
+class BaselineMethodsResponse(BaseModel):
+    methods: list[str]
+
+
+class DashboardSummaryDTO(BaseModel):
+    chain_mode: str
+    bridge: BridgeStatsDTO
+    icm: ICMStatsDTO
+    baseline_methods: list[str]
+
+
 class ErrorEnvelope(BaseModel):
     code: str
     message: str
