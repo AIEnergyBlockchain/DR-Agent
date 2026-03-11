@@ -1,0 +1,76 @@
+# DR Agent — Docker Compose orchestration
+# Usage: docker compose up
+#
+# Profiles:
+#   default:    API + SQLite (lightweight dev)
+#   postgres:   API + PostgreSQL (production-like)
+#   full:       API + PostgreSQL + Redis (future: Celery worker)
+
+services:
+  # --- API Server ---
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: api
+    ports:
+      - "${DR_API_PORT:-8000}:8000"
+    environment:
+      - DR_CHAIN_MODE=${DR_CHAIN_MODE:-simulated}
+      - DR_TX_CONFIRM_MODE=${DR_TX_CONFIRM_MODE:-hybrid}
+      - DR_DEMO_SITE_MODE=${DR_DEMO_SITE_MODE:-dual}
+      - DR_DB_BACKEND=${DR_DB_BACKEND:-sqlite}
+      - DR_AGENT_DB=/app/cache/dr_agent.db
+      - DR_PG_URL=postgresql://dragent:dragent@postgres:5432/dragent
+      - DR_OPERATOR_API_KEY=${DR_OPERATOR_API_KEY:-operator-key}
+      - DR_PARTICIPANT_API_KEY=${DR_PARTICIPANT_API_KEY:-participant-key}
+      - DR_AUDITOR_API_KEY=${DR_AUDITOR_API_KEY:-auditor-key}
+      - DR_CORS_ORIGINS=${DR_CORS_ORIGINS:-http://localhost:4173,http://127.0.0.1:4173}
+    volumes:
+      - api-cache:/app/cache
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  # --- PostgreSQL (profile: postgres, full) ---
+  postgres:
+    image: postgres:16-alpine
+    profiles:
+      - postgres
+      - full
+    environment:
+      POSTGRES_USER: dragent
+      POSTGRES_PASSWORD: dragent
+      POSTGRES_DB: dragent
+    ports:
+      - "${DR_PG_PORT:-5432}:5432"
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dragent"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # --- Redis (profile: full) ---
+  redis:
+    image: redis:7-alpine
+    profiles:
+      - full
+    ports:
+      - "${DR_REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+volumes:
+  api-cache:
+  pg-data:
