@@ -112,9 +112,25 @@ const el = {
   evidenceAuditHash: document.getElementById('evidenceAuditHash'),
   narrativeLine: document.getElementById('narrativeLine'),
   lastActionLine: document.getElementById('lastActionLine'),
+  insightCard: document.getElementById('insightCard'),
+  insightSkeleton: document.getElementById('insightSkeleton'),
+  insightContent: document.getElementById('insightContent'),
   insightHeadline: document.getElementById('insightHeadline'),
   insightReason: document.getElementById('insightReason'),
   insightImpact: document.getElementById('insightImpact'),
+  insightMeta: document.getElementById('insightMeta'),
+  confidenceBar: document.getElementById('confidenceBar'),
+  confidencePct: document.getElementById('confidencePct'),
+  riskFlags: document.getElementById('riskFlags'),
+  suggestedAction: document.getElementById('suggestedAction'),
+  anomalyCard: document.getElementById('anomalyCard'),
+  anomalyBadge: document.getElementById('anomalyBadge'),
+  anomalyType: document.getElementById('anomalyType'),
+  anomalyDescription: document.getElementById('anomalyDescription'),
+  anomalyRecommendation: document.getElementById('anomalyRecommendation'),
+  anomalyAffectedList: document.getElementById('anomalyAffectedList'),
+  agentStatusDot: document.getElementById('agentStatusDot'),
+  agentStatusLabel: document.getElementById('agentStatusLabel'),
   errorCard: document.getElementById('errorCard'),
   errorHeadline: document.getElementById('errorHeadline'),
   errorHint: document.getElementById('errorHint'),
@@ -391,6 +407,20 @@ const I18N = {
     'insight.final.reason': 'Create -> proofs -> close -> settle -> claim -> audit path has completed.',
     'insight.final.impact': 'Impact: payout and audit evidence are both finalized.',
     'insight.final.story': 'Closed loop complete: settleable, claimable, auditable.',
+    'agent.analyzing': 'Agent is analyzing...',
+    'agent.unavailable': 'Agent offline — using local analysis.',
+    'agent.confidence': 'Confidence',
+    'agent.suggested': 'Suggested',
+    'agent.status.idle': 'Idle',
+    'agent.status.active': 'Active ({count})',
+    'agent.status.analyzing': 'Analyzing...',
+    'agent.status.offline': 'Offline',
+    'mission.agentStatus': 'Agent',
+    'evidence.anomalyDetection': 'Anomaly Detection',
+    'anomaly.severity.info': 'Info',
+    'anomaly.severity.warning': 'Warning',
+    'anomaly.severity.critical': 'Critical',
+    'anomaly.noIssues': 'No anomalies detected.',
     'hero.finalized.title': 'Finalized: Closed loop complete',
     'hero.finalized.subtitle': 'All core steps reached final state with settlement and audit evidence.',
     'hero.error.title': 'Awaiting user action: fix {step}',
@@ -716,6 +746,20 @@ const I18N = {
     'insight.final.reason': 'create -> proofs -> close -> settle -> claim -> audit 路径已执行完毕。',
     'insight.final.impact': '影响：结算结果与审计证据均已最终化。',
     'insight.final.story': '闭环完成：可结算、可领取、可审计。',
+    'agent.analyzing': '智能体分析中...',
+    'agent.unavailable': '智能体离线 — 使用本地分析。',
+    'agent.confidence': '置信度',
+    'agent.suggested': '建议',
+    'agent.status.idle': '待命',
+    'agent.status.active': '运行中 ({count})',
+    'agent.status.analyzing': '分析中...',
+    'agent.status.offline': '离线',
+    'mission.agentStatus': '智能体',
+    'evidence.anomalyDetection': '异常检测',
+    'anomaly.severity.info': '提示',
+    'anomaly.severity.warning': '警告',
+    'anomaly.severity.critical': '严重',
+    'anomaly.noIssues': '未检测到异常。',
     'hero.finalized.title': '已最终完成：闭环结束',
     'hero.finalized.subtitle': '全部关键步骤已到达终态，并具备结算与审计证据。',
     'hero.error.title': '等待人工处理：修复 {step}',
@@ -1785,6 +1829,201 @@ function buildAgentInsight(ui) {
   };
 }
 
+/* ── Agent API integration ── */
+
+const agentState = { analysisCount: 0, anomalyCount: 0, lastStep: null, abortController: null, status: 'idle' };
+
+function setAgentStatus(status) {
+  agentState.status = status;
+  if (!el.agentStatusDot || !el.agentStatusLabel) return;
+  el.agentStatusDot.className = 'agent-dot ' + status;
+  if (status === 'active') {
+    el.agentStatusLabel.textContent = t('agent.status.active', { count: agentState.analysisCount });
+  } else if (status === 'analyzing') {
+    el.agentStatusLabel.textContent = t('agent.status.analyzing');
+  } else if (status === 'offline') {
+    el.agentStatusLabel.textContent = t('agent.status.offline');
+  } else {
+    el.agentStatusLabel.textContent = t('agent.status.idle');
+  }
+}
+
+async function typewriterRender(element, text, speed) {
+  if (!element) return;
+  speed = speed || 30;
+  element.textContent = '';
+  element.classList.add('typing');
+  element._abortTyping = false;
+  for (let i = 0; i < text.length; i++) {
+    if (element._abortTyping) { element._abortTyping = false; break; }
+    element.textContent += text[i];
+    const pause = /[。，.!?;：]/.test(text[i]) ? speed * 3 : speed;
+    await new Promise(function(r) { setTimeout(r, pause); });
+  }
+  element.classList.remove('typing');
+}
+
+function renderConfidenceBar(confidence) {
+  if (!el.confidenceBar || !el.confidencePct || !el.insightMeta) return;
+  el.insightMeta.style.display = '';
+  const pct = Math.round(confidence * 100);
+  el.confidenceBar.style.width = pct + '%';
+  el.confidencePct.textContent = pct + '%';
+  el.confidenceBar.className = 'confidence-fill ' + (pct < 40 ? 'low' : pct < 70 ? 'mid' : 'high');
+}
+
+function renderRiskFlags(flags) {
+  if (!el.riskFlags) return;
+  el.riskFlags.innerHTML = '';
+  if (!flags || flags.length === 0) return;
+  flags.forEach(function(flag) {
+    var span = document.createElement('span');
+    span.className = 'risk-flag';
+    span.textContent = flag.replace(/_/g, ' ');
+    el.riskFlags.appendChild(span);
+  });
+}
+
+function renderSuggestedAction(action) {
+  if (!el.suggestedAction) return;
+  if (action) {
+    el.suggestedAction.style.display = '';
+    el.suggestedAction.textContent = action;
+  } else {
+    el.suggestedAction.style.display = 'none';
+  }
+}
+
+function showInsightSkeleton(show) {
+  if (el.insightSkeleton) el.insightSkeleton.style.display = show ? '' : 'none';
+  if (el.insightContent) el.insightContent.style.display = show ? 'none' : '';
+  if (el.insightMeta) el.insightMeta.style.display = show ? 'none' : '';
+}
+
+async function fetchAgentInsight(ui) {
+  // Cancel previous in-flight request
+  if (agentState.abortController) {
+    agentState.abortController.abort();
+  }
+  agentState.abortController = new AbortController();
+
+  // Don't re-fetch for same step
+  var stepKey = (ui.currentStep || 'create') + ':' + (state.event?.event_id || 'none') + ':' + Object.keys(state.proofs).length;
+  if (stepKey === agentState.lastStep) return;
+  agentState.lastStep = stepKey;
+
+  setAgentStatus('analyzing');
+  showInsightSkeleton(true);
+
+  // Abort old typewriter animations
+  if (el.insightHeadline) el.insightHeadline._abortTyping = true;
+  if (el.insightReason) el.insightReason._abortTyping = true;
+
+  var payload = {
+    event_id: state.event?.event_id || null,
+    current_step: ui.currentStep || 'create',
+    proofs: Object.values(state.proofs).map(function(p) {
+      return { site_id: p.site_id, baseline_kwh: p.baseline_kwh, actual_kwh: p.actual_kwh, reduction_kwh: p.reduction_kwh };
+    }),
+    baseline_result: state.baselineResult || null,
+    settlement: state.settlements && state.settlements[0] ? state.settlements[0] : null,
+    tx_pipeline: collectTxPipeline ? [collectTxPipeline()] : [],
+    lang: state.lang || 'en',
+  };
+
+  try {
+    var c = cfg();
+    var resp = await fetch(c.baseUrl + '/v1/agent/insight', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': c.operatorKey, 'x-actor-id': 'ui-agent' },
+      body: JSON.stringify(payload),
+      signal: agentState.abortController.signal,
+    });
+    if (!resp.ok) throw new Error('Agent API ' + resp.status);
+    var data = await resp.json();
+    agentState.analysisCount++;
+
+    showInsightSkeleton(false);
+    await typewriterRender(el.insightHeadline, data.headline);
+    if (el.insightReason) el.insightReason.textContent = data.reasoning;
+    if (el.insightImpact) el.insightImpact.textContent = '';
+    renderConfidenceBar(data.confidence);
+    renderRiskFlags(data.risk_flags);
+    renderSuggestedAction(data.suggested_action);
+    if (el.storyInsight) el.storyInsight.textContent = data.headline;
+
+    setAgentStatus('active');
+  } catch (e) {
+    if (e.name === 'AbortError') return;
+    // Fallback to local buildAgentInsight
+    showInsightSkeleton(false);
+    try {
+      var fallback = buildAgentInsight(ui);
+      if (el.insightHeadline) el.insightHeadline.textContent = fallback.headline;
+      if (el.insightReason) el.insightReason.textContent = fallback.reason;
+      if (el.insightImpact) el.insightImpact.textContent = fallback.impact;
+      if (el.storyInsight) el.storyInsight.textContent = fallback.story;
+      if (el.insightMeta) el.insightMeta.style.display = 'none';
+    } catch (_) {
+      if (el.insightHeadline) el.insightHeadline.textContent = t('agent.unavailable');
+    }
+    setAgentStatus('offline');
+  }
+}
+
+async function fetchAgentAnomaly(ui) {
+  var proofs = Object.values(state.proofs);
+  if (proofs.length < 2) {
+    if (el.anomalyCard) el.anomalyCard.style.display = 'none';
+    return;
+  }
+  try {
+    var c = cfg();
+    var resp = await fetch(c.baseUrl + '/v1/agent/anomaly', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': c.operatorKey, 'x-actor-id': 'ui-agent' },
+      body: JSON.stringify({
+        proofs: proofs.map(function(p) {
+          return { site_id: p.site_id, baseline_kwh: p.baseline_kwh, actual_kwh: p.actual_kwh, reduction_kwh: p.reduction_kwh };
+        }),
+        baseline_result: state.baselineResult || null,
+        event_id: state.event?.event_id || null,
+      }),
+    });
+    if (!resp.ok) throw new Error('Anomaly API ' + resp.status);
+    var data = await resp.json();
+    renderAnomalyCard(data);
+  } catch (_) {
+    if (el.anomalyCard) el.anomalyCard.style.display = 'none';
+  }
+}
+
+function renderAnomalyCard(report) {
+  if (!el.anomalyCard) return;
+  if (!report.has_anomaly) {
+    el.anomalyCard.style.display = 'none';
+    return;
+  }
+  el.anomalyCard.style.display = '';
+  el.anomalyCard.dataset.severity = report.severity;
+  if (el.anomalyBadge) {
+    el.anomalyBadge.textContent = t('anomaly.severity.' + report.severity) || report.severity;
+    el.anomalyBadge.className = 'anomaly-badge severity-' + report.severity;
+  }
+  if (el.anomalyType) el.anomalyType.textContent = (report.anomaly_type || '').replace(/_/g, ' ');
+  if (el.anomalyDescription) el.anomalyDescription.textContent = report.description;
+  if (el.anomalyRecommendation) el.anomalyRecommendation.textContent = report.recommendation;
+  if (el.anomalyAffectedList) {
+    el.anomalyAffectedList.innerHTML = '';
+    (report.affected_proofs || []).forEach(function(siteId) {
+      var span = document.createElement('span');
+      span.className = 'anomaly-affected-item';
+      span.textContent = siteDisplay(siteId);
+      el.anomalyAffectedList.appendChild(span);
+    });
+  }
+}
+
 function flowStepStatus(stepId, ui) {
   if (state.stepErrors[stepId]) return 'error';
   if (stepId === 'create' && state.event) return 'done';
@@ -1995,11 +2234,9 @@ function renderEvidenceDeck(ui) {
     lastTransition ? ` | ${t('label.lastTransition')}: ${lastTransition}` : ''
   } | ${t('label.txPipeline')}: ${formatTxPipelineCompact(txPipeline)}`;
 
-  const insight = buildAgentInsight(ui);
-  if (el.insightHeadline) el.insightHeadline.textContent = insight.headline;
-  if (el.insightReason) el.insightReason.textContent = insight.reason;
-  if (el.insightImpact) el.insightImpact.textContent = insight.impact;
-  if (el.storyInsight) el.storyInsight.textContent = insight.story;
+  // Async agent insight — fires in background, does not block render
+  fetchAgentInsight(ui);
+  fetchAgentAnomaly(ui);
 }
 
 function renderErrorCard(ui) {

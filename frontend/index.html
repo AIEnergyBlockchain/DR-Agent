@@ -58,6 +58,10 @@
             <div id="flowProgressBar" class="progress-fill"></div>
           </div>
         </article>
+        <article class="mission-item mission-agent-status">
+          <p class="label" data-i18n="mission.agentStatus">Agent</p>
+          <p id="agentStatusText" class="value agent-status-value"><span id="agentStatusDot" class="agent-dot idle"></span> <span id="agentStatusLabel" data-i18n="agent.status.idle">Idle</span></p>
+        </article>
       </section>
 
       <section class="panel mode-strip reveal" style="--delay: 0.04s">
@@ -391,11 +395,37 @@
             <p id="narrativeLine" aria-live="polite">Ready to execute the settlement mission.</p>
             <p id="lastActionLine" class="muted-line">Last action: none</p>
           </article>
-          <article class="evidence-card card-insight">
+          <article class="evidence-card card-insight" id="insightCard">
             <h3 data-i18n="evidence.agentInsight">Agent Insight</h3>
-            <p id="insightHeadline">No strategy signal yet.</p>
-            <p id="insightReason" class="muted-line">Create an event to let the agent analyze proofs and payout timing.</p>
-            <p id="insightImpact" class="muted-line">Impact: pending.</p>
+            <div class="agent-loading-skeleton" id="insightSkeleton" style="display:none">
+              <div class="skeleton-line"></div>
+              <div class="skeleton-line short"></div>
+              <div class="skeleton-line"></div>
+            </div>
+            <div id="insightContent">
+              <p id="insightHeadline" class="insight-headline">No strategy signal yet.</p>
+              <p id="insightReason" class="muted-line">Create an event to let the agent analyze proofs and payout timing.</p>
+              <p id="insightImpact" class="muted-line">Impact: pending.</p>
+            </div>
+            <div class="insight-meta" id="insightMeta" style="display:none">
+              <div class="confidence-bar-wrap">
+                <span class="confidence-label" data-i18n="agent.confidence">Confidence</span>
+                <div class="confidence-track"><div id="confidenceBar" class="confidence-fill" style="width:0%"></div></div>
+                <span id="confidencePct" class="confidence-pct">0%</span>
+              </div>
+              <div id="riskFlags" class="risk-flags"></div>
+              <p id="suggestedAction" class="suggested-action" style="display:none"></p>
+            </div>
+          </article>
+          <article class="evidence-card card-anomaly" id="anomalyCard" style="display:none">
+            <h3 data-i18n="evidence.anomalyDetection">Anomaly Detection</h3>
+            <div class="anomaly-header">
+              <span id="anomalyBadge" class="anomaly-badge">info</span>
+              <span id="anomalyType" class="anomaly-type"></span>
+            </div>
+            <p id="anomalyDescription"></p>
+            <p id="anomalyRecommendation" class="muted-line"></p>
+            <div id="anomalyAffectedList" class="anomaly-affected"></div>
           </article>
           <article id="errorCard" class="evidence-card error-card card-diagnostics" data-level="ok">
             <h3 data-i18n="evidence.executionDiagnostics">Execution Diagnostics</h3>

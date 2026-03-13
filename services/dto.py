@@ -244,6 +244,47 @@ class DashboardSummaryDTO(BaseModel):
     baseline_methods: list[str]
 
 
+class AgentInsightRequest(BaseModel):
+    event_id: str | None = None
+    current_step: str = "create"
+    proofs: list[dict[str, Any]] = Field(default_factory=list)
+    baseline_result: dict[str, Any] | None = None
+    settlement: dict[str, Any] | None = None
+    tx_pipeline: list[dict[str, Any]] = Field(default_factory=list)
+    lang: str = "en"
+
+
+class AgentInsightResponse(BaseModel):
+    headline: str
+    reasoning: str
+    confidence: float = Field(ge=0.0, le=1.0)
+    suggested_action: str | None = None
+    risk_flags: list[str] = Field(default_factory=list)
+    data_points: dict[str, Any] = Field(default_factory=dict)
+
+
+class AgentAnomalyRequest(BaseModel):
+    proofs: list[dict[str, Any]]
+    baseline_result: dict[str, Any] | None = None
+    event_id: str | None = None
+
+
+class AnomalyReport(BaseModel):
+    has_anomaly: bool
+    anomaly_type: str | None = None
+    severity: Literal["info", "warning", "critical"] = "info"
+    description: str = ""
+    affected_proofs: list[str] = Field(default_factory=list)
+    recommendation: str = ""
+
+
+class AgentStatusResponse(BaseModel):
+    status: Literal["active", "idle"] = "active"
+    provider: str = "mock"
+    total_analyses: int = 0
+    total_anomalies_detected: int = 0
+
+
 class ErrorEnvelope(BaseModel):
     code: str
     message: str

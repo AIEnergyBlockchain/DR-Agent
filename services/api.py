@@ -16,6 +16,11 @@ import pandas as pd
 from services.baseline_engine import BaselineEngine
 from services.bridge import BridgeDirection, BridgeService
 from services.dto import (
+    AgentAnomalyRequest,
+    AgentInsightRequest,
+    AgentInsightResponse,
+    AgentStatusResponse,
+    AnomalyReport,
     AuditDTO,
     BaselineCompareRequest,
     BaselineCompareResponse,
@@ -45,6 +50,7 @@ from services.dto import (
     SettleRequest,
     SettlementDTO,
 )
+from services.agent import AgentService
 from services.icm import ICMService, MessageType
 from services.submitter import ServiceError, SubmitterService
 from services.task_queue import InMemoryTaskQueue, TaskType
@@ -117,6 +123,10 @@ async def _icm_service(request: Request) -> ICMService:
 
 async def _task_queue(request: Request):
     return request.app.state.task_queue
+
+
+async def _agent_service(request: Request) -> AgentService:
+    return request.app.state.agent_service
 
 
 def _chain_mode() -> str:
@@ -209,6 +219,7 @@ def create_app(db_path: str | None = None) -> FastAPI:
     app.state.bridge = BridgeService(db_path=db_path)
     app.state.icm = ICMService(db_path=db_path)
     app.state.task_queue = InMemoryTaskQueue()
+    app.state.agent_service = AgentService()
     app.add_middleware(
         CORSMiddleware,
         allow_origins=_cors_origins(),
@@ -834,6 +845,31 @@ def create_app(db_path: str | None = None) -> FastAPI:
         if task is None:
             raise ServiceError(404, "TASK_NOT_FOUND", "task not found")
         return task.to_dict()
+
+    # ---------- Agent Endpoints ----------
+
+    @app.post("/v1/agent/insight", response_model=AgentInsightResponse)
+    async def agent_insight(
+        payload: AgentInsightRequest,
+        _role: str = Depends(_require_role("operator", "participant", "auditor")),
+        svc: AgentService = Depends(_agent_service),
+    ):
+        return svc.generate_insight(payload)
+
+    @app.post("/v1/agent/anomaly", response_model=AnomalyReport)
+    async def agent_anomaly(
+        payload: AgentAnomalyRequest,
+        _role: str = Depends(_require_role("operator", "participant", "auditor")),
+        svc: AgentService = Depends(_agent_service),
+    ):
+        return svc.detect_anomaly(payload)
+
+    @app.get("/v1/agent/status", response_model=AgentStatusResponse)
+    async def agent_status(
+        _role: str = Depends(_require_role("operator", "participant", "auditor")),
+        svc: AgentService = Depends(_agent_service),
+    ):
+        return svc.get_status()
 
     return app
 

@@ -1698,3 +1698,52 @@ body.judge-mode[data-view="engineering"] #technicalEvidence {
 /* ── Mission Strip Bridge/ICM ── */
 .mission-item-bridge .value.status-warn,
 .mission-item-icm .value.status-warn { color: #f6ad55; }
+
+/* ── Agent Status Indicator ── */
+.mission-agent-status { min-width: 80px; }
+.agent-status-value { display: flex; align-items: center; gap: 6px; }
+.agent-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+.agent-dot.idle { background: #718096; }
+.agent-dot.active { background: #48bb78; box-shadow: 0 0 6px rgba(72,187,120,0.5); }
+.agent-dot.analyzing { background: #ecc94b; animation: agent-pulse 1s infinite; }
+.agent-dot.offline { background: #fc8181; }
+@keyframes agent-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+/* ── Agent Insight Card Enhancements ── */
+.agent-loading-skeleton { padding: 8px 0; }
+.skeleton-line { height: 14px; border-radius: 4px; margin: 8px 0; background: linear-gradient(90deg, rgba(143,109,255,0.08) 25%, rgba(143,109,255,0.18) 50%, rgba(143,109,255,0.08) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+.skeleton-line.short { width: 60%; }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+.insight-headline { transition: opacity 0.2s; }
+.insight-headline.typing::after { content: '▋'; animation: blink-cursor 0.7s step-end infinite; color: rgba(143,109,255,0.7); margin-left: 1px; }
+@keyframes blink-cursor { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+
+.insight-meta { margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(143,109,255,0.15); }
+.confidence-bar-wrap { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.confidence-label { font-size: 0.78rem; color: var(--text-muted); white-space: nowrap; }
+.confidence-track { flex: 1; height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+.confidence-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease, background 0.3s; }
+.confidence-fill.low { background: linear-gradient(90deg, #fc8181, #f56565); }
+.confidence-fill.mid { background: linear-gradient(90deg, #ecc94b, #f6ad55); }
+.confidence-fill.high { background: linear-gradient(90deg, #48bb78, #38a169); }
+.confidence-pct { font-size: 0.78rem; min-width: 32px; text-align: right; font-variant-numeric: tabular-nums; }
+
+.risk-flags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; }
+.risk-flag { display: inline-block; font-size: 0.72rem; padding: 1px 7px; border-radius: 3px; background: rgba(252,129,129,0.12); color: #fc8181; border: 1px solid rgba(252,129,129,0.25); }
+
+.suggested-action { font-size: 0.82rem; color: #63b3ed; margin-top: 4px; }
+.suggested-action::before { content: '→ '; }
+
+/* ── Anomaly Card ── */
+.card-anomaly { border-color: rgba(252,129,129,0.4); background: linear-gradient(150deg, rgba(50,20,20,0.7), rgba(15,21,42,0.72)); }
+.card-anomaly[data-severity="warning"] { border-color: rgba(236,201,75,0.5); }
+.card-anomaly[data-severity="critical"] { border-color: rgba(252,129,129,0.7); box-shadow: 0 0 12px rgba(252,129,129,0.15); }
+.anomaly-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.anomaly-badge { font-size: 0.72rem; padding: 2px 8px; border-radius: 3px; text-transform: uppercase; font-weight: 600; }
+.anomaly-badge.severity-info { background: rgba(99,179,237,0.15); color: #63b3ed; }
+.anomaly-badge.severity-warning { background: rgba(236,201,75,0.15); color: #ecc94b; }
+.anomaly-badge.severity-critical { background: rgba(252,129,129,0.2); color: #fc8181; }
+.anomaly-type { font-size: 0.82rem; color: var(--text-muted); }
+.anomaly-affected { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.anomaly-affected-item { font-size: 0.72rem; padding: 1px 6px; border-radius: 3px; background: rgba(252,129,129,0.08); color: #fc8181; }
