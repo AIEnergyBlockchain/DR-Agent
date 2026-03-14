@@ -147,6 +147,12 @@ const el = {
   icmStatsTotal: document.getElementById('icmStatsTotal'),
   icmStatsPending: document.getElementById('icmStatsPending'),
   btnRefreshCrosschain: document.getElementById('btnRefreshCrosschain'),
+  storyCcBridgeValue: document.getElementById('storyCcBridgeValue'),
+  storyCcIcmValue: document.getElementById('storyCcIcmValue'),
+  storyCcBridgeTotal: document.getElementById('storyCcBridgeTotal'),
+  storyCcIcmTotal: document.getElementById('storyCcIcmTotal'),
+  storyCcHint: document.getElementById('storyCcHint'),
+  baselineMockPreview: document.getElementById('baselineMockPreview'),
 };
 
 const I18N = {
@@ -483,6 +489,12 @@ const I18N = {
     'crosschain.completed': 'Completed',
     'crosschain.noTransfers': 'No bridge transfers yet.',
     'crosschain.noMessages': 'No ICM messages yet.',
+    'crosschain.noTransfersGuide': 'Start a bridge transfer to see data here.',
+    'crosschain.noMessagesGuide': 'Send an ICM message to see data here.',
+    'crosschain.connecting': 'connecting...',
+    'story.crosschainStatus': 'Cross-Chain Status',
+    'story.crosschainHint': 'Start a bridge transfer to see live cross-chain data here.',
+    'visual.baselineMockHint': 'Submit proofs to compute real baseline values.',
     'visual.baselineTitle': 'Baseline Comparison',
     'visual.confidence': 'Confidence',
     'visual.recommended': 'Recommended',
@@ -822,6 +834,12 @@ const I18N = {
     'crosschain.completed': '已完成',
     'crosschain.noTransfers': '暂无桥转账记录。',
     'crosschain.noMessages': '暂无跨链消息。',
+    'crosschain.noTransfersGuide': '发起桥转账后，数据将在此显示。',
+    'crosschain.noMessagesGuide': '发送跨链消息后，数据将在此显示。',
+    'crosschain.connecting': '连接中...',
+    'story.crosschainStatus': '跨链状态',
+    'story.crosschainHint': '发起桥转账后，可在此查看实时跨链数据。',
+    'visual.baselineMockHint': '提交证明后将计算真实基线值。',
     'visual.baselineTitle': '基线对比',
     'visual.confidence': '置信度',
     'visual.recommended': '推荐',
@@ -2532,7 +2550,7 @@ function toggleCameraMode() {
 function renderCrosschainTab() {
   if (el.bridgeTransfersBody) {
     if (state.bridgeTransfers.length === 0) {
-      el.bridgeTransfersBody.innerHTML = `<tr><td colspan="5" class="empty-row">${t('crosschain.noTransfers')}</td></tr>`;
+      el.bridgeTransfersBody.innerHTML = `<tr><td colspan="5" class="empty-row empty-row-guided"><span class="empty-icon">&#x21C6;</span><span>${t('crosschain.noTransfersGuide')}</span></td></tr>`;
     } else {
       el.bridgeTransfersBody.innerHTML = state.bridgeTransfers.map(tx => {
         const dir = tx.direction === 'home_to_remote' ? 'Home \u2192 Remote' : 'Remote \u2192 Home';
@@ -2549,7 +2567,7 @@ function renderCrosschainTab() {
   }
   if (el.icmMessagesBody) {
     if (state.icmMessages.length === 0) {
-      el.icmMessagesBody.innerHTML = `<tr><td colspan="4" class="empty-row">${t('crosschain.noMessages')}</td></tr>`;
+      el.icmMessagesBody.innerHTML = `<tr><td colspan="4" class="empty-row empty-row-guided"><span class="empty-icon">&#x21C6;</span><span>${t('crosschain.noMessagesGuide')}</span></td></tr>`;
     } else {
       el.icmMessagesBody.innerHTML = state.icmMessages.map(msg => {
         const typeLabel = msg.message_type.replace(/_/g, ' ');
@@ -2571,13 +2589,43 @@ function renderCrosschainTab() {
     const pending = (state.icmStats.by_status || {}).pending || 0;
     el.icmStatsPending.textContent = pending;
   }
+  renderStoryCrosschainSummary();
+}
+
+function renderStoryCrosschainSummary() {
+  const bp = state.bridgeStats.pending_count;
+  const ip = (state.icmStats.by_status || {}).pending || 0;
+  const bt = state.bridgeStats.total_transfers;
+  const it = state.icmStats.total_messages;
+  const hasData = bt > 0 || it > 0;
+
+  if (el.storyCcBridgeValue) {
+    if (hasData || bp > 0) {
+      el.storyCcBridgeValue.classList.add('cc-connected');
+      el.storyCcBridgeValue.textContent = bp > 0 ? `${bp} pending` : 'idle';
+      el.storyCcBridgeValue.className = `value${bp > 0 ? ' status-warn cc-connected' : ' cc-connected'}`;
+    }
+  }
+  if (el.storyCcIcmValue) {
+    if (hasData || ip > 0) {
+      el.storyCcIcmValue.classList.add('cc-connected');
+      el.storyCcIcmValue.textContent = ip > 0 ? `${ip} pending` : 'idle';
+      el.storyCcIcmValue.className = `value${ip > 0 ? ' status-warn cc-connected' : ' cc-connected'}`;
+    }
+  }
+  if (el.storyCcBridgeTotal) el.storyCcBridgeTotal.textContent = bt;
+  if (el.storyCcIcmTotal) el.storyCcIcmTotal.textContent = it;
+  if (el.storyCcHint) {
+    el.storyCcHint.style.display = hasData ? 'none' : '';
+  }
 }
 
 function renderBaselineComparison() {
   const card = document.getElementById('visualBaselineCard');
   const container = document.getElementById('baselineMethodRows');
-  if (!card || !container || !state.baselineComparison) return;
-  card.classList.remove('hidden');
+  if (!card || !container) return;
+  if (!state.baselineComparison) return;
+  if (el.baselineMockPreview) el.baselineMockPreview.classList.add('has-data');
   const { results, recommended } = state.baselineComparison;
   if (!results || results.length === 0) return;
   const maxKwh = Math.max(...results.map(r => r.baseline_kwh));

@@ -1747,3 +1747,122 @@ body.judge-mode[data-view="engineering"] #technicalEvidence {
 .anomaly-type { font-size: 0.82rem; color: var(--text-muted); }
 .anomaly-affected { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
 .anomaly-affected-item { font-size: 0.72rem; padding: 1px 6px; border-radius: 3px; background: rgba(252,129,129,0.08); color: #fc8181; }
+
+/* ── Fix 1: Story Mode Cross-Chain Summary Card ── */
+.story-crosschain-summary {
+  background: var(--panel);
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+}
+.story-crosschain-header h3 {
+  margin: 0 0 8px;
+  font-size: 0.88rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+.story-crosschain-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+}
+.story-crosschain-kpi {
+  background: linear-gradient(145deg, rgba(24, 39, 67, 0.65), rgba(13, 24, 43, 0.55));
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  padding: 10px;
+}
+.story-crosschain-kpi .label {
+  margin: 0 0 4px;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+.story-crosschain-kpi .value {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: "IBM Plex Mono", "Consolas", monospace;
+}
+.story-cc-hint {
+  margin-top: 8px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+body[data-view="engineering"] .story-crosschain-summary {
+  display: none !important;
+}
+
+/* ── Fix 2: Cross-Chain stat cards unified with --panel/--line-soft + kpi-card style ── */
+.crosschain-stat-card {
+  background: linear-gradient(145deg, rgba(24, 39, 67, 0.65), rgba(13, 24, 43, 0.55));
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  padding: 10px;
+  position: relative;
+}
+.crosschain-stat-card::before {
+  content: "";
+  position: absolute;
+  left: 10px; right: 10px; top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(59, 217, 255, 0.45), transparent);
+  opacity: 0.5;
+}
+.crosschain-table {
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.crosschain-table th {
+  background: var(--panel);
+}
+
+/* ── Fix 3: Connecting animation / pulse for Bridge & ICM placeholders ── */
+.cc-placeholder-dot {
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--accent-amber);
+  animation: cc-pulse 1.4s ease-in-out infinite;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+@keyframes cc-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.75); }
+}
+.cc-connected .cc-placeholder-dot { display: none; }
+.cc-connected [data-i18n="crosschain.connecting"] { display: none; }
+
+/* ── Fix 4: Baseline mock preview (visible before real data) ── */
+.baseline-mock-preview {
+  opacity: 0.5;
+  position: relative;
+}
+.baseline-mock-preview .mock-bar {
+  background: linear-gradient(90deg, rgba(66, 153, 225, 0.4), rgba(99, 179, 237, 0.4));
+}
+.baseline-mock-preview .mock-text {
+  opacity: 0.7;
+}
+.baseline-mock-hint {
+  margin-top: 8px;
+  font-style: italic;
+}
+.baseline-mock-preview.has-data { display: none; }
+
+/* ── Fix 5: Enhanced empty state for cross-chain tables ── */
+.empty-row-guided {
+  padding: 2.5rem 1rem !important;
+  text-align: center;
+  opacity: 0.6;
+  font-size: 0.88rem;
+}
+.empty-icon {
+  display: block;
+  font-size: 1.8rem;
+  margin-bottom: 6px;
+  opacity: 0.5;
+}
