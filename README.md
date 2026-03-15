@@ -120,7 +120,7 @@ One sentence:
 2. **On-chain token settlement**: DRT (ERC-20) payout on claim — completing the settlement loop with real on-chain value transfer.
 3. **Cross-network token liquidity (optional)**: DRT can be bridged to external liquidity venues when needed.
 4. **AI load / compute flexibility scenarios**: extends DR from industrial loads to AI-era flexible compute demand.
-5. **M2M settlement and incentives**: machine-account-based programmable reward distribution.
+5. **M2M settlement and incentives** *(planned)*: machine-account-based programmable reward distribution — demo UI in Phase C, contract implementation in Phase D.
 6. **Modular growth path**: testnet MVP -> dedicated execution environment -> cross-domain interoperability -> domain-specific precompiles.
 
 ## 8. Risks and Mitigations
