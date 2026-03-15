@@ -136,25 +136,26 @@
 
 ## 9. 已完成进度与后续里程碑
 
-已完成（截至 2026-03-09）：
+已完成（截至 2026-03-11）：
 - 主流程闭环已跑通：`create -> proofs -> close -> settle -> claim -> audit`
-- 合约测试稳定通过（`15 passing`）；API/judge summary 测试通过（`10 passed`）
+- 合约测试：`67 passing`（含 SecurityAudit）；Python 测试：`240 passed`
 - DRT 代币（ERC-20）已部署至 Fuji；`claimReward()` 触发真实链上 DRT 转账
 - Settlement 合约于 `2026-03-06` 重部署并充值 1,000,000 DRT
 - 前端三模式、双语切换、证据快照与图形化读数已接入
 - 网络集成分析完成：交付范围与长期架构边界已明确
 - Stage 3 GTM & Vision 文档已交付并完成质量审查
 
-Stage 4 Finals 冲刺（截止日期：2026 年 3 月 27 日）：
-- **P0**：演示稳定性——确保 Fuji 全流程演示可在 5 分钟内可复现完成
-- **P0**：证据一致性——所有文档、README 与证据包对齐当前 Fuji 部署状态
-- **P1**：完整文档套件——Stage 4 finals 材料（优先级计划、演示 runbook、评委 Q&A 准备）
-- **P1**：路演表达——5 分钟脚本含现场演示序列与失败 fallback 路径
-- **P2**：Q&A 准备——统一技术、市场、商业、Avalanche、合规答辩口径
+Stage 5 进展（截至 2026-03-11）：
+- ICTT Bridge 服务 + ICM 跨链消息服务（完整 REST API v1，18+ 端点）
+- 数据适配器（GreenButton / Pecan Street / CSV）+ AI 基线引擎（simple/ewma/percentile/auto）
+- 后端硬化：JWT + API Key 双模认证、SQLite/PostgreSQL 抽象层、内存任务队列、Docker Compose
+- 前端：跨链仪表盘标签页、基线对比可视化、任务条桥/ICM 状态指示器
+- 统计/基线/仪表盘聚合 API 供前端消费
+- OpenAPI v1 规范 + Bridge/ICM 部署脚本 + 运行手册
 
 已交付 / 已计划 / 远景 边界：
-- **已交付**：4 合约部署至 Fuji（EventManager、ProofRegistry、DRToken、Settlement），双链 API，Mission Cockpit，DRT 代币结算
-- **已计划**：ICTT 跨链代币桥接、Custom DR-L1 部署、ICM 多区域验证
+- **已交付**：4 合约部署至 Fuji，双链 API，Mission Cockpit，DRT 代币结算，ICTT Bridge 服务，ICM 消息，AI 基线引擎，跨链仪表盘
+- **已计划**：Custom DR-L1 上线部署、真实电表数据接入、CRE 实际部署
 - **远景**：自定义预编译（zk-SNARK）、HyperSDK DR-VM、验证者经济（电表运营商质押为 DR-L1 验证者）
 
 ## 10. 为什么是我们
@@ -490,6 +491,7 @@ sequenceDiagram
 
 ## 6. API（FastAPI）
 
+核心流程：
 - `POST /events` 创建事件
 - `POST /events/{event_id}/close` 在结算前关闭事件
 - `POST /proofs` 提交站点履约
@@ -501,6 +503,22 @@ sequenceDiagram
 - `GET /judge/{event_id}/summary` 查询执行视角聚合摘要
 - `GET /healthz` 服务健康检查
 - `GET /system/chain-mode` 输出当前链执行模式 + 确认模式 + 演示站点模式 + 必需 proof 站点集合
+
+跨链（Stage 5）：
+- `POST /v1/bridge/transfers` 创建桥转账
+- `GET /v1/bridge/transfers/pending` 查询待处理桥转账
+- `GET /v1/bridge/stats` 桥转账统计
+- `POST /v1/icm/messages` 创建 ICM 消息
+- `GET /v1/icm/messages/pending` 查询待处理 ICM 消息
+- `GET /v1/icm/stats` ICM 消息统计（按状态/类型）
+- `POST /v1/baseline/compare` 多方法基线对比
+- `GET /v1/baseline/methods` 可用基线方法列表
+- `GET /v1/dashboard/summary` 仪表盘聚合数据
+- `POST /v1/tasks` 提交后台任务
+- `GET /v1/tasks/{task_id}` 查询任务状态
+- `GET /v1/tasks/summary` 待处理任务计数
+
+认证方式：API Key（`x-api-key` 请求头）或 JWT Bearer Token（`Authorization: Bearer <token>`）。设置 `DR_JWT_SECRET` 环境变量启用 JWT。
 
 ## 7. 前端（Mission Cockpit）
 
@@ -574,11 +592,11 @@ sequenceDiagram
 
 ## 8. 已完成进度与后续开发计划（按周）
 
-### 已完成进度（截至 2026-03-09）
+### 已完成进度（截至 2026-03-11）
 
 1. MVP 闭环已跑通：
 - `create -> proofs -> close -> settle -> claim -> audit`
-- 合约测试持续全绿（`15 passing`）；API/judge summary 测试通过（`10 passed`）。
+- 合约测试：`67 passing`（含 SecurityAudit）；Python 测试：`240 passed`。
 
 2. DRT 代币结算已在 Fuji 上线：
 - DRToken（ERC-20）已部署至 `0x7c3B54f956D95E7F5756dE7684Cf5D893556E6B2`。
@@ -590,49 +608,33 @@ sequenceDiagram
 - 已接入 `submitted/confirmed/failed` 状态语义与证据输出链路。
 
 4. Mission Cockpit 可演示性已达标：
-- `Story / Ops / Engineering` 三模式
+- `Story / Ops / Engineering` 三模式 + 新增 **Cross-Chain** 标签页
 - `Execute Next Step` / `Auto Run Full Flow`
 - EN/中文切换与持久化
 - 动态 KPI/证据展示与快照导出
 
-5. Story 模式图形证据已补齐：
+5. 可视化证据：
 - baseline vs actual 图表
 - payout breakdown 图表
+- 基线对比可视化（simple/ewma/percentile 含置信度）
 
-6. 网络集成分析完成：
-- 已交付：DRT 代币 + Settlement 真实代币转账
-- 已计划：ICTT 桥接 + Custom L1 部署
-- 远景：ICM 多区域 + 自定义预编译 + HyperSDK + 验证者经济
+6. Stage 5 跨链基础设施：
+- ICTT Bridge 服务 + ICM 跨链消息服务（完整 REST API v1，18+ 端点）
+- 数据适配器（GreenButton / Pecan Street / CSV）+ AI 基线引擎
+- 后端硬化：JWT + API Key 双模认证、SQLite/PostgreSQL 抽象层、任务队列、Docker Compose
+- 跨链仪表盘标签页：桥转账表、ICM 消息表、统计卡片
+- 任务条桥/ICM 待处理状态指示器
+- 统计/基线对比/仪表盘聚合 API
 
 7. Stage 3 GTM & Vision 文档已交付并完成质量审查。
 
-### Stage 4 Finals 执行计划（截止日期：2026 年 3 月 27 日）
+### 测试计数（截至 2026-03-11）
 
-1. 演示稳定性（P0）
-- 确保 Fuji 全流程演示可在 5 分钟内完成。
-- 验证所有证据包与 README 数据匹配当前 Fuji 部署。
-- 锁定演示脚本，含网络异常 fallback 路径。
-
-2. 证据一致性（P0）
-- 所有文档同步当前 Settlement 地址与 DRT 部署状态。
-- 消除对旧 Settlement 地址或过时合约状态的引用。
-- 所有材料维持已交付 / 已计划 / 远景三层边界。
-
-3. Finals 文档套件（P1）
-- Stage 4 README：含 finals 时间线与评估标准。
-- 优先级计划：P0/P1/P2 排序。
-- 路演 demo runbook：现场演示序列与失败 fallback。
-- 评委 Q&A 准备：统一答辩口径。
-
-4. 路演与表达（P1）
-- 5 分钟演示脚本含证据 walkthrough。
-- 关键截图与证据锚点准备。
-- 中英双语答辩要点。
-
-5. 剩余技术项（P2）
-- ICTT 跨链桥接设计文档（finals 无需部署）。
-- Custom L1 蓝图文档细化。
-- 能源预言机层默认接入（如时间允许）。
+| 类别 | 数量 |
+|------|------|
+| Python 单元/集成测试 | 240 |
+| Solidity 合约测试 | 67 |
+| **总计** | **307** |
 
 ## 9. 测试清单
 
@@ -754,15 +756,15 @@ make deploy-fuji-drt-evidence      # Makefile 等效
 
 历史材料：`guide/stage2/stage2-submission-qa.md`、`guide/docs/history/`
 
-## 11.3 Stage 4 Finals 冲刺（当前）
+## 11.3 Stage 5 核心扩展（当前）
 
-Finals 截止日期：**2026 年 3 月 27 日**。
+Stage 5 将 DR Agent 从黑客松 demo 推进到产品级基础设施。
 
-当前优先级：
-1. **P0**：演示稳定性——可复现 5 分钟 Fuji 全流程演示
-2. **P0**：证据一致性——所有文档对齐当前部署
-3. **P1**：Finals 文档——优先级计划、演示 runbook、评委 Q&A 准备
-4. **P1**：路演表达——5 分钟脚本含现场演示 + fallback 路径
-5. **P2**：Q&A 准备——统一全维度答辩口径
+聚焦方向：
+1. **链上能力**：Custom L1、ICTT 桥接、ICM 消息（服务已实现）
+2. **数据管线**：真实电表适配器、AI 基线引擎（多方法）
+3. **产品化硬化**：认证、数据库抽象、任务队列、Docker、跨链仪表盘
 
-Stage 4 内部文档：`guide/stage4/`
+当前测试状态：**307 测试**（240 Python + 67 Solidity），全部通过。
+
+Stage 5 内部文档：`guide/stage5/`

@@ -6,7 +6,10 @@ Tracks the lifecycle of cross-chain bridge transfers in SQLite:
 
 from __future__ import annotations
 
+import json
+import os
 import sqlite3
+import subprocess
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -37,6 +40,7 @@ class BridgeTransfer:
 BRIDGE_SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS bridge_transfers (
     transfer_id TEXT PRIMARY KEY,
+    idempotency_key TEXT UNIQUE,
     sender TEXT NOT NULL,
     amount_wei TEXT NOT NULL,
     direction TEXT NOT NULL,
@@ -57,6 +61,22 @@ class BridgeService:
     def __init__(self, db_path: str | None = None):
         self.conn = db_connect(db_path)
         self.conn.executescript(BRIDGE_SCHEMA_SQL)
+        self._ensure_idempotency_key()
+        self.conn.commit()
+        self.chain_mode = os.getenv("DR_CHAIN_MODE", "simulated")
+        self.chain_action_script = (
+            Path(__file__).resolve().parents[1]
+            / "scripts"
+            / _chain_action_script_for_mode(self.chain_mode)
+        )
+
+    def _ensure_idempotency_key(self) -> None:
+        columns = {row["name"] for row in self.conn.execute("PRAGMA table_info(bridge_transfers)")}
+        if "idempotency_key" not in columns:
+            self.conn.execute("ALTER TABLE bridge_transfers ADD COLUMN idempotency_key TEXT")
+        self.conn.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS bridge_transfers_idempotency_key ON bridge_transfers(idempotency_key)"
+        )
         self.conn.commit()
 
     def initiate_transfer(
@@ -64,17 +84,18 @@ class BridgeService:
         sender: str,
         amount_wei: str,
         direction: BridgeDirection,
+        idempotency_key: str | None = None,
     ) -> BridgeTransfer:
         transfer_id = f"bridge-{uuid.uuid4().hex[:12]}"
         now = _utc_now()
         self.conn.execute(
             """
             INSERT INTO bridge_transfers
-                (transfer_id, sender, amount_wei, direction, status,
+                (transfer_id, idempotency_key, sender, amount_wei, direction, status,
                  source_tx_hash, dest_tx_hash, created_at, updated_at)
-            VALUES (?, ?, ?, ?, 'initiated', NULL, NULL, ?, ?)
+            VALUES (?, ?, ?, ?, ?, 'initiated', NULL, NULL, ?, ?)
             """,
-            (transfer_id, sender, amount_wei, direction.value, now, now),
+            (transfer_id, idempotency_key, sender, amount_wei, direction.value, now, now),
         )
         self.conn.commit()
         return self._get(transfer_id)
@@ -108,11 +129,55 @@ class BridgeService:
             return None
         return self._row_to_transfer(row)
 
+    def get_by_idempotency(self, idempotency_key: str) -> BridgeTransfer | None:
+        row = self.conn.execute(
+            "SELECT * FROM bridge_transfers WHERE idempotency_key = ?",
+            (idempotency_key,),
+        ).fetchone()
+        if row is None:
+            return None
+        return self._row_to_transfer(row)
+
+    def get_stats(self) -> dict:
+        row = self.conn.execute(
+            "SELECT COUNT(*) as total FROM bridge_transfers"
+        ).fetchone()
+        total = row["total"] if row else 0
+        row_p = self.conn.execute(
+            "SELECT COUNT(*) as cnt FROM bridge_transfers WHERE status != 'completed'"
+        ).fetchone()
+        pending = row_p["cnt"] if row_p else 0
+        completed = total - pending
+        return {
+            "total_transfers": total,
+            "pending_count": pending,
+            "completed_count": completed,
+        }
+
     def list_pending_transfers(self) -> list[BridgeTransfer]:
         rows = self.conn.execute(
             "SELECT * FROM bridge_transfers WHERE status != 'completed' ORDER BY created_at",
         ).fetchall()
         return [self._row_to_transfer(r) for r in rows]
+
+    def send_bridge_tokens(self, transfer_id: str, amount_wei: str) -> dict:
+        return self._chain_action("send_tokens", {"amount": amount_wei})
+
+    def receive_bridge_tokens(
+        self,
+        transfer_id: str,
+        source_nonce: int,
+        recipient: str,
+        amount_wei: str,
+        source_chain_id: str,
+    ) -> dict:
+        payload = {
+            "source_nonce": source_nonce,
+            "recipient": recipient,
+            "amount": amount_wei,
+            "source_chain_id": source_chain_id,
+        }
+        return self._chain_action("receive_tokens", payload)
 
     # -- internal --
 
@@ -158,3 +223,36 @@ class BridgeService:
             created_at=row["created_at"],
             updated_at=row["updated_at"],
         )
+
+    def _chain_action(self, action: str, payload: dict) -> dict:
+        if not self.chain_action_script.exists():
+            raise ValueError(f"bridge chain action script not found: {self.chain_action_script}")
+        cmd = ["node", str(self.chain_action_script), action]
+        result = subprocess.run(
+            cmd,
+            input=json.dumps(payload),
+            text=True,
+            capture_output=True,
+            check=False,
+            env=os.environ.copy(),
+        )
+        if result.returncode != 0:
+            stderr = (result.stderr or "").strip()
+            stdout = (result.stdout or "").strip()
+            detail = stderr or stdout or f"exit={result.returncode}"
+            raise RuntimeError(f"bridge chain action failed: {detail}")
+        raw = (result.stdout or "").strip()
+        if not raw:
+            raise RuntimeError("bridge chain action returned empty output")
+        try:
+            return json.loads(raw.splitlines()[-1])
+        except json.JSONDecodeError as exc:
+            raise RuntimeError("bridge chain action returned non-json output") from exc
+
+
+def _chain_action_script_for_mode(chain_mode: str) -> str:
+    if chain_mode in {"dr_l1", "l1"}:
+        return "bridge_chain_action.js"
+    if chain_mode in {"fuji", "fuji-live"}:
+        return "bridge_chain_action.js"
+    return "bridge_chain_action.js"

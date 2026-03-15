@@ -14,8 +14,9 @@ const panels = {
   control: document.getElementById('tab-control'),
   event: document.getElementById('tab-event'),
   audit: document.getElementById('tab-audit'),
+  crosschain: document.getElementById('tab-crosschain'),
 };
-const TAB_ORDER = ['control', 'event', 'audit'];
+const TAB_ORDER = ['control', 'event', 'audit', 'crosschain'];
 const MAX_LOG_ENTRIES = 320;
 const MAX_STEP_TIMING_ENTRIES = 24;
 const PENDING_TX_WAIT_TIMEOUT_MS = 120000;
@@ -42,6 +43,18 @@ const el = {
   storyEvidenceHint: document.getElementById('storyEvidenceHint'),
   storyLatestTxLine: document.getElementById('storyLatestTxLine'),
   storyLatestTxLink: document.getElementById('storyLatestTxLink'),
+  storyAgentInsight: document.getElementById('storyAgentInsight'),
+  storyInsightSkeleton: document.getElementById('storyInsightSkeleton'),
+  storyInsightContent: document.getElementById('storyInsightContent'),
+  storyInsightHeadline: document.getElementById('storyInsightHeadline'),
+  storyInsightReason: document.getElementById('storyInsightReason'),
+  storyInsightImpact: document.getElementById('storyInsightImpact'),
+  storyInsightMeta: document.getElementById('storyInsightMeta'),
+  storyConfidenceBar: document.getElementById('storyConfidenceBar'),
+  storyConfidencePct: document.getElementById('storyConfidencePct'),
+  storyRiskFlags: document.getElementById('storyRiskFlags'),
+  storyDataPoints: document.getElementById('storyDataPoints'),
+  storySuggestedAction: document.getElementById('storySuggestedAction'),
   eventIdInput: document.getElementById('eventId'),
   baseUrl: document.getElementById('baseUrl'),
   operatorKey: document.getElementById('operatorKey'),
@@ -111,15 +124,48 @@ const el = {
   evidenceAuditHash: document.getElementById('evidenceAuditHash'),
   narrativeLine: document.getElementById('narrativeLine'),
   lastActionLine: document.getElementById('lastActionLine'),
+  insightCard: document.getElementById('insightCard'),
+  insightSkeleton: document.getElementById('insightSkeleton'),
+  insightContent: document.getElementById('insightContent'),
   insightHeadline: document.getElementById('insightHeadline'),
   insightReason: document.getElementById('insightReason'),
   insightImpact: document.getElementById('insightImpact'),
+  insightMeta: document.getElementById('insightMeta'),
+  confidenceBar: document.getElementById('confidenceBar'),
+  confidencePct: document.getElementById('confidencePct'),
+  riskFlags: document.getElementById('riskFlags'),
+  insightDataPoints: document.getElementById('insightDataPoints'),
+  suggestedAction: document.getElementById('suggestedAction'),
+  anomalyCard: document.getElementById('anomalyCard'),
+  anomalyBadge: document.getElementById('anomalyBadge'),
+  anomalyType: document.getElementById('anomalyType'),
+  anomalyDescription: document.getElementById('anomalyDescription'),
+  anomalyRecommendation: document.getElementById('anomalyRecommendation'),
+  anomalyAffectedList: document.getElementById('anomalyAffectedList'),
+  agentStatusDot: document.getElementById('agentStatusDot'),
+  agentStatusLabel: document.getElementById('agentStatusLabel'),
   errorCard: document.getElementById('errorCard'),
   errorHeadline: document.getElementById('errorHeadline'),
   errorHint: document.getElementById('errorHint'),
   errorNext: document.getElementById('errorNext'),
   evidenceToggle: document.getElementById('evidenceToggle'),
   technicalEvidence: document.getElementById('technicalEvidence'),
+  missionBridgeStatus: document.getElementById('missionBridgeStatus'),
+  missionICMStatus: document.getElementById('missionICMStatus'),
+  bridgeTransfersBody: document.getElementById('bridgeTransfersBody'),
+  icmMessagesBody: document.getElementById('icmMessagesBody'),
+  bridgeStatsTotal: document.getElementById('bridgeStatsTotal'),
+  bridgeStatsPending: document.getElementById('bridgeStatsPending'),
+  bridgeStatsCompleted: document.getElementById('bridgeStatsCompleted'),
+  icmStatsTotal: document.getElementById('icmStatsTotal'),
+  icmStatsPending: document.getElementById('icmStatsPending'),
+  btnRefreshCrosschain: document.getElementById('btnRefreshCrosschain'),
+  storyCcBridgeValue: document.getElementById('storyCcBridgeValue'),
+  storyCcIcmValue: document.getElementById('storyCcIcmValue'),
+  storyCcBridgeTotal: document.getElementById('storyCcBridgeTotal'),
+  storyCcIcmTotal: document.getElementById('storyCcIcmTotal'),
+  storyCcHint: document.getElementById('storyCcHint'),
+  baselineMockPreview: document.getElementById('baselineMockPreview'),
 };
 
 const I18N = {
@@ -148,6 +194,7 @@ const I18N = {
     'story.agentThinking': 'Agent Thinking',
     'story.viewTxEvidence': 'View Tx Evidence',
     'story.evidenceHint': 'Open engineering evidence or copy a review snapshot.',
+    'story.agentInsightHint': 'Live signal from the on-chain agent, with confidence and risk flags.',
     'story.latestTxLabel': 'Latest Tx',
     'story.latestTxNone': 'No transaction yet',
     'story.latency.idle': 'Delay: waiting for first API call.',
@@ -157,7 +204,7 @@ const I18N = {
     'visual.title': 'Visual Insights',
     'visual.subtitle': 'Charts appear as proof and settlement data arrives.',
     'visual.empty': 'Run proof submission to unlock baseline and payout charts.',
-    'visual.comparisonTitle': 'Baseline vs Actual',
+    'visual.comparisonTitle': 'Submitted vs Baseline',
     'visual.payoutTitle': 'Payout Breakdown',
     'visual.baseline': 'Baseline',
     'visual.actual': 'Actual',
@@ -380,6 +427,20 @@ const I18N = {
     'insight.final.reason': 'Create -> proofs -> close -> settle -> claim -> audit path has completed.',
     'insight.final.impact': 'Impact: payout and audit evidence are both finalized.',
     'insight.final.story': 'Closed loop complete: settleable, claimable, auditable.',
+    'agent.analyzing': 'Agent is analyzing...',
+    'agent.unavailable': 'Agent offline — using local analysis.',
+    'agent.confidence': 'Confidence',
+    'agent.suggested': 'Suggested',
+    'agent.status.idle': 'Idle',
+    'agent.status.active': 'Active ({count})',
+    'agent.status.analyzing': 'Analyzing...',
+    'agent.status.offline': 'Offline',
+    'mission.agentStatus': 'Agent',
+    'evidence.anomalyDetection': 'Anomaly Detection',
+    'anomaly.severity.info': 'Info',
+    'anomaly.severity.warning': 'Warning',
+    'anomaly.severity.critical': 'Critical',
+    'anomaly.noIssues': 'No anomalies detected.',
     'hero.finalized.title': 'Finalized: Closed loop complete',
     'hero.finalized.subtitle': 'All core steps reached final state with settlement and audit evidence.',
     'hero.error.title': 'Awaiting user action: fix {step}',
@@ -425,6 +486,34 @@ const I18N = {
     'log.runDone': 'full flow completed',
     'log.readyMessage': 'DR Agent Mission Cockpit initialized',
     'log.trimmedPrefix': '[log] older entries trimmed for performance',
+    'tab.crosschain': 'Cross-Chain',
+    'crosschain.title': 'Cross-Chain Dashboard',
+    'crosschain.bridgeTitle': 'Bridge Transfers',
+    'crosschain.icmTitle': 'ICM Messages',
+    'crosschain.refresh': 'Refresh',
+    'crosschain.direction': 'Direction',
+    'crosschain.amount': 'Amount',
+    'crosschain.status': 'Status',
+    'crosschain.sourceTx': 'Source Tx',
+    'crosschain.destTx': 'Dest Tx',
+    'crosschain.type': 'Type',
+    'crosschain.route': 'Route',
+    'crosschain.sender': 'Sender',
+    'crosschain.pending': 'Pending',
+    'crosschain.completed': 'Completed',
+    'crosschain.noTransfers': 'No bridge transfers yet.',
+    'crosschain.noMessages': 'No ICM messages yet.',
+    'crosschain.noTransfersGuide': 'Start a bridge transfer to see data here.',
+    'crosschain.noMessagesGuide': 'Send an ICM message to see data here.',
+    'crosschain.connecting': 'connecting...',
+    'story.crosschainStatus': 'Cross-Chain Status',
+    'story.crosschainHint': 'Start a bridge transfer to see live cross-chain data here.',
+    'visual.baselineMockHint': 'Submit proofs to compute real baseline values.',
+    'visual.baselineTitle': 'Baseline Methods',
+    'visual.confidence': 'Confidence',
+    'visual.recommended': 'Recommended',
+    'mission.bridgeStatus': 'Bridge',
+    'mission.icmStatus': 'ICM',
   },
   zh: {
     'page.title': 'DR Agent 任务驾驶舱',
@@ -451,6 +540,7 @@ const I18N = {
     'story.agentThinking': 'Agent 思考',
     'story.viewTxEvidence': '查看交易证据',
     'story.evidenceHint': '可切换工程模式查看证据，或复制评审快照。',
+    'story.agentInsightHint': '链上智能体实时信号，包含置信度与风险标记。',
     'story.latestTxLabel': '最新交易',
     'story.latestTxNone': '暂无交易',
     'story.latency.idle': '延迟：等待首次 API 调用。',
@@ -460,7 +550,7 @@ const I18N = {
     'visual.title': '可视化洞察',
     'visual.subtitle': '随着 proof 与结算数据到达，图表会动态出现。',
     'visual.empty': '提交 proof 后将解锁 baseline 与 payout 图表。',
-    'visual.comparisonTitle': 'Baseline 对比 Actual',
+    'visual.comparisonTitle': '用户提交 vs 基线',
     'visual.payoutTitle': '结算拆分',
     'visual.baseline': '基线',
     'visual.actual': '实际',
@@ -683,6 +773,20 @@ const I18N = {
     'insight.final.reason': 'create -> proofs -> close -> settle -> claim -> audit 路径已执行完毕。',
     'insight.final.impact': '影响：结算结果与审计证据均已最终化。',
     'insight.final.story': '闭环完成：可结算、可领取、可审计。',
+    'agent.analyzing': '智能体分析中...',
+    'agent.unavailable': '智能体离线 — 使用本地分析。',
+    'agent.confidence': '置信度',
+    'agent.suggested': '建议',
+    'agent.status.idle': '待命',
+    'agent.status.active': '运行中 ({count})',
+    'agent.status.analyzing': '分析中...',
+    'agent.status.offline': '离线',
+    'mission.agentStatus': '智能体',
+    'evidence.anomalyDetection': '异常检测',
+    'anomaly.severity.info': '提示',
+    'anomaly.severity.warning': '警告',
+    'anomaly.severity.critical': '严重',
+    'anomaly.noIssues': '未检测到异常。',
     'hero.finalized.title': '已最终完成：闭环结束',
     'hero.finalized.subtitle': '全部关键步骤已到达终态，并具备结算与审计证据。',
     'hero.error.title': '等待人工处理：修复 {step}',
@@ -728,6 +832,34 @@ const I18N = {
     'log.runDone': '全流程执行完成',
     'log.readyMessage': 'DR Agent Mission Cockpit 已初始化',
     'log.trimmedPrefix': '[日志] 为避免性能下降，已裁剪更早记录',
+    'tab.crosschain': '跨链',
+    'crosschain.title': '跨链仪表盘',
+    'crosschain.bridgeTitle': '桥转账',
+    'crosschain.icmTitle': '跨链消息',
+    'crosschain.refresh': '刷新',
+    'crosschain.direction': '方向',
+    'crosschain.amount': '金额',
+    'crosschain.status': '状态',
+    'crosschain.sourceTx': '源交易',
+    'crosschain.destTx': '目标交易',
+    'crosschain.type': '类型',
+    'crosschain.route': '路由',
+    'crosschain.sender': '发送者',
+    'crosschain.pending': '待处理',
+    'crosschain.completed': '已完成',
+    'crosschain.noTransfers': '暂无桥转账记录。',
+    'crosschain.noMessages': '暂无跨链消息。',
+    'crosschain.noTransfersGuide': '发起桥转账后，数据将在此显示。',
+    'crosschain.noMessagesGuide': '发送跨链消息后，数据将在此显示。',
+    'crosschain.connecting': '连接中...',
+    'story.crosschainStatus': '跨链状态',
+    'story.crosschainHint': '发起桥转账后，可在此查看实时跨链数据。',
+    'visual.baselineMockHint': '提交证明后将计算真实基线值。',
+    'visual.baselineTitle': '基线方法对比',
+    'visual.confidence': '置信度',
+    'visual.recommended': '推荐',
+    'mission.bridgeStatus': '桥',
+    'mission.icmStatus': 'ICM',
   },
 };
 
@@ -855,6 +987,12 @@ const state = {
     last: null,
     history: [],
   },
+  bridgeTransfers: [],
+  icmMessages: [],
+  bridgeStats: { total_transfers: 0, pending_count: 0, completed_count: 0 },
+  icmStats: { total_messages: 0, by_status: {}, by_type: {} },
+  dashboardSummary: null,
+  baselineComparison: null,
 };
 
 if (!el.eventIdInput.value) {
@@ -1724,6 +1862,342 @@ function buildAgentInsight(ui) {
   };
 }
 
+/* ── Agent API integration ── */
+
+const agentState = { analysisCount: 0, anomalyCount: 0, lastStep: null, abortController: null, status: 'idle' };
+const baselineState = { lastKey: null };
+
+function setAgentStatus(status) {
+  agentState.status = status;
+  if (!el.agentStatusDot || !el.agentStatusLabel) return;
+  el.agentStatusDot.className = 'agent-dot ' + status;
+  if (status === 'active') {
+    el.agentStatusLabel.textContent = t('agent.status.active', { count: agentState.analysisCount });
+  } else if (status === 'analyzing') {
+    el.agentStatusLabel.textContent = t('agent.status.analyzing');
+  } else if (status === 'offline') {
+    el.agentStatusLabel.textContent = t('agent.status.offline');
+  } else {
+    el.agentStatusLabel.textContent = t('agent.status.idle');
+  }
+}
+
+async function typewriterRender(element, text, speed) {
+  if (!element) return;
+  speed = speed || 30;
+  text = text == null ? '' : String(text);
+  element.textContent = '';
+  element.classList.add('typing');
+  element._abortTyping = false;
+  for (let i = 0; i < text.length; i++) {
+    if (element._abortTyping) { element._abortTyping = false; break; }
+    element.textContent += text[i];
+    const pause = /[。，.!?;：]/.test(text[i]) ? speed * 3 : speed;
+    await new Promise(function(r) { setTimeout(r, pause); });
+  }
+  element.classList.remove('typing');
+}
+
+async function renderInsightCopy(headline, reason, impact, storyLine, typeDetails) {
+  const headlineText = headline == null ? '' : String(headline);
+  const reasonText = reason == null ? '' : String(reason);
+  const impactText = impact == null ? '' : String(impact);
+  const storyText = storyLine == null ? headlineText : String(storyLine);
+
+  await Promise.all([
+    typewriterRender(el.insightHeadline, headlineText),
+    typewriterRender(el.storyInsightHeadline, headlineText),
+    typewriterRender(el.storyInsight, storyText),
+  ]);
+
+  if (typeDetails) {
+    await Promise.all([
+      typewriterRender(el.insightReason, reasonText, 18),
+      typewriterRender(el.insightImpact, impactText, 18),
+      typewriterRender(el.storyInsightReason, reasonText, 18),
+      typewriterRender(el.storyInsightImpact, impactText, 18),
+    ]);
+    return;
+  }
+
+  if (el.insightReason) el.insightReason.textContent = reasonText;
+  if (el.insightImpact) el.insightImpact.textContent = impactText;
+  if (el.storyInsightReason) el.storyInsightReason.textContent = reasonText;
+  if (el.storyInsightImpact) el.storyInsightImpact.textContent = impactText;
+}
+
+function renderConfidenceBarInto(confidence, barEl, pctEl, metaEl) {
+  if (!barEl || !pctEl || !metaEl) return;
+  metaEl.style.display = '';
+  const pct = Math.round(confidence * 100);
+  barEl.style.width = pct + '%';
+  pctEl.textContent = pct + '%';
+  barEl.className = 'confidence-fill ' + (pct < 40 ? 'low' : pct < 70 ? 'mid' : 'high');
+}
+
+function renderConfidenceBar(confidence) {
+  renderConfidenceBarInto(confidence, el.confidenceBar, el.confidencePct, el.insightMeta);
+}
+
+function renderStoryConfidenceBar(confidence) {
+  renderConfidenceBarInto(confidence, el.storyConfidenceBar, el.storyConfidencePct, el.storyInsightMeta);
+}
+
+function renderRiskFlagsInto(flags, container) {
+  if (!container) return;
+  container.innerHTML = '';
+  if (!flags || flags.length === 0) return;
+  flags.forEach(function(flag) {
+    var span = document.createElement('span');
+    span.className = 'risk-flag';
+    span.textContent = flag.replace(/_/g, ' ');
+    container.appendChild(span);
+  });
+}
+
+function renderRiskFlags(flags) {
+  renderRiskFlagsInto(flags, el.riskFlags);
+}
+
+function renderStoryRiskFlags(flags) {
+  renderRiskFlagsInto(flags, el.storyRiskFlags);
+}
+
+function renderSuggestedActionInto(action, element) {
+  if (!element) return;
+  if (action) {
+    element.style.display = '';
+    element.textContent = action;
+  } else {
+    element.style.display = 'none';
+  }
+}
+
+function renderSuggestedAction(action) {
+  renderSuggestedActionInto(action, el.suggestedAction);
+}
+
+function renderStorySuggestedAction(action) {
+  renderSuggestedActionInto(action, el.storySuggestedAction);
+}
+
+function formatDataPointValue(value) {
+  if (typeof value === 'number' && Number.isFinite(value)) return formatNumber(value);
+  if (value == null) return '-';
+  if (typeof value === 'string') return value;
+  try {
+    return JSON.stringify(value);
+  } catch (_) {
+    return String(value);
+  }
+}
+
+function renderDataPointsInto(dataPoints, container) {
+  if (!container) return;
+  container.innerHTML = '';
+  if (!dataPoints || typeof dataPoints !== 'object') {
+    container.style.display = 'none';
+    return;
+  }
+  const entries = Object.entries(dataPoints);
+  if (entries.length === 0) {
+    container.style.display = 'none';
+    return;
+  }
+  entries.forEach(function(entry) {
+    const key = entry[0];
+    const value = formatDataPointValue(entry[1]);
+    const chip = document.createElement('span');
+    chip.className = 'data-point-chip';
+    const keySpan = document.createElement('span');
+    keySpan.className = 'key';
+    keySpan.textContent = key;
+    const valueSpan = document.createElement('span');
+    valueSpan.className = 'value';
+    valueSpan.textContent = value;
+    chip.appendChild(keySpan);
+    chip.appendChild(document.createTextNode(': '));
+    chip.appendChild(valueSpan);
+    container.appendChild(chip);
+  });
+  container.style.display = '';
+}
+
+function toggleInsightSkeleton(show, skeletonEl, contentEl, metaEl) {
+  if (skeletonEl) skeletonEl.style.display = show ? '' : 'none';
+  if (contentEl) contentEl.style.display = show ? 'none' : '';
+  if (metaEl) metaEl.style.display = show ? 'none' : '';
+}
+
+function showInsightSkeleton(show) {
+  toggleInsightSkeleton(show, el.insightSkeleton, el.insightContent, el.insightMeta);
+}
+
+function showStoryInsightSkeleton(show) {
+  toggleInsightSkeleton(show, el.storyInsightSkeleton, el.storyInsightContent, el.storyInsightMeta);
+}
+
+async function fetchAgentInsight(ui) {
+  var stepKey = (ui.currentStep || 'create') + ':' + (state.event?.event_id || 'none') + ':' + Object.keys(state.proofs).length;
+  if (stepKey === agentState.lastStep) return;
+  // Cancel previous in-flight request
+  if (agentState.abortController) {
+    agentState.abortController.abort();
+  }
+  agentState.abortController = null;
+  agentState.lastStep = stepKey;
+
+  // Abort old typewriter animations
+  if (el.insightHeadline) el.insightHeadline._abortTyping = true;
+  if (el.insightReason) el.insightReason._abortTyping = true;
+  if (el.insightImpact) el.insightImpact._abortTyping = true;
+  if (el.storyInsightHeadline) el.storyInsightHeadline._abortTyping = true;
+  if (el.storyInsightReason) el.storyInsightReason._abortTyping = true;
+  if (el.storyInsightImpact) el.storyInsightImpact._abortTyping = true;
+  if (el.storyInsight) el.storyInsight._abortTyping = true;
+
+  var fallbackInsight = buildAgentInsight(ui);
+  var impactText = fallbackInsight?.impact || '';
+  var storyLine = fallbackInsight?.story || fallbackInsight?.headline || '';
+  var typeDetails = state.viewMode === 'story';
+
+  if (!state.event) {
+    showInsightSkeleton(false);
+    showStoryInsightSkeleton(false);
+    await renderInsightCopy(fallbackInsight.headline, fallbackInsight.reason, impactText, storyLine, typeDetails);
+    if (el.insightMeta) el.insightMeta.style.display = 'none';
+    if (el.storyInsightMeta) el.storyInsightMeta.style.display = 'none';
+    if (el.insightDataPoints) el.insightDataPoints.style.display = 'none';
+    if (el.storyDataPoints) el.storyDataPoints.style.display = 'none';
+    renderSuggestedActionInto(null, el.suggestedAction);
+    renderSuggestedActionInto(null, el.storySuggestedAction);
+    setAgentStatus('idle');
+    return;
+  }
+
+  agentState.abortController = new AbortController();
+  setAgentStatus('analyzing');
+  showInsightSkeleton(true);
+  showStoryInsightSkeleton(true);
+
+  var payload = {
+    event_id: state.event?.event_id || null,
+    current_step: ui.currentStep || 'create',
+    proofs: Object.values(state.proofs).map(function(p) {
+      return { site_id: p.site_id, baseline_kwh: p.baseline_kwh, actual_kwh: p.actual_kwh, reduction_kwh: p.reduction_kwh };
+    }),
+    baseline_result: state.baselineResult || null,
+    settlement: state.settlements && state.settlements[0] ? state.settlements[0] : null,
+    tx_pipeline: collectTxPipeline ? [collectTxPipeline()] : [],
+    lang: state.lang || 'en',
+  };
+
+  try {
+    var c = cfg();
+    var resp = await fetch(c.baseUrl + '/v1/agent/insight', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': c.operatorKey, 'x-actor-id': 'ui-agent' },
+      body: JSON.stringify(payload),
+      signal: agentState.abortController.signal,
+    });
+    if (!resp.ok) throw new Error('Agent API ' + resp.status);
+    var data = await resp.json();
+    agentState.analysisCount++;
+    var liveStoryLine = fallbackInsight?.story || data.headline || '';
+
+    showInsightSkeleton(false);
+    showStoryInsightSkeleton(false);
+    await renderInsightCopy(data.headline, data.reasoning, impactText, liveStoryLine, typeDetails);
+    renderConfidenceBar(data.confidence);
+    renderStoryConfidenceBar(data.confidence);
+    renderRiskFlags(data.risk_flags);
+    renderStoryRiskFlags(data.risk_flags);
+    renderSuggestedAction(data.suggested_action);
+    renderStorySuggestedAction(data.suggested_action);
+    renderDataPointsInto(data.data_points, el.insightDataPoints);
+    renderDataPointsInto(data.data_points, el.storyDataPoints);
+
+    setAgentStatus('active');
+  } catch (e) {
+    if (e.name === 'AbortError') return;
+    // Fallback to local buildAgentInsight
+    showInsightSkeleton(false);
+    showStoryInsightSkeleton(false);
+    try {
+      await renderInsightCopy(
+        fallbackInsight.headline,
+        fallbackInsight.reason,
+        impactText,
+        storyLine,
+        typeDetails
+      );
+      if (el.insightMeta) el.insightMeta.style.display = 'none';
+      if (el.storyInsightMeta) el.storyInsightMeta.style.display = 'none';
+      if (el.insightDataPoints) el.insightDataPoints.style.display = 'none';
+      if (el.storyDataPoints) el.storyDataPoints.style.display = 'none';
+      renderSuggestedActionInto(null, el.suggestedAction);
+      renderSuggestedActionInto(null, el.storySuggestedAction);
+    } catch (_) {
+      if (el.insightHeadline) el.insightHeadline.textContent = t('agent.unavailable');
+      if (el.storyInsightHeadline) el.storyInsightHeadline.textContent = t('agent.unavailable');
+    }
+    setAgentStatus('offline');
+  }
+}
+
+async function fetchAgentAnomaly(ui) {
+  var proofs = Object.values(state.proofs);
+  if (proofs.length < 2) {
+    if (el.anomalyCard) el.anomalyCard.style.display = 'none';
+    return;
+  }
+  try {
+    var c = cfg();
+    var resp = await fetch(c.baseUrl + '/v1/agent/anomaly', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': c.operatorKey, 'x-actor-id': 'ui-agent' },
+      body: JSON.stringify({
+        proofs: proofs.map(function(p) {
+          return { site_id: p.site_id, baseline_kwh: p.baseline_kwh, actual_kwh: p.actual_kwh, reduction_kwh: p.reduction_kwh };
+        }),
+        baseline_result: state.baselineResult || null,
+        event_id: state.event?.event_id || null,
+      }),
+    });
+    if (!resp.ok) throw new Error('Anomaly API ' + resp.status);
+    var data = await resp.json();
+    renderAnomalyCard(data);
+  } catch (_) {
+    if (el.anomalyCard) el.anomalyCard.style.display = 'none';
+  }
+}
+
+function renderAnomalyCard(report) {
+  if (!el.anomalyCard) return;
+  if (!report.has_anomaly) {
+    el.anomalyCard.style.display = 'none';
+    return;
+  }
+  el.anomalyCard.style.display = '';
+  el.anomalyCard.dataset.severity = report.severity;
+  if (el.anomalyBadge) {
+    el.anomalyBadge.textContent = t('anomaly.severity.' + report.severity) || report.severity;
+    el.anomalyBadge.className = 'anomaly-badge severity-' + report.severity;
+  }
+  if (el.anomalyType) el.anomalyType.textContent = (report.anomaly_type || '').replace(/_/g, ' ');
+  if (el.anomalyDescription) el.anomalyDescription.textContent = report.description;
+  if (el.anomalyRecommendation) el.anomalyRecommendation.textContent = report.recommendation;
+  if (el.anomalyAffectedList) {
+    el.anomalyAffectedList.innerHTML = '';
+    (report.affected_proofs || []).forEach(function(siteId) {
+      var span = document.createElement('span');
+      span.className = 'anomaly-affected-item';
+      span.textContent = siteDisplay(siteId);
+      el.anomalyAffectedList.appendChild(span);
+    });
+  }
+}
+
 function flowStepStatus(stepId, ui) {
   if (state.stepErrors[stepId]) return 'error';
   if (stepId === 'create' && state.event) return 'done';
@@ -1758,6 +2232,17 @@ function renderMissionStrip(ui) {
   const health = state.lastError ? 'error' : summary?.health || ui.health;
   el.missionHealth.textContent = displayStatus(health);
   el.missionHealth.className = `status-chip ${health}`;
+
+  if (el.missionBridgeStatus) {
+    const bp = state.bridgeStats.pending_count;
+    el.missionBridgeStatus.textContent = bp > 0 ? `${bp} pending` : 'idle';
+    el.missionBridgeStatus.className = `value${bp > 0 ? ' status-warn' : ''}`;
+  }
+  if (el.missionICMStatus) {
+    const ip = (state.icmStats.by_status || {}).pending || 0;
+    el.missionICMStatus.textContent = ip > 0 ? `${ip} pending` : 'idle';
+    el.missionICMStatus.className = `value${ip > 0 ? ' status-warn' : ''}`;
+  }
 }
 
 function renderFlowTimeline(ui) {
@@ -1923,11 +2408,9 @@ function renderEvidenceDeck(ui) {
     lastTransition ? ` | ${t('label.lastTransition')}: ${lastTransition}` : ''
   } | ${t('label.txPipeline')}: ${formatTxPipelineCompact(txPipeline)}`;
 
-  const insight = buildAgentInsight(ui);
-  if (el.insightHeadline) el.insightHeadline.textContent = insight.headline;
-  if (el.insightReason) el.insightReason.textContent = insight.reason;
-  if (el.insightImpact) el.insightImpact.textContent = insight.impact;
-  if (el.storyInsight) el.storyInsight.textContent = insight.story;
+  // Async agent insight — fires in background, does not block render
+  fetchAgentInsight(ui);
+  fetchAgentAnomaly(ui);
 }
 
 function renderErrorCard(ui) {
@@ -2047,7 +2530,11 @@ function renderVisualInsights() {
   const hasPayoutData =
     (settlementA && Number.isFinite(Number(settlementA.payout))) ||
     (settlementB && Number.isFinite(Number(settlementB.payout)));
-  const shouldShow = hasProofData || hasPayoutData;
+  const hasBaselineComparison = !!state.baselineComparison;
+  const shouldShow =
+    hasProofData ||
+    hasPayoutData ||
+    (state.viewMode === 'engineering' && hasBaselineComparison);
 
   el.visualInsights.classList.toggle('hidden', !shouldShow);
   el.visualEmpty.classList.toggle('hidden', shouldShow);
@@ -2220,6 +2707,162 @@ function toggleCameraMode() {
   renderAll();
 }
 
+function renderCrosschainTab() {
+  if (el.bridgeTransfersBody) {
+    if (state.bridgeTransfers.length === 0) {
+      el.bridgeTransfersBody.innerHTML = `<tr><td colspan="5" class="empty-row empty-row-guided"><span class="empty-icon">&#x21C6;</span><span>${t('crosschain.noTransfersGuide')}</span></td></tr>`;
+    } else {
+      el.bridgeTransfersBody.innerHTML = state.bridgeTransfers.map(tx => {
+        const dir = tx.direction === 'home_to_remote' ? 'Home \u2192 Remote' : 'Remote \u2192 Home';
+        const sc = tx.status === 'completed' ? 'done' : (tx.status === 'initiated' ? 'pending' : 'in-progress');
+        return `<tr>
+          <td>${dir}</td>
+          <td class="mono">${tx.amount_wei} wei</td>
+          <td><span class="status-chip ${sc}">${tx.status}</span></td>
+          <td class="mono">${tx.source_tx_hash ? tx.source_tx_hash.slice(0, 10) + '\u2026' : '--'}</td>
+          <td class="mono">${tx.dest_tx_hash ? tx.dest_tx_hash.slice(0, 10) + '\u2026' : '--'}</td>
+        </tr>`;
+      }).join('');
+    }
+  }
+  if (el.icmMessagesBody) {
+    if (state.icmMessages.length === 0) {
+      el.icmMessagesBody.innerHTML = `<tr><td colspan="4" class="empty-row empty-row-guided"><span class="empty-icon">&#x21C6;</span><span>${t('crosschain.noMessagesGuide')}</span></td></tr>`;
+    } else {
+      el.icmMessagesBody.innerHTML = state.icmMessages.map(msg => {
+        const typeLabel = msg.message_type.replace(/_/g, ' ');
+        const sc = msg.status === 'processed' ? 'done' : (msg.status === 'failed' ? 'error' : 'pending');
+        return `<tr>
+          <td><span class="icm-type-badge">${typeLabel}</span></td>
+          <td>${msg.source_chain} \u2192 ${msg.dest_chain}</td>
+          <td><span class="status-chip ${sc}">${msg.status}</span></td>
+          <td class="mono">${msg.sender.slice(0, 10)}\u2026</td>
+        </tr>`;
+      }).join('');
+    }
+  }
+  if (el.bridgeStatsTotal) el.bridgeStatsTotal.textContent = state.bridgeStats.total_transfers;
+  if (el.bridgeStatsPending) el.bridgeStatsPending.textContent = state.bridgeStats.pending_count;
+  if (el.bridgeStatsCompleted) el.bridgeStatsCompleted.textContent = state.bridgeStats.completed_count;
+  if (el.icmStatsTotal) el.icmStatsTotal.textContent = state.icmStats.total_messages;
+  if (el.icmStatsPending) {
+    const pending = (state.icmStats.by_status || {}).pending || 0;
+    el.icmStatsPending.textContent = pending;
+  }
+  renderStoryCrosschainSummary();
+}
+
+function renderStoryCrosschainSummary() {
+  const bp = state.bridgeStats.pending_count;
+  const ip = (state.icmStats.by_status || {}).pending || 0;
+  const bt = state.bridgeStats.total_transfers;
+  const it = state.icmStats.total_messages;
+  const hasData = bt > 0 || it > 0;
+
+  if (el.storyCcBridgeValue) {
+    if (hasData || bp > 0) {
+      el.storyCcBridgeValue.classList.add('cc-connected');
+      el.storyCcBridgeValue.textContent = bp > 0 ? `${bp} pending` : 'idle';
+      el.storyCcBridgeValue.className = `value${bp > 0 ? ' status-warn cc-connected' : ' cc-connected'}`;
+    }
+  }
+  if (el.storyCcIcmValue) {
+    if (hasData || ip > 0) {
+      el.storyCcIcmValue.classList.add('cc-connected');
+      el.storyCcIcmValue.textContent = ip > 0 ? `${ip} pending` : 'idle';
+      el.storyCcIcmValue.className = `value${ip > 0 ? ' status-warn cc-connected' : ' cc-connected'}`;
+    }
+  }
+  if (el.storyCcBridgeTotal) el.storyCcBridgeTotal.textContent = bt;
+  if (el.storyCcIcmTotal) el.storyCcIcmTotal.textContent = it;
+  if (el.storyCcHint) {
+    el.storyCcHint.style.display = hasData ? 'none' : '';
+  }
+}
+
+function buildBaselineComparisonFallback() {
+  const baselines = Object.values(state.proofs)
+    .map((proof) => Number(proof?.baseline_kwh || 0))
+    .filter((value) => Number.isFinite(value) && value > 0);
+  const base = baselines.length
+    ? baselines.reduce((sum, value) => sum + value, 0) / baselines.length
+    : 150;
+  const roundKwh = (value) => Math.round(value * 10) / 10;
+  const results = [
+    { method: 'simple', baseline_kwh: roundKwh(base), confidence: 0.85 },
+    { method: 'ewma', baseline_kwh: roundKwh(base * 0.94), confidence: 0.9 },
+    { method: 'percentile', baseline_kwh: roundKwh(base * 0.88), confidence: 0.75 },
+  ];
+  const recommended = results.reduce((best, item) => (item.confidence > best.confidence ? item : best), results[0]);
+  return { results, recommended, source: 'local' };
+}
+
+function refreshBaselineComparison() {
+  const proofCount = Object.keys(state.proofs).length;
+  const key = `${state.event?.event_id || 'none'}:${proofCount}`;
+  if (baselineState.lastKey === key && state.baselineComparison) return;
+  baselineState.lastKey = key;
+  if (state.baselineComparison && state.baselineComparison.source === 'api') {
+    renderBaselineComparison();
+    return;
+  }
+  state.baselineComparison = buildBaselineComparisonFallback();
+  renderBaselineComparison();
+}
+
+function renderBaselineComparison() {
+  const card = document.getElementById('visualBaselineCard');
+  const container = document.getElementById('baselineMethodRows');
+  if (!card || !container) return;
+  if (!state.baselineComparison) return;
+  if (el.baselineMockPreview) el.baselineMockPreview.classList.add('has-data');
+  const { results, recommended } = state.baselineComparison;
+  if (!results || results.length === 0) return;
+  const maxKwh = Math.max(...results.map(r => r.baseline_kwh));
+  container.innerHTML = results.map(r => {
+    const pct = maxKwh > 0 ? (r.baseline_kwh / maxKwh * 100) : 0;
+    const isRec = r.method === recommended.method;
+    return `<div class="baseline-method-row ${isRec ? 'recommended' : ''}">
+      <div class="baseline-method-label">
+        <span class="baseline-method-name">${r.method}${isRec ? ' \u2605' : ''}</span>
+        <span class="baseline-confidence">${(r.confidence * 100).toFixed(0)}%</span>
+      </div>
+      <div class="baseline-bar-track">
+        <div class="baseline-bar-fill" style="width: ${pct.toFixed(1)}%"></div>
+      </div>
+      <span class="baseline-value mono">${r.baseline_kwh.toFixed(1)} kWh</span>
+    </div>`;
+  }).join('');
+}
+
+async function refreshCrosschainData() {
+  const { operatorKey } = cfg();
+  try {
+    const resp = await fetch(`${cfg().baseUrl}/v1/dashboard/summary`, {
+      headers: { 'x-api-key': operatorKey, 'x-actor-id': 'ui-user', 'Content-Type': 'application/json' },
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      state.dashboardSummary = data;
+      state.bridgeStats = data.bridge || state.bridgeStats;
+      state.icmStats = data.icm || state.icmStats;
+    }
+  } catch (_) { /* silent */ }
+  try {
+    const resp = await fetch(`${cfg().baseUrl}/v1/bridge/transfers/pending`, {
+      headers: { 'x-api-key': operatorKey, 'x-actor-id': 'ui-user', 'Content-Type': 'application/json' },
+    });
+    if (resp.ok) state.bridgeTransfers = await resp.json();
+  } catch (_) { /* silent */ }
+  try {
+    const resp = await fetch(`${cfg().baseUrl}/v1/icm/messages/pending`, {
+      headers: { 'x-api-key': operatorKey, 'x-actor-id': 'ui-user', 'Content-Type': 'application/json' },
+    });
+    if (resp.ok) state.icmMessages = await resp.json();
+  } catch (_) { /* silent */ }
+  renderCrosschainTab();
+}
+
 function renderAll() {
   const ui = deriveUiState();
   renderStaticI18n();
@@ -2227,6 +2870,7 @@ function renderAll() {
   renderMissionStrip(ui);
   renderStoryHero(ui);
   renderStoryEvidenceRow();
+  refreshBaselineComparison();
   renderVisualInsights();
   renderFlowTimeline(ui);
   renderKpiGrid(ui);
@@ -2236,6 +2880,7 @@ function renderAll() {
   applyActionGuards(ui);
   applyCameraMode(ui);
   renderTechnicalEvidence();
+  renderCrosschainTab();
 }
 
 function localizeLogLabel(label) {
@@ -3066,7 +3711,12 @@ bindAction('btnGetEvent', getEvent, 'create');
 bindAction('btnGetRecords', getRecords, 'settle');
 bindAction('btnAudit', getAudit, 'audit');
 
+if (el.btnRefreshCrosschain) {
+  el.btnRefreshCrosschain.addEventListener('click', refreshCrosschainData);
+}
+
 renderAll();
 appendLog('ready', t('log.readyMessage'));
 refreshChainMode();
 refreshJudgeSummary();
+refreshCrosschainData();

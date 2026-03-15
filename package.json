@@ -23,7 +23,11 @@
     "evidence:execution:drt": "python3 scripts/build_drt_evidence_bundle.py",
     "evidence:judge": "npm run evidence:execution",
     "evidence:judge:drt": "npm run evidence:execution:drt",
-    "deploy:fuji:drt:evidence": "npm run deploy:fuji:drt && npm run evidence:execution:drt"
+    "deploy:fuji:drt:evidence": "npm run deploy:fuji:drt && npm run evidence:execution:drt",
+    "deploy:bridge:fuji": "bash scripts/run_with_secrets.sh ./node_modules/.bin/hardhat run scripts/deploy_bridge_fuji.ts --network fuji",
+    "deploy:bridge:l1": "bash scripts/run_with_secrets.sh ./node_modules/.bin/hardhat run scripts/deploy_bridge_l1.ts --network dr_l1",
+    "bridge:action": "node scripts/bridge_chain_action.js",
+    "icm:action": "node scripts/icm_chain_action.js"
   },
   "repository": {
     "type": "git",

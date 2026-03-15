@@ -32,6 +32,55 @@ class SettleRequest(BaseModel):
     site_ids: list[str] = Field(default_factory=list)
 
 
+class BridgeTransferCreateRequest(BaseModel):
+    sender: str
+    amount_wei: str
+    direction: Literal["home_to_remote", "remote_to_home"]
+
+
+class BridgeSourceSubmittedRequest(BaseModel):
+    source_tx_hash: str
+
+
+class BridgeDestSubmittedRequest(BaseModel):
+    dest_tx_hash: str
+
+
+class BridgeSendTokensRequest(BaseModel):
+    amount_wei: str
+
+
+class BridgeReceiveTokensRequest(BaseModel):
+    source_nonce: int
+    recipient: str
+    amount_wei: str
+    source_chain_id: str
+
+
+class ICMMessageCreateRequest(BaseModel):
+    source_chain: str
+    dest_chain: str
+    message_type: Literal["bridge_transfer", "settlement_sync", "proof_attestation"]
+    sender: str
+    payload: dict[str, Any]
+
+
+class ICMSentRequest(BaseModel):
+    tx_hash: str
+
+
+class ICMDeliveredRequest(BaseModel):
+    dest_tx_hash: str
+
+
+class ICMFailedRequest(BaseModel):
+    error: str
+
+
+class ICMProcessOnchainRequest(BaseModel):
+    success: bool = True
+
+
 class EventDTO(BaseModel):
     event_id: str
     start_time: str
@@ -91,6 +140,33 @@ class SettlementDTO(BaseModel):
     claim_tx_error: str | None = None
 
 
+class BridgeTransferDTO(BaseModel):
+    transfer_id: str
+    sender: str
+    amount_wei: str
+    direction: str
+    status: str
+    source_tx_hash: str | None = None
+    dest_tx_hash: str | None = None
+    created_at: str
+    updated_at: str
+
+
+class ICMMessageDTO(BaseModel):
+    message_id: str
+    source_chain: str
+    dest_chain: str
+    message_type: str
+    sender: str
+    payload: dict[str, Any]
+    status: str
+    source_tx_hash: str | None = None
+    dest_tx_hash: str | None = None
+    error: str | None = None
+    created_at: str
+    updated_at: str
+
+
 class AuditDTO(BaseModel):
     event_id: str
     site_id: str
@@ -126,6 +202,87 @@ class JudgeSummaryDTO(BaseModel):
     closed_at: str | None = None
     settled_at: str | None = None
     agent_hint: str
+
+
+class BridgeStatsDTO(BaseModel):
+    total_transfers: int
+    pending_count: int
+    completed_count: int
+
+
+class ICMStatsDTO(BaseModel):
+    total_messages: int
+    by_status: dict[str, int]
+    by_type: dict[str, int]
+
+
+class BaselineCompareRequest(BaseModel):
+    history: list[dict[str, Any]]
+    event_hour: int = Field(ge=0, le=23)
+
+
+class BaselineResultDTO(BaseModel):
+    baseline_kwh: float
+    method: str
+    confidence: float
+    details: dict[str, Any]
+
+
+class BaselineCompareResponse(BaseModel):
+    results: list[BaselineResultDTO]
+    recommended: BaselineResultDTO
+
+
+class BaselineMethodsResponse(BaseModel):
+    methods: list[str]
+
+
+class DashboardSummaryDTO(BaseModel):
+    chain_mode: str
+    bridge: BridgeStatsDTO
+    icm: ICMStatsDTO
+    baseline_methods: list[str]
+
+
+class AgentInsightRequest(BaseModel):
+    event_id: str | None = None
+    current_step: str = "create"
+    proofs: list[dict[str, Any]] = Field(default_factory=list)
+    baseline_result: dict[str, Any] | None = None
+    settlement: dict[str, Any] | None = None
+    tx_pipeline: list[dict[str, Any]] = Field(default_factory=list)
+    lang: str = "en"
+
+
+class AgentInsightResponse(BaseModel):
+    headline: str
+    reasoning: str
+    confidence: float = Field(ge=0.0, le=1.0)
+    suggested_action: str | None = None
+    risk_flags: list[str] = Field(default_factory=list)
+    data_points: dict[str, Any] = Field(default_factory=dict)
+
+
+class AgentAnomalyRequest(BaseModel):
+    proofs: list[dict[str, Any]]
+    baseline_result: dict[str, Any] | None = None
+    event_id: str | None = None
+
+
+class AnomalyReport(BaseModel):
+    has_anomaly: bool
+    anomaly_type: str | None = None
+    severity: Literal["info", "warning", "critical"] = "info"
+    description: str = ""
+    affected_proofs: list[str] = Field(default_factory=list)
+    recommendation: str = ""
+
+
+class AgentStatusResponse(BaseModel):
+    status: Literal["active", "idle"] = "active"
+    provider: str = "mock"
+    total_analyses: int = 0
+    total_anomalies_detected: int = 0
 
 
 class ErrorEnvelope(BaseModel):
