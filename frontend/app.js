@@ -43,6 +43,18 @@ const el = {
   storyEvidenceHint: document.getElementById('storyEvidenceHint'),
   storyLatestTxLine: document.getElementById('storyLatestTxLine'),
   storyLatestTxLink: document.getElementById('storyLatestTxLink'),
+  storyAgentInsight: document.getElementById('storyAgentInsight'),
+  storyInsightSkeleton: document.getElementById('storyInsightSkeleton'),
+  storyInsightContent: document.getElementById('storyInsightContent'),
+  storyInsightHeadline: document.getElementById('storyInsightHeadline'),
+  storyInsightReason: document.getElementById('storyInsightReason'),
+  storyInsightImpact: document.getElementById('storyInsightImpact'),
+  storyInsightMeta: document.getElementById('storyInsightMeta'),
+  storyConfidenceBar: document.getElementById('storyConfidenceBar'),
+  storyConfidencePct: document.getElementById('storyConfidencePct'),
+  storyRiskFlags: document.getElementById('storyRiskFlags'),
+  storyDataPoints: document.getElementById('storyDataPoints'),
+  storySuggestedAction: document.getElementById('storySuggestedAction'),
   eventIdInput: document.getElementById('eventId'),
   baseUrl: document.getElementById('baseUrl'),
   operatorKey: document.getElementById('operatorKey'),
@@ -122,6 +134,7 @@ const el = {
   confidenceBar: document.getElementById('confidenceBar'),
   confidencePct: document.getElementById('confidencePct'),
   riskFlags: document.getElementById('riskFlags'),
+  insightDataPoints: document.getElementById('insightDataPoints'),
   suggestedAction: document.getElementById('suggestedAction'),
   anomalyCard: document.getElementById('anomalyCard'),
   anomalyBadge: document.getElementById('anomalyBadge'),
@@ -181,6 +194,7 @@ const I18N = {
     'story.agentThinking': 'Agent Thinking',
     'story.viewTxEvidence': 'View Tx Evidence',
     'story.evidenceHint': 'Open engineering evidence or copy a review snapshot.',
+    'story.agentInsightHint': 'Live signal from the on-chain agent, with confidence and risk flags.',
     'story.latestTxLabel': 'Latest Tx',
     'story.latestTxNone': 'No transaction yet',
     'story.latency.idle': 'Delay: waiting for first API call.',
@@ -190,7 +204,7 @@ const I18N = {
     'visual.title': 'Visual Insights',
     'visual.subtitle': 'Charts appear as proof and settlement data arrives.',
     'visual.empty': 'Run proof submission to unlock baseline and payout charts.',
-    'visual.comparisonTitle': 'Baseline vs Actual',
+    'visual.comparisonTitle': 'Submitted vs Baseline',
     'visual.payoutTitle': 'Payout Breakdown',
     'visual.baseline': 'Baseline',
     'visual.actual': 'Actual',
@@ -495,7 +509,7 @@ const I18N = {
     'story.crosschainStatus': 'Cross-Chain Status',
     'story.crosschainHint': 'Start a bridge transfer to see live cross-chain data here.',
     'visual.baselineMockHint': 'Submit proofs to compute real baseline values.',
-    'visual.baselineTitle': 'Baseline Comparison',
+    'visual.baselineTitle': 'Baseline Methods',
     'visual.confidence': 'Confidence',
     'visual.recommended': 'Recommended',
     'mission.bridgeStatus': 'Bridge',
@@ -526,6 +540,7 @@ const I18N = {
     'story.agentThinking': 'Agent 思考',
     'story.viewTxEvidence': '查看交易证据',
     'story.evidenceHint': '可切换工程模式查看证据，或复制评审快照。',
+    'story.agentInsightHint': '链上智能体实时信号，包含置信度与风险标记。',
     'story.latestTxLabel': '最新交易',
     'story.latestTxNone': '暂无交易',
     'story.latency.idle': '延迟：等待首次 API 调用。',
@@ -535,7 +550,7 @@ const I18N = {
     'visual.title': '可视化洞察',
     'visual.subtitle': '随着 proof 与结算数据到达，图表会动态出现。',
     'visual.empty': '提交 proof 后将解锁 baseline 与 payout 图表。',
-    'visual.comparisonTitle': 'Baseline 对比 Actual',
+    'visual.comparisonTitle': '用户提交 vs 基线',
     'visual.payoutTitle': '结算拆分',
     'visual.baseline': '基线',
     'visual.actual': '实际',
@@ -840,7 +855,7 @@ const I18N = {
     'story.crosschainStatus': '跨链状态',
     'story.crosschainHint': '发起桥转账后，可在此查看实时跨链数据。',
     'visual.baselineMockHint': '提交证明后将计算真实基线值。',
-    'visual.baselineTitle': '基线对比',
+    'visual.baselineTitle': '基线方法对比',
     'visual.confidence': '置信度',
     'visual.recommended': '推荐',
     'mission.bridgeStatus': '桥',
@@ -1850,6 +1865,7 @@ function buildAgentInsight(ui) {
 /* ── Agent API integration ── */
 
 const agentState = { analysisCount: 0, anomalyCount: 0, lastStep: null, abortController: null, status: 'idle' };
+const baselineState = { lastKey: null };
 
 function setAgentStatus(status) {
   agentState.status = status;
@@ -1869,6 +1885,7 @@ function setAgentStatus(status) {
 async function typewriterRender(element, text, speed) {
   if (!element) return;
   speed = speed || 30;
+  text = text == null ? '' : String(text);
   element.textContent = '';
   element.classList.add('typing');
   element._abortTyping = false;
@@ -1881,61 +1898,187 @@ async function typewriterRender(element, text, speed) {
   element.classList.remove('typing');
 }
 
-function renderConfidenceBar(confidence) {
-  if (!el.confidenceBar || !el.confidencePct || !el.insightMeta) return;
-  el.insightMeta.style.display = '';
-  const pct = Math.round(confidence * 100);
-  el.confidenceBar.style.width = pct + '%';
-  el.confidencePct.textContent = pct + '%';
-  el.confidenceBar.className = 'confidence-fill ' + (pct < 40 ? 'low' : pct < 70 ? 'mid' : 'high');
+async function renderInsightCopy(headline, reason, impact, storyLine, typeDetails) {
+  const headlineText = headline == null ? '' : String(headline);
+  const reasonText = reason == null ? '' : String(reason);
+  const impactText = impact == null ? '' : String(impact);
+  const storyText = storyLine == null ? headlineText : String(storyLine);
+
+  await Promise.all([
+    typewriterRender(el.insightHeadline, headlineText),
+    typewriterRender(el.storyInsightHeadline, headlineText),
+    typewriterRender(el.storyInsight, storyText),
+  ]);
+
+  if (typeDetails) {
+    await Promise.all([
+      typewriterRender(el.insightReason, reasonText, 18),
+      typewriterRender(el.insightImpact, impactText, 18),
+      typewriterRender(el.storyInsightReason, reasonText, 18),
+      typewriterRender(el.storyInsightImpact, impactText, 18),
+    ]);
+    return;
+  }
+
+  if (el.insightReason) el.insightReason.textContent = reasonText;
+  if (el.insightImpact) el.insightImpact.textContent = impactText;
+  if (el.storyInsightReason) el.storyInsightReason.textContent = reasonText;
+  if (el.storyInsightImpact) el.storyInsightImpact.textContent = impactText;
 }
 
-function renderRiskFlags(flags) {
-  if (!el.riskFlags) return;
-  el.riskFlags.innerHTML = '';
+function renderConfidenceBarInto(confidence, barEl, pctEl, metaEl) {
+  if (!barEl || !pctEl || !metaEl) return;
+  metaEl.style.display = '';
+  const pct = Math.round(confidence * 100);
+  barEl.style.width = pct + '%';
+  pctEl.textContent = pct + '%';
+  barEl.className = 'confidence-fill ' + (pct < 40 ? 'low' : pct < 70 ? 'mid' : 'high');
+}
+
+function renderConfidenceBar(confidence) {
+  renderConfidenceBarInto(confidence, el.confidenceBar, el.confidencePct, el.insightMeta);
+}
+
+function renderStoryConfidenceBar(confidence) {
+  renderConfidenceBarInto(confidence, el.storyConfidenceBar, el.storyConfidencePct, el.storyInsightMeta);
+}
+
+function renderRiskFlagsInto(flags, container) {
+  if (!container) return;
+  container.innerHTML = '';
   if (!flags || flags.length === 0) return;
   flags.forEach(function(flag) {
     var span = document.createElement('span');
     span.className = 'risk-flag';
     span.textContent = flag.replace(/_/g, ' ');
-    el.riskFlags.appendChild(span);
+    container.appendChild(span);
   });
 }
 
-function renderSuggestedAction(action) {
-  if (!el.suggestedAction) return;
+function renderRiskFlags(flags) {
+  renderRiskFlagsInto(flags, el.riskFlags);
+}
+
+function renderStoryRiskFlags(flags) {
+  renderRiskFlagsInto(flags, el.storyRiskFlags);
+}
+
+function renderSuggestedActionInto(action, element) {
+  if (!element) return;
   if (action) {
-    el.suggestedAction.style.display = '';
-    el.suggestedAction.textContent = action;
+    element.style.display = '';
+    element.textContent = action;
   } else {
-    el.suggestedAction.style.display = 'none';
+    element.style.display = 'none';
   }
 }
 
+function renderSuggestedAction(action) {
+  renderSuggestedActionInto(action, el.suggestedAction);
+}
+
+function renderStorySuggestedAction(action) {
+  renderSuggestedActionInto(action, el.storySuggestedAction);
+}
+
+function formatDataPointValue(value) {
+  if (typeof value === 'number' && Number.isFinite(value)) return formatNumber(value);
+  if (value == null) return '-';
+  if (typeof value === 'string') return value;
+  try {
+    return JSON.stringify(value);
+  } catch (_) {
+    return String(value);
+  }
+}
+
+function renderDataPointsInto(dataPoints, container) {
+  if (!container) return;
+  container.innerHTML = '';
+  if (!dataPoints || typeof dataPoints !== 'object') {
+    container.style.display = 'none';
+    return;
+  }
+  const entries = Object.entries(dataPoints);
+  if (entries.length === 0) {
+    container.style.display = 'none';
+    return;
+  }
+  entries.forEach(function(entry) {
+    const key = entry[0];
+    const value = formatDataPointValue(entry[1]);
+    const chip = document.createElement('span');
+    chip.className = 'data-point-chip';
+    const keySpan = document.createElement('span');
+    keySpan.className = 'key';
+    keySpan.textContent = key;
+    const valueSpan = document.createElement('span');
+    valueSpan.className = 'value';
+    valueSpan.textContent = value;
+    chip.appendChild(keySpan);
+    chip.appendChild(document.createTextNode(': '));
+    chip.appendChild(valueSpan);
+    container.appendChild(chip);
+  });
+  container.style.display = '';
+}
+
+function toggleInsightSkeleton(show, skeletonEl, contentEl, metaEl) {
+  if (skeletonEl) skeletonEl.style.display = show ? '' : 'none';
+  if (contentEl) contentEl.style.display = show ? 'none' : '';
+  if (metaEl) metaEl.style.display = show ? 'none' : '';
+}
+
 function showInsightSkeleton(show) {
-  if (el.insightSkeleton) el.insightSkeleton.style.display = show ? '' : 'none';
-  if (el.insightContent) el.insightContent.style.display = show ? 'none' : '';
-  if (el.insightMeta) el.insightMeta.style.display = show ? 'none' : '';
+  toggleInsightSkeleton(show, el.insightSkeleton, el.insightContent, el.insightMeta);
+}
+
+function showStoryInsightSkeleton(show) {
+  toggleInsightSkeleton(show, el.storyInsightSkeleton, el.storyInsightContent, el.storyInsightMeta);
 }
 
 async function fetchAgentInsight(ui) {
+  var stepKey = (ui.currentStep || 'create') + ':' + (state.event?.event_id || 'none') + ':' + Object.keys(state.proofs).length;
+  if (stepKey === agentState.lastStep) return;
   // Cancel previous in-flight request
   if (agentState.abortController) {
     agentState.abortController.abort();
   }
-  agentState.abortController = new AbortController();
-
-  // Don't re-fetch for same step
-  var stepKey = (ui.currentStep || 'create') + ':' + (state.event?.event_id || 'none') + ':' + Object.keys(state.proofs).length;
-  if (stepKey === agentState.lastStep) return;
+  agentState.abortController = null;
   agentState.lastStep = stepKey;
-
-  setAgentStatus('analyzing');
-  showInsightSkeleton(true);
 
   // Abort old typewriter animations
   if (el.insightHeadline) el.insightHeadline._abortTyping = true;
   if (el.insightReason) el.insightReason._abortTyping = true;
+  if (el.insightImpact) el.insightImpact._abortTyping = true;
+  if (el.storyInsightHeadline) el.storyInsightHeadline._abortTyping = true;
+  if (el.storyInsightReason) el.storyInsightReason._abortTyping = true;
+  if (el.storyInsightImpact) el.storyInsightImpact._abortTyping = true;
+  if (el.storyInsight) el.storyInsight._abortTyping = true;
+
+  var fallbackInsight = buildAgentInsight(ui);
+  var impactText = fallbackInsight?.impact || '';
+  var storyLine = fallbackInsight?.story || fallbackInsight?.headline || '';
+  var typeDetails = state.viewMode === 'story';
+
+  if (!state.event) {
+    showInsightSkeleton(false);
+    showStoryInsightSkeleton(false);
+    await renderInsightCopy(fallbackInsight.headline, fallbackInsight.reason, impactText, storyLine, typeDetails);
+    if (el.insightMeta) el.insightMeta.style.display = 'none';
+    if (el.storyInsightMeta) el.storyInsightMeta.style.display = 'none';
+    if (el.insightDataPoints) el.insightDataPoints.style.display = 'none';
+    if (el.storyDataPoints) el.storyDataPoints.style.display = 'none';
+    renderSuggestedActionInto(null, el.suggestedAction);
+    renderSuggestedActionInto(null, el.storySuggestedAction);
+    setAgentStatus('idle');
+    return;
+  }
+
+  agentState.abortController = new AbortController();
+  setAgentStatus('analyzing');
+  showInsightSkeleton(true);
+  showStoryInsightSkeleton(true);
 
   var payload = {
     event_id: state.event?.event_id || null,
@@ -1960,30 +2103,43 @@ async function fetchAgentInsight(ui) {
     if (!resp.ok) throw new Error('Agent API ' + resp.status);
     var data = await resp.json();
     agentState.analysisCount++;
+    var liveStoryLine = fallbackInsight?.story || data.headline || '';
 
     showInsightSkeleton(false);
-    await typewriterRender(el.insightHeadline, data.headline);
-    if (el.insightReason) el.insightReason.textContent = data.reasoning;
-    if (el.insightImpact) el.insightImpact.textContent = '';
+    showStoryInsightSkeleton(false);
+    await renderInsightCopy(data.headline, data.reasoning, impactText, liveStoryLine, typeDetails);
     renderConfidenceBar(data.confidence);
+    renderStoryConfidenceBar(data.confidence);
     renderRiskFlags(data.risk_flags);
+    renderStoryRiskFlags(data.risk_flags);
     renderSuggestedAction(data.suggested_action);
-    if (el.storyInsight) el.storyInsight.textContent = data.headline;
+    renderStorySuggestedAction(data.suggested_action);
+    renderDataPointsInto(data.data_points, el.insightDataPoints);
+    renderDataPointsInto(data.data_points, el.storyDataPoints);
 
     setAgentStatus('active');
   } catch (e) {
     if (e.name === 'AbortError') return;
     // Fallback to local buildAgentInsight
     showInsightSkeleton(false);
+    showStoryInsightSkeleton(false);
     try {
-      var fallback = buildAgentInsight(ui);
-      if (el.insightHeadline) el.insightHeadline.textContent = fallback.headline;
-      if (el.insightReason) el.insightReason.textContent = fallback.reason;
-      if (el.insightImpact) el.insightImpact.textContent = fallback.impact;
-      if (el.storyInsight) el.storyInsight.textContent = fallback.story;
+      await renderInsightCopy(
+        fallbackInsight.headline,
+        fallbackInsight.reason,
+        impactText,
+        storyLine,
+        typeDetails
+      );
       if (el.insightMeta) el.insightMeta.style.display = 'none';
+      if (el.storyInsightMeta) el.storyInsightMeta.style.display = 'none';
+      if (el.insightDataPoints) el.insightDataPoints.style.display = 'none';
+      if (el.storyDataPoints) el.storyDataPoints.style.display = 'none';
+      renderSuggestedActionInto(null, el.suggestedAction);
+      renderSuggestedActionInto(null, el.storySuggestedAction);
     } catch (_) {
       if (el.insightHeadline) el.insightHeadline.textContent = t('agent.unavailable');
+      if (el.storyInsightHeadline) el.storyInsightHeadline.textContent = t('agent.unavailable');
     }
     setAgentStatus('offline');
   }
@@ -2374,7 +2530,11 @@ function renderVisualInsights() {
   const hasPayoutData =
     (settlementA && Number.isFinite(Number(settlementA.payout))) ||
     (settlementB && Number.isFinite(Number(settlementB.payout)));
-  const shouldShow = hasProofData || hasPayoutData;
+  const hasBaselineComparison = !!state.baselineComparison;
+  const shouldShow =
+    hasProofData ||
+    hasPayoutData ||
+    (state.viewMode === 'engineering' && hasBaselineComparison);
 
   el.visualInsights.classList.toggle('hidden', !shouldShow);
   el.visualEmpty.classList.toggle('hidden', shouldShow);
@@ -2620,6 +2780,36 @@ function renderStoryCrosschainSummary() {
   }
 }
 
+function buildBaselineComparisonFallback() {
+  const baselines = Object.values(state.proofs)
+    .map((proof) => Number(proof?.baseline_kwh || 0))
+    .filter((value) => Number.isFinite(value) && value > 0);
+  const base = baselines.length
+    ? baselines.reduce((sum, value) => sum + value, 0) / baselines.length
+    : 150;
+  const roundKwh = (value) => Math.round(value * 10) / 10;
+  const results = [
+    { method: 'simple', baseline_kwh: roundKwh(base), confidence: 0.85 },
+    { method: 'ewma', baseline_kwh: roundKwh(base * 0.94), confidence: 0.9 },
+    { method: 'percentile', baseline_kwh: roundKwh(base * 0.88), confidence: 0.75 },
+  ];
+  const recommended = results.reduce((best, item) => (item.confidence > best.confidence ? item : best), results[0]);
+  return { results, recommended, source: 'local' };
+}
+
+function refreshBaselineComparison() {
+  const proofCount = Object.keys(state.proofs).length;
+  const key = `${state.event?.event_id || 'none'}:${proofCount}`;
+  if (baselineState.lastKey === key && state.baselineComparison) return;
+  baselineState.lastKey = key;
+  if (state.baselineComparison && state.baselineComparison.source === 'api') {
+    renderBaselineComparison();
+    return;
+  }
+  state.baselineComparison = buildBaselineComparisonFallback();
+  renderBaselineComparison();
+}
+
 function renderBaselineComparison() {
   const card = document.getElementById('visualBaselineCard');
   const container = document.getElementById('baselineMethodRows');
@@ -2680,6 +2870,7 @@ function renderAll() {
   renderMissionStrip(ui);
   renderStoryHero(ui);
   renderStoryEvidenceRow();
+  refreshBaselineComparison();
   renderVisualInsights();
   renderFlowTimeline(ui);
   renderKpiGrid(ui);
@@ -2690,7 +2881,6 @@ function renderAll() {
   applyCameraMode(ui);
   renderTechnicalEvidence();
   renderCrosschainTab();
-  renderBaselineComparison();
 }
 
 function localizeLogLabel(label) {
