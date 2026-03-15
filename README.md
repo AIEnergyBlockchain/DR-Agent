@@ -139,25 +139,26 @@ One sentence:
 
 ## 9. Completed Progress and Next Milestones
 
-Completed (as of 2026-03-09):
+Completed (as of 2026-03-11):
 - Core loop is running end-to-end: `create -> proofs -> close -> settle -> claim -> audit`
-- Contract suite remains stable (`15 passing`); API/judge summary tests pass (`10 passed`)
+- Contract suite: `67 passing` (including SecurityAudit tests); Python tests: `240 passed`
 - DRT token (ERC-20) deployed on Fuji; `claimReward()` triggers real on-chain DRT transfer
 - Settlement contract redeployed and funded with 1,000,000 DRT on `2026-03-06`
 - Frontend modes, bilingual toggle, snapshot export, and chart-based readouts are in place
 - Network integration analysis completed: delivery scope vs long-term architecture clearly scoped
 - Stage 3 GTM & Vision documentation delivered and quality-reviewed
 
-Stage 4 Finals sprint (deadline: March 27, 2026):
-- **P0**: Demo stability — ensure reproducible Fuji full-loop demo within 5 minutes
-- **P0**: Evidence consistency — all docs, README, and evidence bundles aligned with current Fuji deployment
-- **P1**: Complete documentation suite — Stage 4 finals materials (priority plan, demo runbook, judge Q&A prep)
-- **P1**: Pitch expression — 5-minute script with live demo sequence and fallback paths
-- **P2**: Q&A preparation — unified technical, market, business, Avalanche, compliance talking points
+Stage 5 progress (as of 2026-03-11):
+- ICTT Bridge service + ICM cross-chain messaging service with full REST API v1 (18+ endpoints)
+- Data adapters (GreenButton / Pecan Street / CSV) + AI baseline engine (simple/ewma/percentile/auto)
+- Backend hardening: JWT+API key dual auth, SQLite/PostgreSQL abstraction, in-memory task queue, Docker Compose
+- Frontend: Cross-Chain dashboard tab, baseline comparison visualization, mission strip bridge/ICM indicators
+- Stats/baseline/dashboard summary APIs for frontend consumption
+- OpenAPI v1 spec + bridge/ICM deployment scripts + runbook
 
 Delivered / Planned / Vision boundary:
-- **Delivered**: 4 contracts on Fuji (EventManager, ProofRegistry, DRToken, Settlement), dual-chain API, Mission Cockpit, DRT token settlement
-- **Planned**: ICTT cross-chain token bridge, Custom DR-L1 deployment, ICM multi-region verification
+- **Delivered**: 4 contracts on Fuji, dual-chain API, Mission Cockpit, DRT token settlement, ICTT bridge service, ICM messaging, AI baseline engine, cross-chain dashboard
+- **Planned**: Custom DR-L1 live deployment, real meter data ingestion, CRE live deploy
 - **Vision**: Custom precompiles (zk-SNARK), HyperSDK DR-VM, validator economy (meter operators stake as DR-L1 validators)
 
 ## 10. Why This Builder
@@ -493,6 +494,7 @@ Mode notes:
 
 ## 6. API (FastAPI)
 
+Core flow:
 - `POST /events` create event
 - `POST /events/{event_id}/close` close event before settlement
 - `POST /proofs` submit site proof
@@ -504,6 +506,22 @@ Mode notes:
 - `GET /judge/{event_id}/summary` query aggregated execution summary
 - `GET /healthz` service health probe
 - `GET /system/chain-mode` expose runtime chain mode + tx confirm mode + demo site mode + required proof sites
+
+Cross-chain (Stage 5):
+- `POST /v1/bridge/transfers` create bridge transfer
+- `GET /v1/bridge/transfers/pending` list pending bridge transfers
+- `GET /v1/bridge/stats` bridge transfer statistics
+- `POST /v1/icm/messages` create ICM message
+- `GET /v1/icm/messages/pending` list pending ICM messages
+- `GET /v1/icm/stats` ICM message statistics (by status/type)
+- `POST /v1/baseline/compare` multi-method baseline comparison
+- `GET /v1/baseline/methods` list available baseline methods
+- `GET /v1/dashboard/summary` aggregated dashboard data
+- `POST /v1/tasks` enqueue background task
+- `GET /v1/tasks/{task_id}` poll task status
+- `GET /v1/tasks/summary` pending task count
+
+Authentication: API key (`x-api-key` header) or JWT Bearer token (`Authorization: Bearer <token>`). Set `DR_JWT_SECRET` env var to enable JWT.
 
 ## 7. Frontend (Mission Cockpit)
 
@@ -570,11 +588,11 @@ Keyboard shortcuts:
 
 ## 8. Completed Progress and Weekly Plan
 
-### Completed progress (as of 2026-03-09)
+### Completed progress (as of 2026-03-11)
 
 1. End-to-end MVP loop is running:
 - `create -> proofs -> close -> settle -> claim -> audit`
-- Contract tests remain green (`15 passing`); API/judge summary tests pass (`10 passed`).
+- Contract tests: `67 passing` (including SecurityAudit); Python tests: `240 passed`.
 
 2. DRT token settlement is live on Fuji:
 - DRToken (ERC-20) deployed at `0x7c3B54f956D95E7F5756dE7684Cf5D893556E6B2`.
@@ -586,49 +604,33 @@ Keyboard shortcuts:
 - Tx status model (`submitted/confirmed/failed`) and evidence outputs are wired.
 
 4. Mission Cockpit has reached demo-ready usability:
-- `Story / Ops / Engineering` modes
+- `Story / Ops / Engineering` modes + new **Cross-Chain** tab
 - `Execute Next Step` / `Auto Run Full Flow`
 - EN/中文 switching with persistence
 - Dynamic KPI/evidence rendering and snapshot export
 
-5. Baseline/payout visual evidence has been added to Story flow:
+5. Visual evidence in Story flow:
 - Baseline vs Actual chart
 - Payout breakdown chart
+- Baseline comparison visualization (simple/ewma/percentile with confidence)
 
-6. Network integration analysis completed:
-- Delivered: DRT token + Settlement with real token transfer
-- Planned: ICTT bridge + Custom L1 deployment
-- Vision: ICM multi-region + precompiles + HyperSDK + validator economy
+6. Stage 5 cross-chain infrastructure:
+- ICTT Bridge service + ICM cross-chain messaging (full REST API v1, 18+ endpoints)
+- Data adapters (GreenButton / Pecan Street / CSV) + AI baseline engine
+- Backend hardening: JWT + API key dual auth, SQLite/PostgreSQL abstraction, task queue, Docker Compose
+- Cross-chain dashboard tab with bridge transfers table, ICM messages, stats cards
+- Mission strip bridge/ICM pending status indicators
+- Stats, baseline comparison, and dashboard summary APIs
 
 7. Stage 3 GTM & Vision documentation delivered and quality-reviewed.
 
-### Stage 4 Finals execution plan (deadline: March 27, 2026)
+### Test counts (as of 2026-03-11)
 
-1. Demo stability (P0)
-- Ensure reproducible Fuji full-loop demo completes within 5 minutes.
-- Verify all evidence bundles and README data match current Fuji deployment.
-- Lock demo script with fallback paths for network issues.
-
-2. Evidence consistency (P0)
-- Sync all documentation with current Settlement address and DRT deployment.
-- Eliminate any references to old Settlement address or outdated contract states.
-- Maintain delivered / planned / vision boundary in all materials.
-
-3. Finals documentation suite (P1)
-- Stage 4 README with finals timeline and evaluation criteria.
-- Priority plan with P0/P1/P2 ranking for remaining work.
-- Pitch demo runbook with live demo sequence and failure fallbacks.
-- Judge Q&A preparation with unified talking points.
-
-4. Pitch and presentation (P1)
-- 5-minute demo script with evidence walkthrough.
-- Key screenshots and evidence anchors prepared.
-- Bilingual talking points for live Q&A.
-
-5. Remaining technical items (P2)
-- ICTT cross-chain bridge design documentation (no deployment required for finals).
-- Custom L1 blueprint documentation refinement.
-- Energy Oracle Layer default path (if time permits).
+| Category | Count |
+|----------|-------|
+| Python unit/integration | 240 |
+| Solidity contract | 67 |
+| **Total** | **307** |
 
 ## 9. Test Checklist
 
@@ -750,15 +752,15 @@ make deploy-fuji-drt-evidence      # same via Makefile
 
 Historical materials: `guide/stage2/stage2-submission-qa.md`, `guide/docs/history/`
 
-## 11.3 Stage 4 Finals Sprint (Current)
+## 11.3 Stage 5 Core Expansion (Current)
 
-Finals deadline: **March 27, 2026**.
+Stage 5 transforms DR Agent from hackathon demo to production-grade infrastructure.
 
-Current priorities:
-1. **P0**: Demo stability — reproducible 5-minute Fuji full-loop demo
-2. **P0**: Evidence consistency — all docs aligned with current deployment
-3. **P1**: Finals documentation — priority plan, demo runbook, judge Q&A prep
-4. **P1**: Pitch expression — 5-minute script with live demo + fallback paths
-5. **P2**: Q&A preparation — unified talking points across all dimensions
+Focus areas:
+1. **Chain capabilities**: Custom L1, ICTT bridge, ICM messaging (services implemented)
+2. **Data pipeline**: Real meter adapters, AI baseline engine (multi-method)
+3. **Product hardening**: Auth, DB abstraction, task queue, Docker, cross-chain dashboard
 
-Stage 4 internal documentation: `guide/stage4/`
+Current test status: **307 tests** (240 Python + 67 Solidity), all passing.
+
+Stage 5 internal documentation: `guide/stage5/`

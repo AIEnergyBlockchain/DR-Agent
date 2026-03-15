@@ -204,6 +204,87 @@ class JudgeSummaryDTO(BaseModel):
     agent_hint: str
 
 
+class BridgeStatsDTO(BaseModel):
+    total_transfers: int
+    pending_count: int
+    completed_count: int
+
+
+class ICMStatsDTO(BaseModel):
+    total_messages: int
+    by_status: dict[str, int]
+    by_type: dict[str, int]
+
+
+class BaselineCompareRequest(BaseModel):
+    history: list[dict[str, Any]]
+    event_hour: int = Field(ge=0, le=23)
+
+
+class BaselineResultDTO(BaseModel):
+    baseline_kwh: float
+    method: str
+    confidence: float
+    details: dict[str, Any]
+
+
+class BaselineCompareResponse(BaseModel):
+    results: list[BaselineResultDTO]
+    recommended: BaselineResultDTO
+
+
+class BaselineMethodsResponse(BaseModel):
+    methods: list[str]
+
+
+class DashboardSummaryDTO(BaseModel):
+    chain_mode: str
+    bridge: BridgeStatsDTO
+    icm: ICMStatsDTO
+    baseline_methods: list[str]
+
+
+class AgentInsightRequest(BaseModel):
+    event_id: str | None = None
+    current_step: str = "create"
+    proofs: list[dict[str, Any]] = Field(default_factory=list)
+    baseline_result: dict[str, Any] | None = None
+    settlement: dict[str, Any] | None = None
+    tx_pipeline: list[dict[str, Any]] = Field(default_factory=list)
+    lang: str = "en"
+
+
+class AgentInsightResponse(BaseModel):
+    headline: str
+    reasoning: str
+    confidence: float = Field(ge=0.0, le=1.0)
+    suggested_action: str | None = None
+    risk_flags: list[str] = Field(default_factory=list)
+    data_points: dict[str, Any] = Field(default_factory=dict)
+
+
+class AgentAnomalyRequest(BaseModel):
+    proofs: list[dict[str, Any]]
+    baseline_result: dict[str, Any] | None = None
+    event_id: str | None = None
+
+
+class AnomalyReport(BaseModel):
+    has_anomaly: bool
+    anomaly_type: str | None = None
+    severity: Literal["info", "warning", "critical"] = "info"
+    description: str = ""
+    affected_proofs: list[str] = Field(default_factory=list)
+    recommendation: str = ""
+
+
+class AgentStatusResponse(BaseModel):
+    status: Literal["active", "idle"] = "active"
+    provider: str = "mock"
+    total_analyses: int = 0
+    total_anomalies_detected: int = 0
+
+
 class ErrorEnvelope(BaseModel):
     code: str
     message: str

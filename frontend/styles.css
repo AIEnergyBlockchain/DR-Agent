@@ -1660,3 +1660,209 @@ body.judge-mode[data-view="engineering"] #technicalEvidence {
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Cross-Chain Dashboard ── */
+.crosschain-table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+.crosschain-table th,
+.crosschain-table td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.crosschain-table th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.6; }
+.crosschain-table td.mono { font-family: var(--mono); font-size: 0.8rem; }
+.empty-row { text-align: center; opacity: 0.5; padding: 2rem !important; }
+
+.icm-type-badge {
+  display: inline-block; padding: 0.15rem 0.5rem; border-radius: 0.25rem;
+  background: rgba(99,179,237,0.15); color: #63b3ed; font-size: 0.75rem; text-transform: capitalize;
+}
+
+.crosschain-stats-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem;
+}
+.crosschain-stat-card {
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 0.5rem; padding: 0.75rem 1rem; text-align: center;
+}
+.crosschain-stat-card .stat-value { font-size: 1.5rem; font-weight: 700; }
+.crosschain-stat-card .stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.6; }
+
+/* ── Baseline Comparison ── */
+.baseline-methods { display: flex; flex-direction: column; gap: 0.75rem; }
+.baseline-method-row { display: flex; align-items: center; gap: 0.75rem; }
+.baseline-method-row.recommended { background: rgba(72,187,120,0.08); border-radius: 0.375rem; padding: 0.25rem 0.5rem; }
+.baseline-method-label { width: 120px; display: flex; flex-direction: column; }
+.baseline-method-name { font-size: 0.85rem; font-weight: 600; text-transform: capitalize; }
+.baseline-confidence { font-size: 0.7rem; opacity: 0.6; }
+.baseline-bar-track { flex: 1; height: 20px; background: rgba(255,255,255,0.05); border-radius: 0.25rem; overflow: hidden; }
+.baseline-bar-fill { height: 100%; background: linear-gradient(90deg, #4299e1, #63b3ed); border-radius: 0.25rem; transition: width 0.3s; }
+.baseline-value { width: 90px; text-align: right; font-size: 0.85rem; }
+
+/* ── Mission Strip Bridge/ICM ── */
+.mission-item-bridge .value.status-warn,
+.mission-item-icm .value.status-warn { color: #f6ad55; }
+
+/* ── Agent Status Indicator ── */
+.mission-agent-status { min-width: 80px; }
+.agent-status-value { display: flex; align-items: center; gap: 6px; }
+.agent-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+.agent-dot.idle { background: #718096; }
+.agent-dot.active { background: #48bb78; box-shadow: 0 0 6px rgba(72,187,120,0.5); }
+.agent-dot.analyzing { background: #ecc94b; animation: agent-pulse 1s infinite; }
+.agent-dot.offline { background: #fc8181; }
+@keyframes agent-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+/* ── Agent Insight Card Enhancements ── */
+.agent-loading-skeleton { padding: 8px 0; }
+.skeleton-line { height: 14px; border-radius: 4px; margin: 8px 0; background: linear-gradient(90deg, rgba(143,109,255,0.08) 25%, rgba(143,109,255,0.18) 50%, rgba(143,109,255,0.08) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+.skeleton-line.short { width: 60%; }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+.insight-headline { transition: opacity 0.2s; }
+.insight-headline.typing::after { content: '▋'; animation: blink-cursor 0.7s step-end infinite; color: rgba(143,109,255,0.7); margin-left: 1px; }
+@keyframes blink-cursor { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+
+.insight-meta { margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(143,109,255,0.15); }
+.confidence-bar-wrap { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.confidence-label { font-size: 0.78rem; color: var(--text-muted); white-space: nowrap; }
+.confidence-track { flex: 1; height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+.confidence-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease, background 0.3s; }
+.confidence-fill.low { background: linear-gradient(90deg, #fc8181, #f56565); }
+.confidence-fill.mid { background: linear-gradient(90deg, #ecc94b, #f6ad55); }
+.confidence-fill.high { background: linear-gradient(90deg, #48bb78, #38a169); }
+.confidence-pct { font-size: 0.78rem; min-width: 32px; text-align: right; font-variant-numeric: tabular-nums; }
+
+.risk-flags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; }
+.risk-flag { display: inline-block; font-size: 0.72rem; padding: 1px 7px; border-radius: 3px; background: rgba(252,129,129,0.12); color: #fc8181; border: 1px solid rgba(252,129,129,0.25); }
+
+.suggested-action { font-size: 0.82rem; color: #63b3ed; margin-top: 4px; }
+.suggested-action::before { content: '→ '; }
+
+/* ── Anomaly Card ── */
+.card-anomaly { border-color: rgba(252,129,129,0.4); background: linear-gradient(150deg, rgba(50,20,20,0.7), rgba(15,21,42,0.72)); }
+.card-anomaly[data-severity="warning"] { border-color: rgba(236,201,75,0.5); }
+.card-anomaly[data-severity="critical"] { border-color: rgba(252,129,129,0.7); box-shadow: 0 0 12px rgba(252,129,129,0.15); }
+.anomaly-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.anomaly-badge { font-size: 0.72rem; padding: 2px 8px; border-radius: 3px; text-transform: uppercase; font-weight: 600; }
+.anomaly-badge.severity-info { background: rgba(99,179,237,0.15); color: #63b3ed; }
+.anomaly-badge.severity-warning { background: rgba(236,201,75,0.15); color: #ecc94b; }
+.anomaly-badge.severity-critical { background: rgba(252,129,129,0.2); color: #fc8181; }
+.anomaly-type { font-size: 0.82rem; color: var(--text-muted); }
+.anomaly-affected { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.anomaly-affected-item { font-size: 0.72rem; padding: 1px 6px; border-radius: 3px; background: rgba(252,129,129,0.08); color: #fc8181; }
+
+/* ── Fix 1: Story Mode Cross-Chain Summary Card ── */
+.story-crosschain-summary {
+  background: var(--panel);
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+}
+.story-crosschain-header h3 {
+  margin: 0 0 8px;
+  font-size: 0.88rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+.story-crosschain-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+}
+.story-crosschain-kpi {
+  background: linear-gradient(145deg, rgba(24, 39, 67, 0.65), rgba(13, 24, 43, 0.55));
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  padding: 10px;
+}
+.story-crosschain-kpi .label {
+  margin: 0 0 4px;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+.story-crosschain-kpi .value {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: "IBM Plex Mono", "Consolas", monospace;
+}
+.story-cc-hint {
+  margin-top: 8px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+body[data-view="engineering"] .story-crosschain-summary {
+  display: none !important;
+}
+
+/* ── Fix 2: Cross-Chain stat cards unified with --panel/--line-soft + kpi-card style ── */
+.crosschain-stat-card {
+  background: linear-gradient(145deg, rgba(24, 39, 67, 0.65), rgba(13, 24, 43, 0.55));
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  padding: 10px;
+  position: relative;
+}
+.crosschain-stat-card::before {
+  content: "";
+  position: absolute;
+  left: 10px; right: 10px; top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(59, 217, 255, 0.45), transparent);
+  opacity: 0.5;
+}
+.crosschain-table {
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.crosschain-table th {
+  background: var(--panel);
+}
+
+/* ── Fix 3: Connecting animation / pulse for Bridge & ICM placeholders ── */
+.cc-placeholder-dot {
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--accent-amber);
+  animation: cc-pulse 1.4s ease-in-out infinite;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+@keyframes cc-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.75); }
+}
+.cc-connected .cc-placeholder-dot { display: none; }
+.cc-connected [data-i18n="crosschain.connecting"] { display: none; }
+
+/* ── Fix 4: Baseline mock preview (visible before real data) ── */
+.baseline-mock-preview {
+  opacity: 0.5;
+  position: relative;
+}
+.baseline-mock-preview .mock-bar {
+  background: linear-gradient(90deg, rgba(66, 153, 225, 0.4), rgba(99, 179, 237, 0.4));
+}
+.baseline-mock-preview .mock-text {
+  opacity: 0.7;
+}
+.baseline-mock-hint {
+  margin-top: 8px;
+  font-style: italic;
+}
+.baseline-mock-preview.has-data { display: none; }
+
+/* ── Fix 5: Enhanced empty state for cross-chain tables ── */
+.empty-row-guided {
+  padding: 2.5rem 1rem !important;
+  text-align: center;
+  opacity: 0.6;
+  font-size: 0.88rem;
+}
+.empty-icon {
+  display: block;
+  font-size: 1.8rem;
+  margin-bottom: 6px;
+  opacity: 0.5;
+}

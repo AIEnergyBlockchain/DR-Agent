@@ -1,0 +1,15 @@
+node_modules/
+.venv/
+cache/
+*.db
+.env
+.env.*
+!.env.example
+guide/
+.git/
+.github/
+.pytest_cache/
+__pycache__/
+typechain-types/
+*.pyc
+*.pyo

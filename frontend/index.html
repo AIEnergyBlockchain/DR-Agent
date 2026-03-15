@@ -31,6 +31,14 @@
           <p class="label" data-i18n="mission.chainMode">Chain Mode</p>
           <p id="missionChainMode" class="value">unknown</p>
         </article>
+        <article class="mission-item mission-item-bridge">
+          <p class="label" data-i18n="mission.bridgeStatus">Bridge</p>
+          <p id="missionBridgeStatus" class="value">--</p>
+        </article>
+        <article class="mission-item mission-item-icm">
+          <p class="label" data-i18n="mission.icmStatus">ICM</p>
+          <p id="missionICMStatus" class="value">--</p>
+        </article>
         <article class="mission-item">
           <p class="label" data-i18n="mission.currentStep">Current Step</p>
           <p id="missionStep" class="value">Create</p>
@@ -49,6 +57,10 @@
           <div class="progress-track" aria-hidden="true">
             <div id="flowProgressBar" class="progress-fill"></div>
           </div>
+        </article>
+        <article class="mission-item mission-agent-status">
+          <p class="label" data-i18n="mission.agentStatus">Agent</p>
+          <p id="agentStatusText" class="value agent-status-value"><span id="agentStatusDot" class="agent-dot idle"></span> <span id="agentStatusLabel" data-i18n="agent.status.idle">Idle</span></p>
         </article>
       </section>
 
@@ -93,6 +105,35 @@
             <p id="storyInsight" class="value">Waiting for mission data.</p>
           </article>
         </div>
+      </section>
+
+      <section id="storyCrosschainSummary" class="panel story-crosschain-summary reveal" style="--delay: 0.062s">
+        <div class="story-crosschain-header">
+          <h3 data-i18n="story.crosschainStatus">Cross-Chain Status</h3>
+        </div>
+        <div class="story-crosschain-kpis">
+          <article class="story-crosschain-kpi">
+            <p class="label" data-i18n="mission.bridgeStatus">Bridge</p>
+            <p id="storyCcBridgeValue" class="value">
+              <span class="cc-placeholder-dot"></span> <span data-i18n="crosschain.connecting">connecting...</span>
+            </p>
+          </article>
+          <article class="story-crosschain-kpi">
+            <p class="label" data-i18n="mission.icmStatus">ICM</p>
+            <p id="storyCcIcmValue" class="value">
+              <span class="cc-placeholder-dot"></span> <span data-i18n="crosschain.connecting">connecting...</span>
+            </p>
+          </article>
+          <article class="story-crosschain-kpi">
+            <p class="label" data-i18n="crosschain.bridgeTitle">Bridge Transfers</p>
+            <p id="storyCcBridgeTotal" class="value mono">0</p>
+          </article>
+          <article class="story-crosschain-kpi">
+            <p class="label" data-i18n="crosschain.icmTitle">ICM Messages</p>
+            <p id="storyCcIcmTotal" class="value mono">0</p>
+          </article>
+        </div>
+        <p class="hint story-cc-hint" id="storyCcHint" data-i18n="story.crosschainHint">Start a bridge transfer to see live cross-chain data here.</p>
       </section>
 
       <section id="storyEvidenceRow" class="panel story-evidence-row reveal" style="--delay: 0.065s">
@@ -173,6 +214,30 @@
               <span id="visPayoutSiteBValue" class="mono">--</span>
             </div>
           </article>
+
+          <article id="visualBaselineCard" class="visual-card">
+            <h3 data-i18n="visual.baselineTitle">Baseline Comparison</h3>
+            <div id="baselineMethodRows" class="baseline-methods">
+              <div id="baselineMockPreview" class="baseline-mock-preview">
+                <div class="baseline-method-row">
+                  <div class="baseline-method-label"><span class="baseline-method-name mock-text">simple</span><span class="baseline-confidence mock-text">85%</span></div>
+                  <div class="baseline-bar-track"><div class="baseline-bar-fill mock-bar" style="width:72%"></div></div>
+                  <span class="baseline-value mono mock-text">-- kWh</span>
+                </div>
+                <div class="baseline-method-row">
+                  <div class="baseline-method-label"><span class="baseline-method-name mock-text">ewma</span><span class="baseline-confidence mock-text">90%</span></div>
+                  <div class="baseline-bar-track"><div class="baseline-bar-fill mock-bar" style="width:85%"></div></div>
+                  <span class="baseline-value mono mock-text">-- kWh</span>
+                </div>
+                <div class="baseline-method-row">
+                  <div class="baseline-method-label"><span class="baseline-method-name mock-text">percentile</span><span class="baseline-confidence mock-text">75%</span></div>
+                  <div class="baseline-bar-track"><div class="baseline-bar-fill mock-bar" style="width:60%"></div></div>
+                  <span class="baseline-value mono mock-text">-- kWh</span>
+                </div>
+                <p class="hint baseline-mock-hint" data-i18n="visual.baselineMockHint">Submit proofs to compute real baseline values.</p>
+              </div>
+            </div>
+          </article>
         </div>
       </section>
 
@@ -242,6 +307,17 @@
           data-tab="audit"
         >
           <span data-i18n="tab.audit">Audit</span>
+        </button>
+        <button
+          id="tab-crosschain-btn"
+          class="tab"
+          role="tab"
+          aria-selected="false"
+          aria-controls="tab-crosschain"
+          tabindex="-1"
+          data-tab="crosschain"
+        >
+          <span data-i18n="tab.crosschain">Cross-Chain</span>
         </button>
       </nav>
 
@@ -367,11 +443,37 @@
             <p id="narrativeLine" aria-live="polite">Ready to execute the settlement mission.</p>
             <p id="lastActionLine" class="muted-line">Last action: none</p>
           </article>
-          <article class="evidence-card card-insight">
+          <article class="evidence-card card-insight" id="insightCard">
             <h3 data-i18n="evidence.agentInsight">Agent Insight</h3>
-            <p id="insightHeadline">No strategy signal yet.</p>
-            <p id="insightReason" class="muted-line">Create an event to let the agent analyze proofs and payout timing.</p>
-            <p id="insightImpact" class="muted-line">Impact: pending.</p>
+            <div class="agent-loading-skeleton" id="insightSkeleton" style="display:none">
+              <div class="skeleton-line"></div>
+              <div class="skeleton-line short"></div>
+              <div class="skeleton-line"></div>
+            </div>
+            <div id="insightContent">
+              <p id="insightHeadline" class="insight-headline">No strategy signal yet.</p>
+              <p id="insightReason" class="muted-line">Create an event to let the agent analyze proofs and payout timing.</p>
+              <p id="insightImpact" class="muted-line">Impact: pending.</p>
+            </div>
+            <div class="insight-meta" id="insightMeta" style="display:none">
+              <div class="confidence-bar-wrap">
+                <span class="confidence-label" data-i18n="agent.confidence">Confidence</span>
+                <div class="confidence-track"><div id="confidenceBar" class="confidence-fill" style="width:0%"></div></div>
+                <span id="confidencePct" class="confidence-pct">0%</span>
+              </div>
+              <div id="riskFlags" class="risk-flags"></div>
+              <p id="suggestedAction" class="suggested-action" style="display:none"></p>
+            </div>
+          </article>
+          <article class="evidence-card card-anomaly" id="anomalyCard" style="display:none">
+            <h3 data-i18n="evidence.anomalyDetection">Anomaly Detection</h3>
+            <div class="anomaly-header">
+              <span id="anomalyBadge" class="anomaly-badge">info</span>
+              <span id="anomalyType" class="anomaly-type"></span>
+            </div>
+            <p id="anomalyDescription"></p>
+            <p id="anomalyRecommendation" class="muted-line"></p>
+            <div id="anomalyAffectedList" class="anomaly-affected"></div>
           </article>
           <article id="errorCard" class="evidence-card error-card card-diagnostics" data-level="ok">
             <h3 data-i18n="evidence.executionDiagnostics">Execution Diagnostics</h3>
@@ -400,6 +502,74 @@
         </div>
         <div class="actions">
           <button id="btnAudit" class="btn" data-i18n="query.getAudit">Get Audit Record</button>
+        </div>
+      </section>
+
+      <section id="tab-crosschain" class="tab-panel panel hidden" role="tabpanel" aria-labelledby="tab-crosschain-btn">
+        <h2 data-i18n="crosschain.title">Cross-Chain Dashboard</h2>
+
+        <div class="crosschain-stats-grid">
+          <div class="crosschain-stat-card">
+            <p class="stat-value" id="bridgeStatsTotal">0</p>
+            <p class="stat-label" data-i18n="crosschain.bridgeTitle">Bridge Transfers</p>
+          </div>
+          <div class="crosschain-stat-card">
+            <p class="stat-value" id="bridgeStatsPending">0</p>
+            <p class="stat-label" data-i18n="crosschain.pending">Pending</p>
+          </div>
+          <div class="crosschain-stat-card">
+            <p class="stat-value" id="bridgeStatsCompleted">0</p>
+            <p class="stat-label" data-i18n="crosschain.completed">Completed</p>
+          </div>
+          <div class="crosschain-stat-card">
+            <p class="stat-value" id="icmStatsTotal">0</p>
+            <p class="stat-label" data-i18n="crosschain.icmTitle">ICM Messages</p>
+          </div>
+          <div class="crosschain-stat-card">
+            <p class="stat-value" id="icmStatsPending">0</p>
+            <p class="stat-label" data-i18n="crosschain.pending">Pending</p>
+          </div>
+        </div>
+
+        <h3 data-i18n="crosschain.bridgeTitle">Bridge Transfers</h3>
+        <table class="crosschain-table">
+          <thead>
+            <tr>
+              <th data-i18n="crosschain.direction">Direction</th>
+              <th data-i18n="crosschain.amount">Amount</th>
+              <th data-i18n="crosschain.status">Status</th>
+              <th data-i18n="crosschain.sourceTx">Source Tx</th>
+              <th data-i18n="crosschain.destTx">Dest Tx</th>
+            </tr>
+          </thead>
+          <tbody id="bridgeTransfersBody">
+            <tr><td colspan="5" class="empty-row empty-row-guided">
+              <span class="empty-icon">&#x21C6;</span>
+              <span data-i18n="crosschain.noTransfersGuide">Start a bridge transfer to see data here.</span>
+            </td></tr>
+          </tbody>
+        </table>
+
+        <h3 data-i18n="crosschain.icmTitle">ICM Messages</h3>
+        <table class="crosschain-table">
+          <thead>
+            <tr>
+              <th data-i18n="crosschain.type">Type</th>
+              <th data-i18n="crosschain.route">Route</th>
+              <th data-i18n="crosschain.status">Status</th>
+              <th data-i18n="crosschain.sender">Sender</th>
+            </tr>
+          </thead>
+          <tbody id="icmMessagesBody">
+            <tr><td colspan="4" class="empty-row empty-row-guided">
+              <span class="empty-icon">&#x21C6;</span>
+              <span data-i18n="crosschain.noMessagesGuide">Send an ICM message to see data here.</span>
+            </td></tr>
+          </tbody>
+        </table>
+
+        <div class="actions">
+          <button id="btnRefreshCrosschain" class="btn" data-i18n="crosschain.refresh">Refresh</button>
         </div>
       </section>
 

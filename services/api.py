@@ -4,21 +4,36 @@ from __future__ import annotations
 
 import os
 import uuid
-from typing import Callable
+from typing import Any, Callable
 
 from fastapi import Body, Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from fastapi.responses import JSONResponse
 
+import pandas as pd
+
+from services.baseline_engine import BaselineEngine
 from services.bridge import BridgeDirection, BridgeService
 from services.dto import (
+    AgentAnomalyRequest,
+    AgentInsightRequest,
+    AgentInsightResponse,
+    AgentStatusResponse,
+    AnomalyReport,
     AuditDTO,
+    BaselineCompareRequest,
+    BaselineCompareResponse,
+    BaselineMethodsResponse,
+    BaselineResultDTO,
+    BridgeStatsDTO,
     BridgeTransferCreateRequest,
     BridgeSourceSubmittedRequest,
     BridgeDestSubmittedRequest,
     BridgeSendTokensRequest,
     BridgeReceiveTokensRequest,
     BridgeTransferDTO,
+    DashboardSummaryDTO,
     ErrorEnvelope,
     EventCreateRequest,
     EventDTO,
@@ -28,14 +43,17 @@ from services.dto import (
     ICMFailedRequest,
     ICMProcessOnchainRequest,
     ICMMessageDTO,
+    ICMStatsDTO,
     JudgeSummaryDTO,
     ProofDTO,
     ProofSubmitRequest,
     SettleRequest,
     SettlementDTO,
 )
+from services.agent import AgentService
 from services.icm import ICMService, MessageType
 from services.submitter import ServiceError, SubmitterService
+from services.task_queue import InMemoryTaskQueue, TaskType
 
 
 def _cors_origins() -> list[str]:
@@ -53,8 +71,29 @@ def _role_map() -> dict[str, str]:
     }
 
 
+def _resolve_jwt_secret() -> str | None:
+    return os.getenv("DR_JWT_SECRET")
+
+
 def _require_role(*roles: str) -> Callable:
     async def dependency(request: Request) -> str:
+        # Try JWT Bearer token first
+        auth_header = request.headers.get("authorization", "")
+        if auth_header.lower().startswith("bearer "):
+            jwt_secret = _resolve_jwt_secret()
+            if not jwt_secret:
+                raise ServiceError(401, "UNAUTHORIZED", "JWT not configured")
+            from services.auth import decode_token
+            try:
+                payload = decode_token(auth_header[7:], jwt_secret)
+            except ValueError:
+                raise ServiceError(401, "UNAUTHORIZED", "invalid or expired token")
+            role = payload.role.value
+            if role not in roles:
+                raise ServiceError(403, "FORBIDDEN", "insufficient role")
+            return role
+
+        # Fall back to API key
         api_key = request.headers.get("x-api-key", "")
         role = _role_map().get(api_key)
         if role is None:
@@ -80,6 +119,14 @@ async def _bridge_service(request: Request) -> BridgeService:
 
 async def _icm_service(request: Request) -> ICMService:
     return request.app.state.icm
+
+
+async def _task_queue(request: Request):
+    return request.app.state.task_queue
+
+
+async def _agent_service(request: Request) -> AgentService:
+    return request.app.state.agent_service
 
 
 def _chain_mode() -> str:
@@ -171,6 +218,8 @@ def create_app(db_path: str | None = None) -> FastAPI:
     app.state.submitter = SubmitterService(db_path=db_path)
     app.state.bridge = BridgeService(db_path=db_path)
     app.state.icm = ICMService(db_path=db_path)
+    app.state.task_queue = InMemoryTaskQueue()
+    app.state.agent_service = AgentService()
     app.add_middleware(
         CORSMiddleware,
         allow_origins=_cors_origins(),
@@ -685,6 +734,142 @@ def create_app(db_path: str | None = None) -> FastAPI:
         if not message:
             raise ServiceError(404, "ICM_MESSAGE_NOT_FOUND", "icm message not found")
         return _icm_to_dto(message)
+
+    # ---------- Stats Endpoints ----------
+
+    @app.get("/v1/bridge/stats", response_model=BridgeStatsDTO)
+    async def get_bridge_stats(
+        _role: str = Depends(_require_role("operator", "auditor")),
+        svc: BridgeService = Depends(_bridge_service),
+    ):
+        return svc.get_stats()
+
+    @app.get("/v1/icm/stats", response_model=ICMStatsDTO)
+    async def get_icm_stats(
+        _role: str = Depends(_require_role("operator", "auditor")),
+        svc: ICMService = Depends(_icm_service),
+    ):
+        return svc.get_stats()
+
+    # ---------- Baseline Endpoints ----------
+
+    @app.get("/v1/baseline/methods", response_model=BaselineMethodsResponse)
+    async def get_baseline_methods(
+        _role: str = Depends(_require_role("operator", "participant", "auditor")),
+    ):
+        engine = BaselineEngine()
+        return BaselineMethodsResponse(methods=engine.available_methods())
+
+    @app.post("/v1/baseline/compare", response_model=BaselineCompareResponse)
+    async def compare_baselines(
+        payload: BaselineCompareRequest,
+        _role: str = Depends(_require_role("operator", "participant", "auditor")),
+    ):
+        if not payload.history:
+            raise ServiceError(422, "EMPTY_HISTORY", "history data is required")
+        df = pd.DataFrame(payload.history)
+        engine = BaselineEngine()
+        all_results = engine.compute_all(df, payload.event_hour)
+        result_dtos = [
+            BaselineResultDTO(
+                baseline_kwh=r.baseline_kwh,
+                method=r.method,
+                confidence=r.confidence,
+                details=r.details,
+            )
+            for r in all_results
+        ]
+        best = max(all_results, key=lambda r: r.confidence)
+        recommended = BaselineResultDTO(
+            baseline_kwh=best.baseline_kwh,
+            method=best.method,
+            confidence=best.confidence,
+            details=best.details,
+        )
+        return BaselineCompareResponse(results=result_dtos, recommended=recommended)
+
+    # ---------- Dashboard Summary ----------
+
+    @app.get("/v1/dashboard/summary", response_model=DashboardSummaryDTO)
+    async def get_dashboard_summary(
+        _role: str = Depends(_require_role("operator", "participant", "auditor")),
+        bridge_svc: BridgeService = Depends(_bridge_service),
+        icm_svc: ICMService = Depends(_icm_service),
+    ):
+        bridge_stats = bridge_svc.get_stats()
+        icm_stats = icm_svc.get_stats()
+        engine = BaselineEngine()
+        return DashboardSummaryDTO(
+            chain_mode=_chain_mode(),
+            bridge=BridgeStatsDTO(**bridge_stats),
+            icm=ICMStatsDTO(**icm_stats),
+            baseline_methods=engine.available_methods(),
+        )
+
+    # ---------- Task Queue Endpoints ----------
+
+    class TaskCreateRequest(BaseModel):
+        task_type: str
+        payload: dict[str, Any] = {}
+
+    @app.post("/v1/tasks")
+    async def create_task(
+        request: Request,
+        _role: str = Depends(_require_role("operator")),
+        queue=Depends(_task_queue),
+    ):
+        data = await request.json()
+        task_type_str = data.get("task_type", "")
+        payload = data.get("payload", {})
+        try:
+            tt = TaskType(task_type_str)
+        except ValueError:
+            raise ServiceError(422, "INVALID_TASK_TYPE", f"unknown task type: {task_type_str}")
+        task = queue.enqueue(tt, payload)
+        return task.to_dict()
+
+    @app.get("/v1/tasks/summary")
+    async def task_summary(
+        _role: str = Depends(_require_role("operator", "auditor")),
+        queue=Depends(_task_queue),
+    ):
+        return {"pending_count": queue.pending_count()}
+
+    @app.get("/v1/tasks/{task_id}")
+    async def get_task(
+        task_id: str,
+        _role: str = Depends(_require_role("operator", "auditor")),
+        queue=Depends(_task_queue),
+    ):
+        task = queue.get(task_id)
+        if task is None:
+            raise ServiceError(404, "TASK_NOT_FOUND", "task not found")
+        return task.to_dict()
+
+    # ---------- Agent Endpoints ----------
+
+    @app.post("/v1/agent/insight", response_model=AgentInsightResponse)
+    async def agent_insight(
+        payload: AgentInsightRequest,
+        _role: str = Depends(_require_role("operator", "participant", "auditor")),
+        svc: AgentService = Depends(_agent_service),
+    ):
+        return svc.generate_insight(payload)
+
+    @app.post("/v1/agent/anomaly", response_model=AnomalyReport)
+    async def agent_anomaly(
+        payload: AgentAnomalyRequest,
+        _role: str = Depends(_require_role("operator", "participant", "auditor")),
+        svc: AgentService = Depends(_agent_service),
+    ):
+        return svc.detect_anomaly(payload)
+
+    @app.get("/v1/agent/status", response_model=AgentStatusResponse)
+    async def agent_status(
+        _role: str = Depends(_require_role("operator", "participant", "auditor")),
+        svc: AgentService = Depends(_agent_service),
+    ):
+        return svc.get_status()
 
     return app
 

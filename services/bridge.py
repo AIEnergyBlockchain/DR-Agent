@@ -138,6 +138,22 @@ class BridgeService:
             return None
         return self._row_to_transfer(row)
 
+    def get_stats(self) -> dict:
+        row = self.conn.execute(
+            "SELECT COUNT(*) as total FROM bridge_transfers"
+        ).fetchone()
+        total = row["total"] if row else 0
+        row_p = self.conn.execute(
+            "SELECT COUNT(*) as cnt FROM bridge_transfers WHERE status != 'completed'"
+        ).fetchone()
+        pending = row_p["cnt"] if row_p else 0
+        completed = total - pending
+        return {
+            "total_transfers": total,
+            "pending_count": pending,
+            "completed_count": completed,
+        }
+
     def list_pending_transfers(self) -> list[BridgeTransfer]:
         rows = self.conn.execute(
             "SELECT * FROM bridge_transfers WHERE status != 'completed' ORDER BY created_at",
