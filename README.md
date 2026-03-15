@@ -62,8 +62,8 @@ DR has two persistent real-world pain points:
 - Proof submission: participants submit verifiable load-reduction proofs.
 - Automated settlement: smart contracts compute rewards/penalties.
 - Auditability: full lifecycle is replayable and verifiable.
-- Core enhancement: **Energy Oracle Layer** converts off-chain telemetry into on-chain verifiable proof
-  (`telemetry -> baseline inference -> confidence metadata -> proof hash anchoring`).
+- Core enhancement: **DR Attestation Protocol** converts off-chain telemetry into on-chain verifiable proof
+  (`telemetry -> baseline inference -> anomaly gate -> multi-party attestation -> proof hash anchoring`).
 
 One sentence:
 **DR Agent upgrades DR from "human-operated workflow" to "verifiable execution + automated settlement."**
@@ -116,7 +116,7 @@ One sentence:
 
 ### Our differentiation
 
-1. **Energy Oracle Layer**: baseline inference + confidence metadata + on-chain proof anchoring in one pipeline.
+1. **DR Attestation Protocol**: baseline inference + confidence-weighted settlement + challenge period + on-chain proof anchoring in one pipeline.
 2. **On-chain token settlement**: DRT (ERC-20) payout on claim — completing the settlement loop with real on-chain value transfer.
 3. **Cross-network token liquidity (optional)**: DRT can be bridged to external liquidity venues when needed.
 4. **AI load / compute flexibility scenarios**: extends DR from industrial loads to AI-era flexible compute demand.
