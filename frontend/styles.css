@@ -1472,51 +1472,131 @@ body[data-view="story"] #storyCrosschainSummary {
   display: none !important;
 }
 
-/* Story overlay buttons — shown only in story mode */
-.story-overlay-btns { display: none; gap: 10px; }
-body[data-view="story"] .story-overlay-btns {
+/* Story demo buttons — inline below mode strip */
+.story-demo-btns { display: none; gap: 8px; margin-top: 6px; }
+body[data-view="story"] .story-demo-btns {
   display: flex;
-  justify-content: center;
-  padding: 8px 14px;
+  align-items: center;
 }
-body[data-view="engineering"] .story-overlay-btns { display: none !important; }
+body[data-view="engineering"] .story-demo-btns { display: none !important; }
+.btn-demo {
+  font-size: 0.72rem;
+  padding: 3px 10px;
+  border: 1px solid var(--accent-orchid);
+  color: var(--accent-orchid);
+}
+.btn-demo:hover { background: rgba(143,109,255,0.15); }
+.btn-demo.is-active-demo {
+  background: rgba(143,109,255,0.22);
+  border-color: var(--accent-orchid);
+  box-shadow: 0 0 8px rgba(143,109,255,0.3);
+}
+.btn-demo-back { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+.btn-demo-back:hover { background: rgba(59,217,255,0.12); }
 
-/* Full-screen overlay for Cross-Chain / M2M in story mode */
-.story-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 900;
-  background: rgba(4, 10, 22, 0.92);
-  backdrop-filter: blur(12px);
+/* Inline demo panels (replace visual insights) */
+#inlineCrosschainDemo, #inlineM2mDemo {
+  animation: fadeIn 0.3s ease;
+}
+.inline-demo-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.cc-demo-visual-grid, .m2m-demo-visual-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.cc-demo-chart-card, .m2m-demo-chart-card {
+  background: rgba(10, 20, 40, 0.5);
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  padding: 12px;
+}
+.cc-demo-chart-card h3, .m2m-demo-chart-card h3 {
+  margin: 0 0 4px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+.cc-demo-flow-visual {
+  padding: 16px;
+  background: rgba(10, 20, 40, 0.4);
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+}
+.cc-flow-nodes {
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: fadeIn 0.25s ease;
+  gap: 12px;
 }
-.story-overlay.hidden { display: none; }
-.story-overlay-inner {
-  width: 90%;
-  max-width: 680px;
-  max-height: 85vh;
-  overflow-y: auto;
-  background: linear-gradient(160deg, rgba(18, 32, 58, 0.95), rgba(10, 18, 36, 0.95));
-  border: 1px solid var(--line-soft);
-  border-radius: 16px;
-  padding: 24px;
-}
-.story-overlay-head {
+.cc-flow-node {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   align-items: center;
-  margin-bottom: 16px;
+  gap: 4px;
+  padding: 12px 20px;
+  border-radius: 12px;
+  border: 1px solid var(--line-soft);
+  background: rgba(18, 35, 64, 0.7);
+  min-width: 100px;
+  text-align: center;
+  transition: border-color 0.3s, box-shadow 0.3s;
 }
-.story-overlay-head h2 { margin: 0; font-size: 1.1rem; }
-.story-overlay-close {
-  font-size: 1.5rem;
-  line-height: 1;
-  padding: 4px 10px;
-  border: none;
+.cc-flow-node.cc-node-active {
+  border-color: var(--accent-cyan);
+  box-shadow: var(--glow-cyan);
+}
+.cc-node-icon {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 1rem;
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-orchid));
+  color: #fff;
+}
+.cc-node-stat {
+  font-family: monospace;
+  font-size: 0.82rem;
+  color: var(--accent-cyan);
+}
+.cc-flow-arrow { flex-shrink: 0; }
+.cc-demo-event-log {
+  max-height: 120px;
+  overflow-y: auto;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(8, 16, 30, 0.6);
+  font-family: monospace;
+  font-size: 0.76rem;
+}
+.m2m-inline-devices { margin-top: 0; }
+
+/* Story KPI click feedback */
+.story-kpi {
   cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+.story-kpi:active {
+  transform: scale(0.96);
+}
+.story-kpi.kpi-highlight {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 12px rgba(59,217,255,0.3);
+}
+.story-kpi .kpi-detail-row {
+  margin-top: 4px;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: opacity 0.3s, max-height 0.3s;
+}
+.story-kpi.kpi-expanded .kpi-detail-row {
+  opacity: 1;
+  max-height: 40px;
 }
 
 body[data-view="story"] .judge-view .section-head-main p,

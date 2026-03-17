@@ -535,6 +535,7 @@ const I18N = {
     'crosschain.connecting': 'connecting...',
     'story.openCrosschain': 'Cross-Chain Demo',
     'story.openM2m': 'M2M Demo',
+    'story.backToFlow': 'Back to Flow',
     'story.crosschainStatus': 'Cross-Chain Status',
     'story.crosschainHint': 'Start a bridge transfer to see live cross-chain data here.',
     'visual.baselineMockHint': 'Submit proofs to compute real baseline values.',
@@ -906,6 +907,7 @@ const I18N = {
     'crosschain.connecting': '连接中...',
     'story.openCrosschain': '跨链演示',
     'story.openM2m': 'M2M 演示',
+    'story.backToFlow': '返回流程',
     'story.crosschainStatus': '跨链状态',
     'story.crosschainHint': '发起桥转账后，可在此查看实时跨链数据。',
     'visual.baselineMockHint': '提交证明后将计算真实基线值。',
@@ -3004,12 +3006,18 @@ function renderVisualInsights() {
   updatePayoutChart(payoutA, payoutB);
   renderSettlementFlow(payoutA, payoutB);
 
-  // Hide payout/settlement cards until settlement data exists
-  const hasAnyPayout = (payoutA !== null && payoutA !== 0) || (payoutB !== null && payoutB !== 0);
+  // Hide payout/settlement cards until step 4 (settle) is done
+  const ui = deriveUiState();
+  const showSettlementCards = ui.settleDone && ((payoutA !== null && payoutA !== 0) || (payoutB !== null && payoutB !== 0));
   const payoutCard = document.getElementById('visualPayoutCard');
   const flowCard = document.getElementById('visualSettlementFlowCard');
-  if (payoutCard) payoutCard.classList.toggle('hidden', !hasAnyPayout);
-  if (flowCard) flowCard.classList.toggle('hidden', !hasAnyPayout);
+  if (payoutCard) payoutCard.classList.toggle('hidden', !showSettlementCards);
+  if (flowCard) flowCard.classList.toggle('hidden', !showSettlementCards);
+
+  // If a demo mode is active, keep visual insights hidden
+  if (activeDemoMode) {
+    el.visualInsights.classList.add('hidden');
+  }
 }
 
 function renderTechnicalEvidence() {
@@ -3197,71 +3205,262 @@ function appendM2MLog(container, text) {
 
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
-/* ── Story overlay helpers ───────────────────────────────── */
-function openOverlay(id) {
-  const el = document.getElementById(id);
-  if (el) el.classList.remove('hidden');
-}
-function closeOverlay(id) {
-  const el = document.getElementById(id);
-  if (el) el.classList.add('hidden');
+/* ── Inline demo mode state ───────────────────────────────── */
+let activeDemoMode = null; // null | 'crosschain' | 'm2m'
+let ccBridgeChart = null;
+let ccIcmChart = null;
+let m2mDrtChart = null;
+let m2mKwhChart = null;
+
+function setDemoMode(mode) {
+  activeDemoMode = mode;
+  const ccPanel = document.getElementById('inlineCrosschainDemo');
+  const m2mPanel = document.getElementById('inlineM2mDemo');
+  const visPanel = document.getElementById('visualInsights');
+  const heroPanel = document.getElementById('storyHero');
+  const btnCc = document.getElementById('btnShowCrosschainDemo');
+  const btnM2m = document.getElementById('btnShowM2mDemo');
+  const btnBack = document.getElementById('btnBackToFlow');
+
+  if (ccPanel) ccPanel.classList.toggle('hidden', mode !== 'crosschain');
+  if (m2mPanel) m2mPanel.classList.toggle('hidden', mode !== 'm2m');
+  if (visPanel) visPanel.classList.toggle('hidden', mode !== null);
+  // Hide Mission Command (storyHero) when demo is active, keep agent insight
+  if (heroPanel) heroPanel.classList.toggle('hidden', mode !== null);
+
+  if (btnCc) btnCc.classList.toggle('is-active-demo', mode === 'crosschain');
+  if (btnM2m) btnM2m.classList.toggle('is-active-demo', mode === 'm2m');
+  if (btnCc) btnCc.classList.toggle('hidden', mode !== null && mode !== 'crosschain');
+  if (btnM2m) btnM2m.classList.toggle('hidden', mode !== null && mode !== 'm2m');
+  if (btnBack) btnBack.classList.toggle('hidden', mode === null);
+
+  if (mode === 'crosschain') ensureCcCharts();
+  if (mode === 'm2m') ensureM2mCharts();
+  // Re-show visual insights when returning to flow
+  if (mode === null) renderVisualInsights();
 }
 
-async function runOverlayCcDemo() {
-  const log = document.getElementById('overlayCcLog');
-  const statBridge = document.getElementById('overlayCcBridgeTotal');
-  const statPending = document.getElementById('overlayCcPending');
-  const statCompleted = document.getElementById('overlayCcCompleted');
-  const statIcm = document.getElementById('overlayCcIcmTotal');
+/* ── Cross-chain inline demo with charts ─────────────────── */
+function ensureCcCharts() {
+  const bridgeCanvas = document.getElementById('chartCcBridge');
+  const icmCanvas = document.getElementById('chartCcIcm');
+  if (!bridgeCanvas || !icmCanvas) return;
+  if (!ccBridgeChart) {
+    ccBridgeChart = new Chart(bridgeCanvas.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: [],
+        datasets: [
+          { label: 'Sent (DRT)', data: [], backgroundColor: 'rgba(59,217,255,0.7)', borderRadius: 4 },
+          { label: 'Received (DRT)', data: [], backgroundColor: 'rgba(67,243,155,0.7)', borderRadius: 4 },
+        ],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: '#8ea3c7', font: { size: 10 } } } },
+        scales: {
+          x: { ticks: { color: '#8ea3c7', font: { size: 10 } }, grid: { color: 'rgba(34,66,104,0.3)' } },
+          y: { ticks: { color: '#8ea3c7', font: { size: 10 } }, grid: { color: 'rgba(34,66,104,0.3)' }, beginAtZero: true },
+        },
+      },
+    });
+  }
+  if (!ccIcmChart) {
+    ccIcmChart = new Chart(icmCanvas.getContext('2d'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Delivered', 'Pending'],
+        datasets: [{ data: [0, 0], backgroundColor: ['rgba(67,243,155,0.8)', 'rgba(255,200,106,0.8)'], borderWidth: 0 }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, cutout: '55%',
+        plugins: { legend: { labels: { color: '#8ea3c7', font: { size: 10 } } } },
+      },
+    });
+  }
+}
+
+async function runInlineCcDemo() {
+  const log = document.getElementById('inlineCcLog');
+  const homeNode = document.getElementById('ccNodeHome');
+  const subnetNode = document.getElementById('ccNodeSubnet');
+  const homeStat = document.getElementById('ccHomeStat');
+  const subnetStat = document.getElementById('ccSubnetStat');
   if (!log) return;
   log.innerHTML = '';
-  let bridge = 0, pending = 0, completed = 0, icm = 0;
+  ensureCcCharts();
 
-  const events = [
-    { msg: 'Bridge: Home → Remote 500 DRT (initiated)', b: 1, p: 1 },
-    { msg: 'Bridge: Remote → Home 320 DRT (completed)', b: 1, c: 1 },
-    { msg: 'ICM: settlement — C-Chain → Subnet (delivered)', i: 1 },
-    { msg: 'ICM: proof-anchor — Subnet → C-Chain (pending)', i: 1, p2: 1 },
+  // Reset charts
+  if (ccBridgeChart) {
+    ccBridgeChart.data.labels = [];
+    ccBridgeChart.data.datasets[0].data = [];
+    ccBridgeChart.data.datasets[1].data = [];
+    ccBridgeChart.update('none');
+  }
+  if (ccIcmChart) {
+    ccIcmChart.data.datasets[0].data = [0, 0];
+    ccIcmChart.update('none');
+  }
+
+  let homeDrt = 10000, subnetDrt = 5000;
+  if (homeStat) homeStat.textContent = `${homeDrt} DRT`;
+  if (subnetStat) subnetStat.textContent = `${subnetDrt} DRT`;
+
+  const demoEvents = [
+    { msg: 'Bridge: Home → Remote 500 DRT (initiated)', sent: 500, recv: 0, icmD: 0, icmP: 0, from: 'home' },
+    { msg: 'Bridge: Remote → Home 320 DRT (completed)', sent: 0, recv: 320, icmD: 0, icmP: 0, from: 'subnet' },
+    { msg: 'ICM: settlement — C-Chain → Subnet (delivered)', sent: 200, recv: 0, icmD: 1, icmP: 0, from: 'home' },
+    { msg: 'Bridge: Home → Remote 180 DRT (completed)', sent: 180, recv: 0, icmD: 0, icmP: 0, from: 'home' },
+    { msg: 'ICM: proof-anchor — Subnet → C-Chain (pending)', sent: 0, recv: 150, icmD: 0, icmP: 1, from: 'subnet' },
+    { msg: 'Bridge: Remote → Home 420 DRT (completed)', sent: 0, recv: 420, icmD: 0, icmP: 0, from: 'subnet' },
   ];
-  for (const ev of events) {
-    await sleep(700);
-    bridge += ev.b || 0;
-    pending += ev.p || 0;
-    completed += ev.c || 0;
-    icm += ev.i || 0;
-    if (statBridge) statBridge.textContent = bridge;
-    if (statPending) statPending.textContent = pending;
-    if (statCompleted) statCompleted.textContent = completed;
-    if (statIcm) statIcm.textContent = icm;
+
+  let totalDelivered = 0, totalPending = 0;
+  for (let i = 0; i < demoEvents.length; i++) {
+    const ev = demoEvents[i];
+    await sleep(800);
+
+    // Animate node glow
+    if (ev.from === 'home' && homeNode) { homeNode.classList.add('cc-node-active'); }
+    if (ev.from === 'subnet' && subnetNode) { subnetNode.classList.add('cc-node-active'); }
+
+    // Update balances
+    homeDrt -= ev.sent; homeDrt += ev.recv;
+    subnetDrt += ev.sent; subnetDrt -= ev.recv;
+    if (homeStat) homeStat.textContent = `${homeDrt.toLocaleString()} DRT`;
+    if (subnetStat) subnetStat.textContent = `${subnetDrt.toLocaleString()} DRT`;
+
+    // Update bridge chart
+    if (ccBridgeChart && (ev.sent > 0 || ev.recv > 0)) {
+      ccBridgeChart.data.labels.push(`Tx ${i + 1}`);
+      ccBridgeChart.data.datasets[0].data.push(ev.sent);
+      ccBridgeChart.data.datasets[1].data.push(ev.recv);
+      ccBridgeChart.update('none');
+    }
+
+    // Update ICM chart
+    totalDelivered += ev.icmD;
+    totalPending += ev.icmP;
+    if (ccIcmChart && (ev.icmD > 0 || ev.icmP > 0)) {
+      ccIcmChart.data.datasets[0].data = [totalDelivered, totalPending];
+      ccIcmChart.update('none');
+    }
+
     appendM2MLog(log, ev.msg);
+
+    await sleep(200);
+    if (homeNode) homeNode.classList.remove('cc-node-active');
+    if (subnetNode) subnetNode.classList.remove('cc-node-active');
   }
   appendM2MLog(log, t('crosschain.demoComplete'));
 }
 
-async function runOverlayM2mDemo() {
-  const log = document.getElementById('overlayM2mLog');
-  const statusA = document.getElementById('overlayM2mStatusA');
-  const statusB = document.getElementById('overlayM2mStatusB');
-  const statusHub = document.getElementById('overlayM2mStatusHub');
+/* ── M2M inline demo with DRT/kWh charts ────────────────── */
+function ensureM2mCharts() {
+  const drtCanvas = document.getElementById('chartM2mDrt');
+  const kwhCanvas = document.getElementById('chartM2mKwh');
+  if (!drtCanvas || !kwhCanvas) return;
+  if (!m2mDrtChart) {
+    m2mDrtChart = new Chart(drtCanvas.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: ['Meter A', 'Meter B'],
+        datasets: [{ label: 'DRT Payout', data: [0, 0], backgroundColor: ['rgba(59,217,255,0.7)', 'rgba(143,109,255,0.7)'], borderRadius: 6 }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#8ea3c7', font: { size: 10 } }, grid: { color: 'rgba(34,66,104,0.3)' }, beginAtZero: true, title: { display: true, text: 'DRT', color: '#8ea3c7' } },
+          y: { ticks: { color: '#8ea3c7', font: { size: 11 } }, grid: { display: false } },
+        },
+      },
+    });
+  }
+  if (!m2mKwhChart) {
+    m2mKwhChart = new Chart(kwhCanvas.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: ['Meter A', 'Meter B'],
+        datasets: [
+          { label: 'Baseline (kWh)', data: [0, 0], backgroundColor: 'rgba(142,163,199,0.5)', borderRadius: 4 },
+          { label: 'Actual (kWh)', data: [0, 0], backgroundColor: 'rgba(67,243,155,0.7)', borderRadius: 4 },
+        ],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: '#8ea3c7', font: { size: 10 } } } },
+        scales: {
+          x: { ticks: { color: '#8ea3c7', font: { size: 11 } }, grid: { display: false } },
+          y: { ticks: { color: '#8ea3c7', font: { size: 10 } }, grid: { color: 'rgba(34,66,104,0.3)' }, beginAtZero: true, title: { display: true, text: 'kWh', color: '#8ea3c7' } },
+        },
+      },
+    });
+  }
+}
+
+async function runInlineM2mDemo() {
+  const log = document.getElementById('inlineM2mLog');
+  const statusA = document.getElementById('inlineM2mStatusA');
+  const statusB = document.getElementById('inlineM2mStatusB');
+  const statusHub = document.getElementById('inlineM2mStatusHub');
   if (!log) return;
   log.innerHTML = '';
-  let count = 0;
+  ensureM2mCharts();
 
-  for (const device of m2mDevices) {
+  // Reset charts
+  if (m2mDrtChart) { m2mDrtChart.data.datasets[0].data = [0, 0]; m2mDrtChart.update('none'); }
+  if (m2mKwhChart) {
+    m2mKwhChart.data.datasets[0].data = [0, 0];
+    m2mKwhChart.data.datasets[1].data = [0, 0];
+    m2mKwhChart.update('none');
+  }
+  // Reset statuses
+  [statusA, statusB, statusHub].forEach(s => { if (s) { s.textContent = 'idle'; s.className = 'm2m-device-status'; } });
+
+  let count = 0;
+  for (let i = 0; i < m2mDevices.length; i++) {
+    const device = m2mDevices[i];
     const statusEl = device.id === 'meter-a' ? statusA : statusB;
+
+    // Reading phase
     if (statusEl) { statusEl.textContent = 'reading'; statusEl.className = 'm2m-device-status active'; }
     appendM2MLog(log, t('m2m.reading', { value: device.baseline }));
-    await sleep(600);
+
+    // Update kWh chart with baseline
+    if (m2mKwhChart) {
+      m2mKwhChart.data.datasets[0].data[i] = device.baseline;
+      m2mKwhChart.update('none');
+    }
+    await sleep(700);
+
+    // Show actual reading
+    const actual = device.baseline - device.reduction;
+    if (m2mKwhChart) {
+      m2mKwhChart.data.datasets[1].data[i] = actual;
+      m2mKwhChart.update('none');
+    }
+
+    // Settling phase
     if (statusHub) { statusHub.textContent = 'settling'; statusHub.className = 'm2m-device-status active'; }
     if (statusEl) { statusEl.textContent = 'settling'; }
     appendM2MLog(log, t('m2m.settling', { device: device.label }));
-    await sleep(800);
+    await sleep(900);
+
+    // Settled
     const payout = Math.round(device.reduction * 50);
     if (statusEl) { statusEl.textContent = 'settled'; statusEl.className = 'm2m-device-status done'; }
     appendM2MLog(log, t('m2m.settled', { device: device.label, payout }));
+
+    // Update DRT chart
+    if (m2mDrtChart) {
+      m2mDrtChart.data.datasets[0].data[i] = payout;
+      m2mDrtChart.update('none');
+    }
     count++;
-    await sleep(400);
+    await sleep(500);
   }
+
   if (statusHub) { statusHub.textContent = 'done'; statusHub.className = 'm2m-device-status done'; }
   appendM2MLog(log, t('m2m.complete', { count }));
 }
@@ -3549,6 +3748,13 @@ function renderAll() {
   applyCameraMode(ui);
   renderTechnicalEvidence();
   renderCrosschainTab();
+
+  // Keep demo mode state consistent after renderAll re-renders
+  if (activeDemoMode) {
+    const heroPanel = document.getElementById('storyHero');
+    if (heroPanel) heroPanel.classList.add('hidden');
+    if (el.visualInsights) el.visualInsights.classList.add('hidden');
+  }
 
   // Celebration / error effects
   if (ui.currentStep === 'completed' && prevStep !== 'completed') {
@@ -4402,31 +4608,59 @@ if (el.btnRefreshCrosschain) {
   const btnM2m = document.getElementById('btnM2mDemo');
   if (btnM2m) btnM2m.addEventListener('click', animateM2MSettlement);
 
-  // P2-8: KPI card flip on click
+  // P2-8: KPI card flip on click (engineering mode)
   document.querySelectorAll('.kpi-flip-container').forEach((card) => {
     card.addEventListener('click', () => card.classList.toggle('is-flipped'));
   });
 
-  // Story overlay buttons
-  const btnOpenCc = document.getElementById('btnOpenCrosschainOverlay');
-  const btnOpenM2m = document.getElementById('btnOpenM2mOverlay');
-  if (btnOpenCc) btnOpenCc.addEventListener('click', () => openOverlay('overlayCrosschain'));
-  if (btnOpenM2m) btnOpenM2m.addEventListener('click', () => openOverlay('overlayM2m'));
-
-  document.querySelectorAll('.story-overlay-close').forEach((btn) => {
-    btn.addEventListener('click', () => closeOverlay(btn.dataset.overlay));
+  // Story mode KPI card click — expand detail + highlight
+  document.querySelectorAll('.story-kpi[data-kpi]').forEach((card) => {
+    card.addEventListener('click', () => {
+      const wasExpanded = card.classList.contains('kpi-expanded');
+      // Close all others first
+      document.querySelectorAll('.story-kpi.kpi-expanded').forEach((c) => {
+        c.classList.remove('kpi-expanded', 'kpi-highlight');
+      });
+      if (!wasExpanded) {
+        card.classList.add('kpi-expanded', 'kpi-highlight');
+        // Update detail text based on current state
+        const kpiType = card.dataset.kpi;
+        const detailEl = card.querySelector('.kpi-detail-row');
+        if (detailEl && kpiType === 'energy') {
+          const reduction = getTotalReductionKwh();
+          detailEl.textContent = reduction > 0 ? `Total reduction: ${reduction} kWh` : 'No proof data yet';
+        } else if (detailEl && kpiType === 'payout') {
+          const ui = deriveUiState();
+          detailEl.textContent = ui.totalPayout > 0 ? `Settled: ${ui.totalPayout} DRT` : 'Awaiting settlement';
+        } else if (detailEl && kpiType === 'audit') {
+          detailEl.textContent = state.audit ? 'Hash verification complete' : 'Audit not yet requested';
+        }
+        // Auto-close after 3 seconds
+        setTimeout(() => card.classList.remove('kpi-expanded', 'kpi-highlight'), 3000);
+      }
+    });
   });
 
-  const btnOverlayCcDemo = document.getElementById('btnOverlayCcDemo');
-  const btnOverlayM2mDemo = document.getElementById('btnOverlayM2mDemo');
-  if (btnOverlayCcDemo) btnOverlayCcDemo.addEventListener('click', runOverlayCcDemo);
-  if (btnOverlayM2mDemo) btnOverlayM2mDemo.addEventListener('click', runOverlayM2mDemo);
+  // Inline demo buttons (replacing old overlay approach)
+  const btnShowCc = document.getElementById('btnShowCrosschainDemo');
+  const btnShowM2m = document.getElementById('btnShowM2mDemo');
+  const btnBackToFlow = document.getElementById('btnBackToFlow');
+  const btnInlineCcDemo = document.getElementById('btnInlineCcDemo');
+  const btnInlineM2mDemo = document.getElementById('btnInlineM2mDemo');
 
-  // Close overlays on Escape key
+  if (btnShowCc) btnShowCc.addEventListener('click', () => {
+    setDemoMode(activeDemoMode === 'crosschain' ? null : 'crosschain');
+  });
+  if (btnShowM2m) btnShowM2m.addEventListener('click', () => {
+    setDemoMode(activeDemoMode === 'm2m' ? null : 'm2m');
+  });
+  if (btnBackToFlow) btnBackToFlow.addEventListener('click', () => setDemoMode(null));
+  if (btnInlineCcDemo) btnInlineCcDemo.addEventListener('click', runInlineCcDemo);
+  if (btnInlineM2mDemo) btnInlineM2mDemo.addEventListener('click', runInlineM2mDemo);
+
+  // Escape key returns to flow from demo mode
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      document.querySelectorAll('.story-overlay:not(.hidden)').forEach((o) => o.classList.add('hidden'));
-    }
+    if (e.key === 'Escape' && activeDemoMode) setDemoMode(null);
   });
 }
 

@@ -75,6 +75,11 @@
           </div>
         </div>
         <p id="modeHint" class="hint mode-hint" data-i18n="mode.hint.story">Story Mode focuses on one next action and business impact.</p>
+        <div id="storyDemoBtns" class="story-demo-btns">
+          <button id="btnShowCrosschainDemo" class="btn btn-demo" data-i18n="story.openCrosschain">Cross-Chain Demo</button>
+          <button id="btnShowM2mDemo" class="btn btn-demo" data-i18n="story.openM2m">M2M Demo</button>
+          <button id="btnBackToFlow" class="btn btn-demo btn-demo-back hidden" data-i18n="story.backToFlow">Back to Flow</button>
+        </div>
       </section>
 
       <section id="storyHero" class="panel action-hero reveal" style="--delay: 0.06s">
@@ -89,23 +94,26 @@
           </div>
         </div>
         <div class="story-kpi-row">
-          <article class="story-kpi">
+          <article class="story-kpi" data-kpi="energy">
             <p class="label" data-i18n="story.energyReduction">Energy Reduction</p>
             <p id="storyEnergy" class="value">-- kWh</p>
+            <p class="kpi-detail-row" id="storyEnergyDetail">baseline vs actual</p>
           </article>
-          <article class="story-kpi">
+          <article class="story-kpi" data-kpi="payout">
             <p class="label" data-i18n="story.totalPayout">Total Payout</p>
             <p id="storyPayout" class="value">0 DRT</p>
+            <p class="kpi-detail-row" id="storyPayoutDetail">reduction x rate x confidence</p>
           </article>
-          <article class="story-kpi">
+          <article class="story-kpi" data-kpi="audit">
             <p class="label" data-i18n="story.auditConfidence">Audit Confidence</p>
             <p id="storyAudit" class="value">Pending</p>
             <p class="kpi-subvalue">
               <span class="kpi-subvalue-label" data-i18n="story.challengeStatus">Challenge Status</span>
               <span id="storyChallenge" class="status-chip status-chip--mini pending">pending</span>
             </p>
+            <p class="kpi-detail-row" id="storyAuditDetail">hash match verification</p>
           </article>
-          <article class="story-kpi story-insight">
+          <article class="story-kpi story-insight" data-kpi="insight">
             <p class="label" data-i18n="story.agentThinking">Agent Thinking</p>
             <p id="storyInsight" class="value">Waiting for mission data.</p>
           </article>
@@ -170,65 +178,100 @@
         <p class="hint story-cc-hint" id="storyCcHint" data-i18n="story.crosschainHint">Start a bridge transfer to see live cross-chain data here.</p>
       </section>
 
-      <!-- Story mode: overlay entry buttons for Cross-Chain / M2M -->
-      <section id="storyOverlayBtns" class="panel story-overlay-btns reveal" style="--delay: 0.065s">
-        <button id="btnOpenCrosschainOverlay" class="btn" data-i18n="story.openCrosschain">Cross-Chain Demo</button>
-        <button id="btnOpenM2mOverlay" class="btn" data-i18n="story.openM2m">M2M Demo</button>
-      </section>
+      <!-- Story mode: inline demo buttons for Cross-Chain / M2M (below mode strip) -->
+      <!-- Moved here: buttons are now below mode toggle, demos render inline replacing visual insights -->
 
-      <!-- Overlay panels -->
-      <div id="overlayCrosschain" class="story-overlay hidden" role="dialog" aria-label="Cross-Chain Demo">
-        <div class="story-overlay-inner">
-          <div class="story-overlay-head">
+      <!-- Inline Cross-Chain Demo (replaces visual insights when active) -->
+      <section id="inlineCrosschainDemo" class="panel visual-insights hidden reveal" style="--delay: 0.07s">
+        <div class="section-head">
+          <div class="section-head-main">
             <h2 data-i18n="crosschain.title">Cross-Chain Dashboard</h2>
-            <button class="btn btn-ghost story-overlay-close" data-overlay="overlayCrosschain" aria-label="Close">&times;</button>
           </div>
-          <div class="crosschain-stats-grid">
-            <div class="crosschain-stat-card"><p class="stat-value" id="overlayCcBridgeTotal">0</p><p class="stat-label" data-i18n="crosschain.bridgeTitle">Bridge Transfers</p></div>
-            <div class="crosschain-stat-card"><p class="stat-value" id="overlayCcPending">0</p><p class="stat-label" data-i18n="crosschain.pending">Pending</p></div>
-            <div class="crosschain-stat-card"><p class="stat-value" id="overlayCcCompleted">0</p><p class="stat-label" data-i18n="crosschain.completed">Completed</p></div>
-            <div class="crosschain-stat-card"><p class="stat-value" id="overlayCcIcmTotal">0</p><p class="stat-label" data-i18n="crosschain.icmTitle">ICM Messages</p></div>
+        </div>
+        <div class="inline-demo-content">
+          <div class="cc-demo-visual-grid">
+            <div class="cc-demo-chart-card">
+              <h3 data-i18n="crosschain.bridgeTitle">Bridge Transfers</h3>
+              <div class="chart-wrap"><canvas id="chartCcBridge"></canvas></div>
+            </div>
+            <div class="cc-demo-chart-card">
+              <h3 data-i18n="crosschain.icmTitle">ICM Messages</h3>
+              <div class="chart-wrap"><canvas id="chartCcIcm"></canvas></div>
+            </div>
           </div>
-          <div class="m2m-settlement-log" id="overlayCcLog">
+          <div class="cc-demo-flow-visual">
+            <div class="cc-flow-nodes">
+              <div class="cc-flow-node cc-node-home" id="ccNodeHome">
+                <div class="cc-node-icon">C</div>
+                <span>C-Chain</span>
+                <span class="cc-node-stat" id="ccHomeStat">0 DRT</span>
+              </div>
+              <div class="cc-flow-arrow">
+                <svg width="120" height="40" viewBox="0 0 120 40">
+                  <defs><marker id="arrowCc" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="rgba(59,217,255,0.8)"/></marker></defs>
+                  <line x1="5" y1="15" x2="110" y2="15" stroke="rgba(59,217,255,0.5)" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrowCc)"/>
+                  <line x1="110" y1="25" x2="5" y2="25" stroke="rgba(67,243,155,0.5)" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrowCc)"/>
+                </svg>
+              </div>
+              <div class="cc-flow-node cc-node-subnet" id="ccNodeSubnet">
+                <div class="cc-node-icon">S</div>
+                <span>Subnet</span>
+                <span class="cc-node-stat" id="ccSubnetStat">0 DRT</span>
+              </div>
+            </div>
+          </div>
+          <div class="cc-demo-event-log" id="inlineCcLog">
             <p class="hint" data-i18n="crosschain.noTransfersGuide">Start a bridge transfer to see data here.</p>
           </div>
           <div class="actions">
-            <button id="btnOverlayCcDemo" class="btn" data-i18n="crosschain.runDemo">Run Demo</button>
+            <button id="btnInlineCcDemo" class="btn" data-i18n="crosschain.runDemo">Run Demo</button>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div id="overlayM2m" class="story-overlay hidden" role="dialog" aria-label="M2M Demo">
-        <div class="story-overlay-inner">
-          <div class="story-overlay-head">
+      <!-- Inline M2M Demo (replaces visual insights when active) -->
+      <section id="inlineM2mDemo" class="panel visual-insights hidden reveal" style="--delay: 0.07s">
+        <div class="section-head">
+          <div class="section-head-main">
             <h2 data-i18n="m2m.title">M2M Auto-Settlement</h2>
-            <button class="btn btn-ghost story-overlay-close" data-overlay="overlayM2m" aria-label="Close">&times;</button>
           </div>
-          <div class="m2m-device-grid">
+        </div>
+        <div class="inline-demo-content">
+          <div class="m2m-demo-visual-grid">
+            <div class="m2m-demo-chart-card">
+              <h3>DRT Settlement</h3>
+              <div class="chart-wrap"><canvas id="chartM2mDrt"></canvas></div>
+            </div>
+            <div class="m2m-demo-chart-card">
+              <h3>kWh Readings</h3>
+              <div class="chart-wrap"><canvas id="chartM2mKwh"></canvas></div>
+            </div>
+          </div>
+          <div class="m2m-device-grid m2m-inline-devices">
             <div class="m2m-device" data-device="meter-a">
               <div class="m2m-device-icon">&#x26A1;</div>
               <span class="m2m-device-label">Meter A</span>
-              <span class="m2m-device-status" id="overlayM2mStatusA">idle</span>
+              <span class="m2m-device-status" id="inlineM2mStatusA">idle</span>
             </div>
             <div class="m2m-device m2m-device-hub">
               <div class="m2m-device-icon">&#x2699;</div>
               <span class="m2m-device-label" data-i18n="m2m.aggregator">Aggregator</span>
-              <span class="m2m-device-status" id="overlayM2mStatusHub">idle</span>
+              <span class="m2m-device-status" id="inlineM2mStatusHub">idle</span>
             </div>
             <div class="m2m-device" data-device="meter-b">
               <div class="m2m-device-icon">&#x26A1;</div>
               <span class="m2m-device-label">Meter B</span>
-              <span class="m2m-device-status" id="overlayM2mStatusB">idle</span>
+              <span class="m2m-device-status" id="inlineM2mStatusB">idle</span>
             </div>
           </div>
-          <div class="m2m-settlement-log" id="overlayM2mLog">
+          <div class="m2m-settlement-log" id="inlineM2mLog">
             <p class="hint" data-i18n="m2m.logEmpty">Run the M2M demo to see auto-settlement events.</p>
           </div>
           <div class="actions">
-            <button id="btnOverlayM2mDemo" class="btn" data-i18n="m2m.runDemo">Run M2M Demo</button>
+            <button id="btnInlineM2mDemo" class="btn" data-i18n="m2m.runDemo">Run M2M Demo</button>
           </div>
         </div>
-      </div>
+      </section>
 
       <section id="visualInsights" class="panel visual-insights hidden reveal" style="--delay: 0.07s">
         <div class="section-head">
