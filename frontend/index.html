@@ -184,6 +184,7 @@
         <div id="visualGrid" class="visual-grid hidden">
           <article id="visualComparisonCard" class="visual-card">
             <h3 data-i18n="visual.comparisonTitle">Submitted vs Baseline</h3>
+            <div class="chart-wrap"><canvas id="chartComparison"></canvas></div>
 
             <div class="visual-site-row">
               <div class="visual-site-head">
@@ -227,6 +228,7 @@
               <span id="visualConfidenceWeight" class="mono">--</span>
               <span id="visualConfidenceMethod" class="payout-meta-method">method: --</span>
             </div>
+            <div class="chart-wrap chart-wrap-sm"><canvas id="chartPayout"></canvas></div>
             <div class="payout-row">
               <span data-i18n="label.participantA">Participant A</span>
               <div class="payout-track"><div id="visPayoutSiteABar" class="payout-fill zero"></div></div>
@@ -237,6 +239,11 @@
               <div class="payout-track"><div id="visPayoutSiteBBar" class="payout-fill zero"></div></div>
               <span id="visPayoutSiteBValue" class="mono">--</span>
             </div>
+          </article>
+
+          <article id="visualSettlementFlowCard" class="visual-card">
+            <h3 data-i18n="visual.settlementFlowTitle">Settlement Flow</h3>
+            <div class="chart-wrap"><canvas id="chartSettlementFlow"></canvas></div>
           </article>
 
           <article id="visualBaselineCard" class="visual-card">
@@ -631,6 +638,7 @@
       </section>
     </main>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
     <script src="./app.js"></script>
   </body>
 </html>

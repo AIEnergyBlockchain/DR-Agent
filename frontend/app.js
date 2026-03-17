@@ -216,6 +216,9 @@ const I18N = {
     'visual.actual': 'Actual',
     'visual.pending': 'Pending',
     'visual.reduction': 'Reduction',
+    'visual.settlementFlowTitle': 'Settlement Flow',
+    'visual.settlementPool': 'Settlement Pool',
+    'visual.remaining': 'Remaining',
     'action.next': 'Execute Next Step',
     'action.runAll': 'Auto Run Full Flow',
     'builder.mode': 'Builder Mode',
@@ -569,6 +572,9 @@ const I18N = {
     'visual.actual': '实际',
     'visual.pending': '待产生',
     'visual.reduction': '降幅',
+    'visual.settlementFlowTitle': '结算流向',
+    'visual.settlementPool': '结算池',
+    'visual.remaining': '剩余',
     'action.next': '执行下一步',
     'action.runAll': '自动跑完整流程',
     'builder.mode': '构建模式',
@@ -2617,6 +2623,222 @@ function setPayoutBarState(node, stateName) {
   node.classList.add(stateName);
 }
 
+/* ── Chart.js instances (lazy init) ───────────────────────── */
+const charts = { comparison: null, payout: null, settlementFlow: null };
+const CHART_CYAN = 'rgba(59, 217, 255, 0.85)';
+const CHART_CYAN_BG = 'rgba(59, 217, 255, 0.15)';
+const CHART_LIME = 'rgba(67, 243, 155, 0.85)';
+const CHART_LIME_BG = 'rgba(67, 243, 155, 0.15)';
+const CHART_PURPLE = 'rgba(143, 109, 255, 0.85)';
+const CHART_PURPLE_BG = 'rgba(143, 109, 255, 0.15)';
+const CHART_RED = 'rgba(255, 93, 122, 0.85)';
+const CHART_GRID = 'rgba(255,255,255,0.06)';
+const CHART_TEXT = 'rgba(142,163,199,0.8)';
+
+function chartDefaults() {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: { duration: 600, easing: 'easeOutQuart' },
+    plugins: { legend: { labels: { color: CHART_TEXT, font: { size: 11 } } } },
+    scales: {
+      x: { ticks: { color: CHART_TEXT }, grid: { color: CHART_GRID } },
+      y: { ticks: { color: CHART_TEXT }, grid: { color: CHART_GRID } },
+    },
+  };
+}
+
+function ensureComparisonChart() {
+  if (charts.comparison || typeof Chart === 'undefined') return;
+  const canvas = document.getElementById('chartComparison');
+  if (!canvas) return;
+  charts.comparison = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: ['Site A', 'Site B'],
+      datasets: [
+        { label: t('visual.baseline'), data: [0, 0], backgroundColor: CHART_CYAN_BG, borderColor: CHART_CYAN, borderWidth: 1.5 },
+        { label: t('visual.actual'), data: [0, 0], backgroundColor: CHART_LIME_BG, borderColor: CHART_LIME, borderWidth: 1.5 },
+      ],
+    },
+    options: {
+      ...chartDefaults(),
+      plugins: {
+        ...chartDefaults().plugins,
+        title: { display: false },
+      },
+      scales: {
+        ...chartDefaults().scales,
+        y: { ...chartDefaults().scales.y, beginAtZero: true, title: { display: true, text: 'kWh', color: CHART_TEXT } },
+      },
+    },
+  });
+}
+
+function ensurePayoutChart() {
+  if (charts.payout || typeof Chart === 'undefined') return;
+  const canvas = document.getElementById('chartPayout');
+  if (!canvas) return;
+  charts.payout = new Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      labels: ['Site A', 'Site B'],
+      datasets: [{
+        data: [0, 0],
+        backgroundColor: [CHART_CYAN_BG, CHART_PURPLE_BG],
+        borderColor: [CHART_CYAN, CHART_PURPLE],
+        borderWidth: 1.5,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 600, easing: 'easeOutQuart' },
+      cutout: '55%',
+      plugins: {
+        legend: { position: 'bottom', labels: { color: CHART_TEXT, font: { size: 11 }, padding: 12 } },
+      },
+    },
+  });
+}
+
+function ensureSettlementFlowChart() {
+  if (charts.settlementFlow || typeof Chart === 'undefined') return;
+  const canvas = document.getElementById('chartSettlementFlow');
+  if (!canvas) return;
+  charts.settlementFlow = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: ['Settlement Pool', 'Site A', 'Site B', 'Remaining'],
+      datasets: [{
+        label: 'DRT Flow',
+        data: [0, 0, 0, 0],
+        backgroundColor: [CHART_PURPLE_BG, CHART_CYAN_BG, CHART_LIME_BG, 'rgba(255,255,255,0.05)'],
+        borderColor: [CHART_PURPLE, CHART_CYAN, CHART_LIME, 'rgba(255,255,255,0.15)'],
+        borderWidth: 1.5,
+      }],
+    },
+    options: {
+      ...chartDefaults(),
+      indexAxis: 'y',
+      plugins: {
+        ...chartDefaults().plugins,
+        legend: { display: false },
+        title: { display: false },
+      },
+      scales: {
+        x: { ...chartDefaults().scales.x, beginAtZero: true, title: { display: true, text: 'DRT', color: CHART_TEXT } },
+        y: { ...chartDefaults().scales.y, grid: { display: false } },
+      },
+    },
+  });
+}
+
+function updateComparisonChart(proofA, proofB) {
+  ensureComparisonChart();
+  if (!charts.comparison) return;
+  const bA = Number(proofA?.baseline_kwh || 0);
+  const aA = Number(proofA?.actual_kwh || 0);
+  const bB = Number(proofB?.baseline_kwh || 0);
+  const aB = Number(proofB?.actual_kwh || 0);
+  charts.comparison.data.datasets[0].data = [bA, bB];
+  charts.comparison.data.datasets[1].data = [aA, aB];
+  charts.comparison.update();
+}
+
+function updatePayoutChart(payoutA, payoutB) {
+  ensurePayoutChart();
+  if (!charts.payout) return;
+  const a = Math.max(0, payoutA || 0);
+  const b = Math.max(0, payoutB || 0);
+  charts.payout.data.datasets[0].data = [a, b];
+  if (a === 0 && b === 0) {
+    charts.payout.data.datasets[0].data = [1, 1];
+    charts.payout.data.datasets[0].backgroundColor = ['rgba(255,255,255,0.04)', 'rgba(255,255,255,0.04)'];
+  } else {
+    charts.payout.data.datasets[0].backgroundColor = [CHART_CYAN_BG, CHART_PURPLE_BG];
+  }
+  charts.payout.update();
+}
+
+function renderSettlementFlow(payoutA, payoutB) {
+  ensureSettlementFlowChart();
+  if (!charts.settlementFlow) return;
+  const totalPool = 1000000;
+  const pA = Math.max(0, payoutA || 0);
+  const pB = Math.max(0, payoutB || 0);
+  const remaining = Math.max(0, totalPool - pA - pB);
+  charts.settlementFlow.data.datasets[0].data = [totalPool, pA, pB, remaining];
+  charts.settlementFlow.data.labels = [
+    t('visual.settlementPool') || 'Settlement Pool',
+    'Site A',
+    'Site B',
+    t('visual.remaining') || 'Remaining',
+  ];
+  charts.settlementFlow.update();
+}
+
+/* ── Success / failure effects ───────────────────────────── */
+function launchConfetti() {
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reducedMotion) return;
+  const canvas = document.createElement('canvas');
+  canvas.className = 'confetti-canvas';
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  const particles = [];
+  const colors = [CHART_CYAN, CHART_LIME, CHART_PURPLE, '#ffd700', '#ff6b9d'];
+  for (let i = 0; i < 80; i++) {
+    particles.push({
+      x: canvas.width * 0.5 + (Math.random() - 0.5) * 200,
+      y: canvas.height * 0.4,
+      vx: (Math.random() - 0.5) * 12,
+      vy: -Math.random() * 14 - 4,
+      size: Math.random() * 6 + 3,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      rotation: Math.random() * 360,
+      rotationSpeed: (Math.random() - 0.5) * 10,
+      gravity: 0.25,
+      alpha: 1,
+    });
+  }
+  let frame = 0;
+  function tick() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    let alive = false;
+    for (const p of particles) {
+      p.x += p.vx;
+      p.vy += p.gravity;
+      p.y += p.vy;
+      p.rotation += p.rotationSpeed;
+      p.alpha = Math.max(0, p.alpha - 0.008);
+      if (p.alpha <= 0) continue;
+      alive = true;
+      ctx.save();
+      ctx.globalAlpha = p.alpha;
+      ctx.translate(p.x, p.y);
+      ctx.rotate((p.rotation * Math.PI) / 180);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+      ctx.restore();
+    }
+    frame++;
+    if (alive && frame < 180) requestAnimationFrame(tick);
+    else canvas.remove();
+  }
+  requestAnimationFrame(tick);
+}
+
+function showErrorRipple(element) {
+  if (!element) return;
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reducedMotion) return;
+  element.classList.add('error-ripple');
+  element.addEventListener('animationend', () => element.classList.remove('error-ripple'), { once: true });
+}
+
 function renderVisualInsights() {
   if (!el.visualInsights || !el.visualGrid || !el.visualEmpty) return;
 
@@ -2724,6 +2946,11 @@ function renderVisualInsights() {
 
   renderPayout(el.visPayoutSiteABar, el.visPayoutSiteAValue, payoutA);
   renderPayout(el.visPayoutSiteBBar, el.visPayoutSiteBValue, payoutB);
+
+  // Chart.js updates
+  updateComparisonChart(proofA, proofB);
+  updatePayoutChart(payoutA, payoutB);
+  renderSettlementFlow(payoutA, payoutB);
 }
 
 function renderTechnicalEvidence() {
@@ -3049,6 +3276,7 @@ async function refreshCrosschainData() {
 }
 
 function renderAll() {
+  const prevStep = renderAll._lastStep || null;
   const ui = deriveUiState();
   renderStaticI18n();
   renderViewMode();
@@ -3066,6 +3294,16 @@ function renderAll() {
   applyCameraMode(ui);
   renderTechnicalEvidence();
   renderCrosschainTab();
+
+  // Celebration / error effects
+  if (ui.currentStep === 'completed' && prevStep !== 'completed') {
+    launchConfetti();
+  }
+  if (state.lastError && !renderAll._lastHadError) {
+    showErrorRipple(el.errorCard);
+  }
+  renderAll._lastStep = ui.currentStep;
+  renderAll._lastHadError = !!state.lastError;
 }
 
 function localizeLogLabel(label) {
