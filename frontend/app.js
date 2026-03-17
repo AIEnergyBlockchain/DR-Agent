@@ -1175,6 +1175,35 @@ function formatSignedPayout(value) {
   return `0 DRT`;
 }
 
+/* ── countUp animation ──────────────────────────────────── */
+function animateValue(element, toValue, suffix, duration) {
+  if (!element) return;
+  if (typeof toValue !== 'number' || Number.isNaN(toValue)) {
+    element.textContent = suffix ? `- ${suffix}` : '-';
+    return;
+  }
+  const fromValue = parseFloat((element._lastAnimatedValue ?? 0).toString()) || 0;
+  if (fromValue === toValue) return;
+  element._lastAnimatedValue = toValue;
+  const startTime = performance.now();
+  const locale = state.lang === 'zh' ? 'zh-CN' : 'en-US';
+  const isInt = Number.isInteger(toValue) && Number.isInteger(fromValue);
+
+  function tick(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    // easeOutExpo
+    const eased = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+    const current = fromValue + (toValue - fromValue) * eased;
+    const display = isInt ? Math.round(current) : parseFloat(current.toFixed(1));
+    element.textContent = suffix
+      ? `${display.toLocaleString(locale)} ${suffix}`
+      : display.toLocaleString(locale);
+    if (progress < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
 function shortHash(value) {
   if (!value || typeof value !== 'string') return '-';
   if (value.length < 20) return value;
@@ -2348,7 +2377,7 @@ function renderKpiGrid(ui) {
         participants: requiredParticipantLabel || `${t('label.participantA')} and ${t('label.participantB')}`,
       });
 
-  setTextWithPulse(el.kpiPayout, formatPayout(totalPayout));
+  animateValue(el.kpiPayout, totalPayout, 'DRT', 600);
   el.kpiPayoutHint.textContent = ui.settleDone
     ? t('hint.payoutSum')
     : t('hint.payoutAfterSettlement');
@@ -2365,7 +2394,11 @@ function renderKpiGrid(ui) {
       ? t('hint.auditPass')
       : t('hint.auditMismatch')} · ${challengeLabel}`;
 
-  setTextWithPulse(el.kpiLatency, state.lastLatencyMs == null ? '-- ms' : `${Math.round(state.lastLatencyMs)} ms`);
+  if (state.lastLatencyMs == null) {
+    setTextWithPulse(el.kpiLatency, '-- ms');
+  } else {
+    animateValue(el.kpiLatency, Math.round(state.lastLatencyMs), 'ms', 400);
+  }
   el.kpiLatencyHint.textContent = t('hint.apiRoundTrip');
 
   const statusState = state.stepErrors.create
@@ -2531,8 +2564,8 @@ function renderStoryHero(ui) {
   setTruncatedText(el.heroTitle, heroTitle, HERO_TITLE_MAX_CHARS);
   setTruncatedText(el.heroSubtitle, heroSubtitle, HERO_SUBTITLE_MAX_CHARS);
 
-  if (el.storyEnergy) el.storyEnergy.textContent = formatKwh(totalReduction);
-  if (el.storyPayout) el.storyPayout.textContent = formatPayout(totalPayout);
+  if (el.storyEnergy) animateValue(el.storyEnergy, totalReduction, 'kWh', 600);
+  if (el.storyPayout) animateValue(el.storyPayout, totalPayout, 'DRT', 600);
   if (el.storyAudit) {
     if (!auditRequested) el.storyAudit.textContent = displayStatus('pending');
     else el.storyAudit.textContent = auditMatch ? t('status.pass') : t('status.mismatch');
