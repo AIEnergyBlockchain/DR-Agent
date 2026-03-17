@@ -516,6 +516,8 @@ const I18N = {
     'crosschain.bridgeTitle': 'Bridge Transfers',
     'crosschain.icmTitle': 'ICM Messages',
     'crosschain.refresh': 'Refresh',
+    'crosschain.runDemo': 'Run Demo',
+    'crosschain.demoComplete': 'Cross-chain demo complete.',
     'crosschain.direction': 'Direction',
     'crosschain.amount': 'Amount',
     'crosschain.status': 'Status',
@@ -531,6 +533,8 @@ const I18N = {
     'crosschain.noTransfersGuide': 'Start a bridge transfer to see data here.',
     'crosschain.noMessagesGuide': 'Send an ICM message to see data here.',
     'crosschain.connecting': 'connecting...',
+    'story.openCrosschain': 'Cross-Chain Demo',
+    'story.openM2m': 'M2M Demo',
     'story.crosschainStatus': 'Cross-Chain Status',
     'story.crosschainHint': 'Start a bridge transfer to see live cross-chain data here.',
     'visual.baselineMockHint': 'Submit proofs to compute real baseline values.',
@@ -883,6 +887,8 @@ const I18N = {
     'crosschain.bridgeTitle': '桥转账',
     'crosschain.icmTitle': '跨链消息',
     'crosschain.refresh': '刷新',
+    'crosschain.runDemo': '运行演示',
+    'crosschain.demoComplete': '跨链演示完成。',
     'crosschain.direction': '方向',
     'crosschain.amount': '金额',
     'crosschain.status': '状态',
@@ -898,6 +904,8 @@ const I18N = {
     'crosschain.noTransfersGuide': '发起桥转账后，数据将在此显示。',
     'crosschain.noMessagesGuide': '发送跨链消息后，数据将在此显示。',
     'crosschain.connecting': '连接中...',
+    'story.openCrosschain': '跨链演示',
+    'story.openM2m': 'M2M 演示',
     'story.crosschainStatus': '跨链状态',
     'story.crosschainHint': '发起桥转账后，可在此查看实时跨链数据。',
     'visual.baselineMockHint': '提交证明后将计算真实基线值。',
@@ -2995,6 +3003,13 @@ function renderVisualInsights() {
   updateComparisonChart(proofA, proofB);
   updatePayoutChart(payoutA, payoutB);
   renderSettlementFlow(payoutA, payoutB);
+
+  // Hide payout/settlement cards until settlement data exists
+  const hasAnyPayout = (payoutA !== null && payoutA !== 0) || (payoutB !== null && payoutB !== 0);
+  const payoutCard = document.getElementById('visualPayoutCard');
+  const flowCard = document.getElementById('visualSettlementFlowCard');
+  if (payoutCard) payoutCard.classList.toggle('hidden', !hasAnyPayout);
+  if (flowCard) flowCard.classList.toggle('hidden', !hasAnyPayout);
 }
 
 function renderTechnicalEvidence() {
@@ -3181,6 +3196,111 @@ function appendM2MLog(container, text) {
 }
 
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+
+/* ── Story overlay helpers ───────────────────────────────── */
+function openOverlay(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('hidden');
+}
+function closeOverlay(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.add('hidden');
+}
+
+async function runOverlayCcDemo() {
+  const log = document.getElementById('overlayCcLog');
+  const statBridge = document.getElementById('overlayCcBridgeTotal');
+  const statPending = document.getElementById('overlayCcPending');
+  const statCompleted = document.getElementById('overlayCcCompleted');
+  const statIcm = document.getElementById('overlayCcIcmTotal');
+  if (!log) return;
+  log.innerHTML = '';
+  let bridge = 0, pending = 0, completed = 0, icm = 0;
+
+  const events = [
+    { msg: 'Bridge: Home → Remote 500 DRT (initiated)', b: 1, p: 1 },
+    { msg: 'Bridge: Remote → Home 320 DRT (completed)', b: 1, c: 1 },
+    { msg: 'ICM: settlement — C-Chain → Subnet (delivered)', i: 1 },
+    { msg: 'ICM: proof-anchor — Subnet → C-Chain (pending)', i: 1, p2: 1 },
+  ];
+  for (const ev of events) {
+    await sleep(700);
+    bridge += ev.b || 0;
+    pending += ev.p || 0;
+    completed += ev.c || 0;
+    icm += ev.i || 0;
+    if (statBridge) statBridge.textContent = bridge;
+    if (statPending) statPending.textContent = pending;
+    if (statCompleted) statCompleted.textContent = completed;
+    if (statIcm) statIcm.textContent = icm;
+    appendM2MLog(log, ev.msg);
+  }
+  appendM2MLog(log, t('crosschain.demoComplete'));
+}
+
+async function runOverlayM2mDemo() {
+  const log = document.getElementById('overlayM2mLog');
+  const statusA = document.getElementById('overlayM2mStatusA');
+  const statusB = document.getElementById('overlayM2mStatusB');
+  const statusHub = document.getElementById('overlayM2mStatusHub');
+  if (!log) return;
+  log.innerHTML = '';
+  let count = 0;
+
+  for (const device of m2mDevices) {
+    const statusEl = device.id === 'meter-a' ? statusA : statusB;
+    if (statusEl) { statusEl.textContent = 'reading'; statusEl.className = 'm2m-device-status active'; }
+    appendM2MLog(log, t('m2m.reading', { value: device.baseline }));
+    await sleep(600);
+    if (statusHub) { statusHub.textContent = 'settling'; statusHub.className = 'm2m-device-status active'; }
+    if (statusEl) { statusEl.textContent = 'settling'; }
+    appendM2MLog(log, t('m2m.settling', { device: device.label }));
+    await sleep(800);
+    const payout = Math.round(device.reduction * 50);
+    if (statusEl) { statusEl.textContent = 'settled'; statusEl.className = 'm2m-device-status done'; }
+    appendM2MLog(log, t('m2m.settled', { device: device.label, payout }));
+    count++;
+    await sleep(400);
+  }
+  if (statusHub) { statusHub.textContent = 'done'; statusHub.className = 'm2m-device-status done'; }
+  appendM2MLog(log, t('m2m.complete', { count }));
+}
+
+/* ── Cross-chain demo (mock data) ────────────────────────── */
+async function runCrosschainDemo() {
+  const mockTransfers = [
+    { direction: 'home_to_remote', amount: '500 DRT', status: 'initiated', sourceTxHash: '0xabc1...demo', destTxHash: '—' },
+    { direction: 'remote_to_home', amount: '320 DRT', status: 'completed', sourceTxHash: '0xdef2...demo', destTxHash: '0x789c...demo' },
+  ];
+  const mockMessages = [
+    { type: 'settlement', route: 'C-Chain → Subnet', status: 'delivered', sender: '0xAgg...01' },
+    { type: 'proof-anchor', route: 'Subnet → C-Chain', status: 'pending', sender: '0xSite-A...02' },
+  ];
+
+  // Animate: add items one at a time
+  state.bridgeTransfers = [];
+  state.icmMessages = [];
+  state.bridgeStats = { total: 0, pending: 0, completed: 0 };
+  state.icmStats = { total: 0, pending: 0 };
+  renderCrosschainTab();
+
+  for (const tx of mockTransfers) {
+    await sleep(700);
+    state.bridgeTransfers.push(tx);
+    state.bridgeStats.total++;
+    if (tx.status === 'completed') state.bridgeStats.completed++;
+    else state.bridgeStats.pending++;
+    renderCrosschainTab();
+  }
+  for (const msg of mockMessages) {
+    await sleep(700);
+    state.icmMessages.push(msg);
+    state.icmStats.total++;
+    if (msg.status === 'pending') state.icmStats.pending++;
+    renderCrosschainTab();
+  }
+  appendLog('crosschain', t('crosschain.demoComplete'));
+}
 
 function renderCrosschainTab() {
   if (el.bridgeTransfersBody) {
@@ -4275,6 +4395,8 @@ bindAction('btnAudit', getAudit, 'audit');
 
 if (el.btnRefreshCrosschain) {
   el.btnRefreshCrosschain.addEventListener('click', refreshCrosschainData);
+  const btnCcDemo = document.getElementById('btnCrosschainDemo');
+  if (btnCcDemo) btnCcDemo.addEventListener('click', runCrosschainDemo);
 
   // P2-5: M2M demo button
   const btnM2m = document.getElementById('btnM2mDemo');
@@ -4283,6 +4405,28 @@ if (el.btnRefreshCrosschain) {
   // P2-8: KPI card flip on click
   document.querySelectorAll('.kpi-flip-container').forEach((card) => {
     card.addEventListener('click', () => card.classList.toggle('is-flipped'));
+  });
+
+  // Story overlay buttons
+  const btnOpenCc = document.getElementById('btnOpenCrosschainOverlay');
+  const btnOpenM2m = document.getElementById('btnOpenM2mOverlay');
+  if (btnOpenCc) btnOpenCc.addEventListener('click', () => openOverlay('overlayCrosschain'));
+  if (btnOpenM2m) btnOpenM2m.addEventListener('click', () => openOverlay('overlayM2m'));
+
+  document.querySelectorAll('.story-overlay-close').forEach((btn) => {
+    btn.addEventListener('click', () => closeOverlay(btn.dataset.overlay));
+  });
+
+  const btnOverlayCcDemo = document.getElementById('btnOverlayCcDemo');
+  const btnOverlayM2mDemo = document.getElementById('btnOverlayM2mDemo');
+  if (btnOverlayCcDemo) btnOverlayCcDemo.addEventListener('click', runOverlayCcDemo);
+  if (btnOverlayM2mDemo) btnOverlayM2mDemo.addEventListener('click', runOverlayM2mDemo);
+
+  // Close overlays on Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.story-overlay:not(.hidden)').forEach((o) => o.classList.add('hidden'));
+    }
   });
 }
 

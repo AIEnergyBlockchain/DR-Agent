@@ -170,6 +170,66 @@
         <p class="hint story-cc-hint" id="storyCcHint" data-i18n="story.crosschainHint">Start a bridge transfer to see live cross-chain data here.</p>
       </section>
 
+      <!-- Story mode: overlay entry buttons for Cross-Chain / M2M -->
+      <section id="storyOverlayBtns" class="panel story-overlay-btns reveal" style="--delay: 0.065s">
+        <button id="btnOpenCrosschainOverlay" class="btn" data-i18n="story.openCrosschain">Cross-Chain Demo</button>
+        <button id="btnOpenM2mOverlay" class="btn" data-i18n="story.openM2m">M2M Demo</button>
+      </section>
+
+      <!-- Overlay panels -->
+      <div id="overlayCrosschain" class="story-overlay hidden" role="dialog" aria-label="Cross-Chain Demo">
+        <div class="story-overlay-inner">
+          <div class="story-overlay-head">
+            <h2 data-i18n="crosschain.title">Cross-Chain Dashboard</h2>
+            <button class="btn btn-ghost story-overlay-close" data-overlay="overlayCrosschain" aria-label="Close">&times;</button>
+          </div>
+          <div class="crosschain-stats-grid">
+            <div class="crosschain-stat-card"><p class="stat-value" id="overlayCcBridgeTotal">0</p><p class="stat-label" data-i18n="crosschain.bridgeTitle">Bridge Transfers</p></div>
+            <div class="crosschain-stat-card"><p class="stat-value" id="overlayCcPending">0</p><p class="stat-label" data-i18n="crosschain.pending">Pending</p></div>
+            <div class="crosschain-stat-card"><p class="stat-value" id="overlayCcCompleted">0</p><p class="stat-label" data-i18n="crosschain.completed">Completed</p></div>
+            <div class="crosschain-stat-card"><p class="stat-value" id="overlayCcIcmTotal">0</p><p class="stat-label" data-i18n="crosschain.icmTitle">ICM Messages</p></div>
+          </div>
+          <div class="m2m-settlement-log" id="overlayCcLog">
+            <p class="hint" data-i18n="crosschain.noTransfersGuide">Start a bridge transfer to see data here.</p>
+          </div>
+          <div class="actions">
+            <button id="btnOverlayCcDemo" class="btn" data-i18n="crosschain.runDemo">Run Demo</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="overlayM2m" class="story-overlay hidden" role="dialog" aria-label="M2M Demo">
+        <div class="story-overlay-inner">
+          <div class="story-overlay-head">
+            <h2 data-i18n="m2m.title">M2M Auto-Settlement</h2>
+            <button class="btn btn-ghost story-overlay-close" data-overlay="overlayM2m" aria-label="Close">&times;</button>
+          </div>
+          <div class="m2m-device-grid">
+            <div class="m2m-device" data-device="meter-a">
+              <div class="m2m-device-icon">&#x26A1;</div>
+              <span class="m2m-device-label">Meter A</span>
+              <span class="m2m-device-status" id="overlayM2mStatusA">idle</span>
+            </div>
+            <div class="m2m-device m2m-device-hub">
+              <div class="m2m-device-icon">&#x2699;</div>
+              <span class="m2m-device-label" data-i18n="m2m.aggregator">Aggregator</span>
+              <span class="m2m-device-status" id="overlayM2mStatusHub">idle</span>
+            </div>
+            <div class="m2m-device" data-device="meter-b">
+              <div class="m2m-device-icon">&#x26A1;</div>
+              <span class="m2m-device-label">Meter B</span>
+              <span class="m2m-device-status" id="overlayM2mStatusB">idle</span>
+            </div>
+          </div>
+          <div class="m2m-settlement-log" id="overlayM2mLog">
+            <p class="hint" data-i18n="m2m.logEmpty">Run the M2M demo to see auto-settlement events.</p>
+          </div>
+          <div class="actions">
+            <button id="btnOverlayM2mDemo" class="btn" data-i18n="m2m.runDemo">Run M2M Demo</button>
+          </div>
+        </div>
+      </div>
+
       <section id="visualInsights" class="panel visual-insights hidden reveal" style="--delay: 0.07s">
         <div class="section-head">
           <div class="section-head-main">
@@ -650,7 +710,8 @@
         </table>
 
         <div class="actions">
-          <button id="btnRefreshCrosschain" class="btn" data-i18n="crosschain.refresh">Refresh</button>
+          <button id="btnCrosschainDemo" class="btn" data-i18n="crosschain.runDemo">Run Demo</button>
+          <button id="btnRefreshCrosschain" class="btn btn-ghost" data-i18n="crosschain.refresh">Refresh</button>
         </div>
       </section>
 

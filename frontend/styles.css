@@ -1162,6 +1162,8 @@ input:focus {
 .kpi-flip-container {
   perspective: 600px;
   cursor: pointer;
+  transform-style: preserve-3d;
+  position: relative;
 }
 .kpi-flip-container .kpi-card-front,
 .kpi-flip-container .kpi-card-back {
@@ -1170,6 +1172,7 @@ input:focus {
 }
 .kpi-flip-container .kpi-card-front {
   position: relative;
+  transform-style: preserve-3d;
 }
 .kpi-flip-container .kpi-card-back {
   position: absolute;
@@ -1467,6 +1470,53 @@ body[data-view="story"] #technicalEvidence {
 
 body[data-view="story"] #storyCrosschainSummary {
   display: none !important;
+}
+
+/* Story overlay buttons — shown only in story mode */
+.story-overlay-btns { display: none; gap: 10px; }
+body[data-view="story"] .story-overlay-btns {
+  display: flex;
+  justify-content: center;
+  padding: 8px 14px;
+}
+body[data-view="engineering"] .story-overlay-btns { display: none !important; }
+
+/* Full-screen overlay for Cross-Chain / M2M in story mode */
+.story-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  background: rgba(4, 10, 22, 0.92);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.25s ease;
+}
+.story-overlay.hidden { display: none; }
+.story-overlay-inner {
+  width: 90%;
+  max-width: 680px;
+  max-height: 85vh;
+  overflow-y: auto;
+  background: linear-gradient(160deg, rgba(18, 32, 58, 0.95), rgba(10, 18, 36, 0.95));
+  border: 1px solid var(--line-soft);
+  border-radius: 16px;
+  padding: 24px;
+}
+.story-overlay-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.story-overlay-head h2 { margin: 0; font-size: 1.1rem; }
+.story-overlay-close {
+  font-size: 1.5rem;
+  line-height: 1;
+  padding: 4px 10px;
+  border: none;
+  cursor: pointer;
 }
 
 body[data-view="story"] .judge-view .section-head-main p,
@@ -1822,15 +1872,38 @@ body.judge-mode .story-tx-link {
 }
 
 body[data-view="story"] .visual-insights {
-  padding: 6px 10px;
+  padding: 4px 8px;
 }
 
 body[data-view="story"] .visual-grid {
-  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  grid-template-columns: repeat(2, minmax(200px, 1fr));
+  gap: 6px;
 }
 
 body[data-view="story"] .visual-card {
-  padding: 7px 8px;
+  padding: 5px 7px;
+}
+
+body[data-view="story"] .visual-card h3 {
+  font-size: 0.78rem;
+  margin: 0 0 2px;
+}
+
+body[data-view="story"] .chart-wrap {
+  height: 140px;
+  margin: 4px 0 2px;
+}
+
+body[data-view="story"] .chart-wrap-sm {
+  height: 110px;
+}
+
+body[data-view="story"] .visual-site-row .site-bar-group {
+  margin: 1px 0;
+}
+
+body[data-view="story"] #siteMap {
+  height: 150px;
 }
 
 body[data-view="story"] #visualBaselineCard {
