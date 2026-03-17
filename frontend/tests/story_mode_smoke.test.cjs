@@ -14,6 +14,19 @@ test('story mode includes agent insight panel', () => {
   assert.match(html, /id="storyInsightMeta"/);
 });
 
+test('story demo buttons show main flow first', () => {
+  const idxMain = html.indexOf('id="btnBackToFlow"');
+  const idxCc = html.indexOf('id="btnShowCrosschainDemo"');
+  const idxM2m = html.indexOf('id="btnShowM2mDemo"');
+  assert.ok(idxMain !== -1 && idxCc !== -1 && idxM2m !== -1, 'missing story demo buttons');
+  assert.ok(idxMain < idxCc && idxCc < idxM2m, 'main flow button should be left of demos');
+});
+
+test('story main flow demo label is updated in i18n', () => {
+  assert.match(js, /story\.backToFlow': 'Main Flow Demo'/);
+  assert.match(js, /story\.backToFlow': '主流程演示'/);
+});
+
 test('story mode includes challenge placeholder', () => {
   assert.match(html, /id="storyChallenge"/);
 });

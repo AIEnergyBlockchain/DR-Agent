@@ -537,7 +537,7 @@ const I18N = {
     'crosschain.connecting': 'connecting...',
     'story.openCrosschain': 'Cross-Chain Demo',
     'story.openM2m': 'M2M Demo',
-    'story.backToFlow': 'Back to Flow',
+    'story.backToFlow': 'Main Flow Demo',
     'story.crosschainStatus': 'Cross-Chain Status',
     'story.crosschainHint': 'Start a bridge transfer to see live cross-chain data here.',
     'visual.baselineMockHint': 'Submit proofs to compute real baseline values.',
@@ -911,7 +911,7 @@ const I18N = {
     'crosschain.connecting': '连接中...',
     'story.openCrosschain': '跨链演示',
     'story.openM2m': 'M2M 演示',
-    'story.backToFlow': '返回流程',
+    'story.backToFlow': '主流程演示',
     'story.crosschainStatus': '跨链状态',
     'story.crosschainHint': '发起桥转账后，可在此查看实时跨链数据。',
     'visual.baselineMockHint': '提交证明后将计算真实基线值。',
@@ -2895,6 +2895,10 @@ function tickerAddPoint(chart, label, values, maxPoints) {
 
 function renderVisualInsights() {
   if (!el.visualInsights || !el.visualGrid || !el.visualEmpty) return;
+  if (activeDemoMode) {
+    el.visualInsights.classList.add('hidden');
+    return;
+  }
 
   const proofA = state.proofs['site-a'] || null;
   const proofB = state.proofs['site-b'] || null;
@@ -3237,9 +3241,7 @@ function setDemoMode(mode) {
 
   if (btnCc) btnCc.classList.toggle('is-active-demo', mode === 'crosschain');
   if (btnM2m) btnM2m.classList.toggle('is-active-demo', mode === 'm2m');
-  if (btnCc) btnCc.classList.toggle('hidden', mode !== null && mode !== 'crosschain');
-  if (btnM2m) btnM2m.classList.toggle('hidden', mode !== null && mode !== 'm2m');
-  if (btnBack) btnBack.classList.toggle('hidden', mode === null);
+  if (btnBack) btnBack.classList.toggle('is-active-demo', mode === null);
 
   if (mode === 'crosschain') ensureCcCharts();
   if (mode === 'm2m') ensureM2mCharts();

@@ -256,6 +256,10 @@ h1 {
   opacity: 0.5;
 }
 
+.hidden {
+  display: none !important;
+}
+
 .reveal {
   opacity: 0;
   transform: translateY(7px);
@@ -1614,9 +1618,9 @@ body[data-view="story"] .judge-view .section-head {
 }
 
 body[data-view="story"] .panel {
-  padding: 5px 7px;
-  margin-bottom: 4px;
-  border-radius: 10px;
+  padding: 4px 6px;
+  margin-bottom: 3px;
+  border-radius: 9px;
 }
 
 body[data-view="story"] .hero {
@@ -1690,70 +1694,70 @@ body[data-view="story"] #storyLatencyLine {
 }
 
 body[data-view="story"] .action-hero {
-  gap: 8px;
+  gap: 6px;
 }
 
 body[data-view="story"] .action-hero-main {
-  gap: 4px;
+  gap: 3px;
 }
 
 body[data-view="story"] .action-hero-main h2 {
-  font-size: 0.9rem;
+  font-size: 0.84rem;
 }
 
 body[data-view="story"] .action-hero-main .subtitle {
-  font-size: 0.76rem;
+  font-size: 0.7rem;
   margin: 0;
 }
 
 body[data-view="story"] .story-kpi-row {
-  gap: 5px;
+  gap: 4px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 body[data-view="story"] .story-kpi {
-  padding: 5px 6px;
-  border-radius: 9px;
+  padding: 4px 5px;
+  border-radius: 8px;
 }
 
 body[data-view="story"] .story-kpi .label {
-  font-size: 0.6rem;
+  font-size: 0.58rem;
 }
 
 body[data-view="story"] .story-kpi .value {
-  font-size: 0.82rem;
+  font-size: 0.78rem;
 }
 
 body[data-view="story"] .story-kpi .kpi-subvalue {
   margin-top: 1px;
-  font-size: 0.6rem;
+  font-size: 0.58rem;
 }
 
 body[data-view="story"] .story-kpi.story-insight .value {
-  font-size: 0.74rem;
+  font-size: 0.7rem;
 }
 
 body[data-view="story"] .story-agent-insight .story-agent-body {
-  gap: 3px;
+  gap: 2px;
 }
 
 body[data-view="story"] .story-agent-insight .story-agent-body p {
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   line-height: 1.35;
   margin: 0;
 }
 
 body[data-view="story"] .story-agent-insight .story-agent-head {
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 
 body[data-view="story"] .story-agent-insight .story-agent-head h3 {
-  font-size: 0.78rem;
+  font-size: 0.74rem;
 }
 
 body[data-view="story"] .story-agent-insight .story-agent-head .hint {
   margin: 0;
-  font-size: 0.66rem;
+  font-size: 0.62rem;
 }
 
 body[data-view="story"] .insight-meta {
@@ -1795,10 +1799,10 @@ body[data-view="story"] .visual-insights .section-head p {
 
 body[data-view="story"] .flow-timeline {
   margin-top: 0;
-  gap: 6px;
+  gap: 4px;
   grid-template-columns: repeat(6, minmax(96px, 1fr));
   overflow-x: auto;
-  padding-bottom: 4px;
+  padding-bottom: 2px;
 }
 
 body[data-view="story"] .flow-timeline::before {
@@ -1807,8 +1811,8 @@ body[data-view="story"] .flow-timeline::before {
 
 body[data-view="story"] .step-pill {
   min-width: auto;
-  padding: 5px 8px;
-  border-radius: 9px;
+  padding: 4px 6px;
+  border-radius: 8px;
 }
 
 body[data-view="story"] .step-pill .step-state {
@@ -1816,13 +1820,13 @@ body[data-view="story"] .step-pill .step-state {
 }
 
 body[data-view="story"] .step-pill .step-name {
-  font-size: 0.84rem;
+  font-size: 0.78rem;
 }
 
 body[data-view="story"] .step-pill .step-num {
-  width: 16px;
-  height: 16px;
-  font-size: 0.68rem;
+  width: 14px;
+  height: 14px;
+  font-size: 0.64rem;
 }
 
 body[data-view="story"] .judge-view .kpi-grid {
@@ -1957,30 +1961,30 @@ body.judge-mode .story-tx-link {
 }
 
 body[data-view="story"] .visual-insights {
-  padding: 4px 8px;
+  padding: 3px 6px;
 }
 
 body[data-view="story"] .visual-grid {
   grid-template-columns: repeat(2, minmax(200px, 1fr));
-  gap: 6px;
+  gap: 5px;
 }
 
 body[data-view="story"] .visual-card {
-  padding: 5px 7px;
+  padding: 4px 6px;
 }
 
 body[data-view="story"] .visual-card h3 {
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   margin: 0 0 2px;
 }
 
 body[data-view="story"] .chart-wrap {
-  height: 140px;
+  height: 120px;
   margin: 4px 0 2px;
 }
 
 body[data-view="story"] .chart-wrap-sm {
-  height: 110px;
+  height: 96px;
 }
 
 body[data-view="story"] .visual-site-row .site-bar-group {
@@ -1988,7 +1992,7 @@ body[data-view="story"] .visual-site-row .site-bar-group {
 }
 
 body[data-view="story"] #siteMap {
-  height: 150px;
+  height: 120px;
 }
 
 body[data-view="story"] #visualBaselineCard {
@@ -2001,18 +2005,18 @@ body[data-view="story"] .visual-site-row {
 
 body[data-view="story"] .visual-site-head {
   margin-bottom: 3px;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
 }
 
 body[data-view="story"] .visual-metric {
   grid-template-columns: 50px 1fr auto;
   gap: 4px;
   margin-bottom: 3px;
-  font-size: 0.66rem;
+  font-size: 0.64rem;
 }
 
 body[data-view="story"] .visual-track {
-  height: 6px;
+  height: 5px;
 }
 
 body[data-view="story"] .payout-meta {
