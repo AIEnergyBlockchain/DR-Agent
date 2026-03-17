@@ -8,8 +8,12 @@ Implements a provider-based architecture:
 from __future__ import annotations
 
 import hashlib
+import json
+import os
 import random
 from typing import Any, Protocol, runtime_checkable
+
+import httpx
 
 from services.dto import (
     AgentAnomalyRequest,
@@ -26,6 +30,7 @@ class AgentProvider(Protocol):
 
     def generate_insight(self, request: AgentInsightRequest) -> AgentInsightResponse: ...
     def detect_anomaly(self, request: AgentAnomalyRequest) -> AnomalyReport: ...
+    def get_status(self) -> AgentStatusResponse: ...
 
 
 # ---------------------------------------------------------------------------
@@ -175,6 +180,59 @@ _SUGGESTED_ACTIONS: dict[str, dict[str, str]] = {
 }
 
 
+def _extract_signals(req: AgentInsightRequest) -> dict[str, Any]:
+    proof_count = len(req.proofs)
+    required_count = max(proof_count, 2)  # default assumption: 2 sites
+    reduction_kwh = sum(
+        p.get("reduction_kwh", p.get("baseline_kwh", 0) - p.get("actual_kwh", 0))
+        for p in req.proofs
+    )
+    coverage = f"{proof_count}/{required_count}"
+    gap_status = "full coverage" if proof_count >= required_count else "gaps remain"
+    if req.lang == "zh":
+        gap_status = "完整覆盖" if proof_count >= required_count else "存在缺口"
+
+    coverage_detail = ""
+    if proof_count < required_count:
+        if req.lang == "zh":
+            coverage_detail = f"还需 {required_count - proof_count} 个证明以完成覆盖。"
+        else:
+            coverage_detail = f"{required_count - proof_count} more proof(s) needed for full coverage."
+    else:
+        if req.lang == "zh":
+            coverage_detail = "所有参与者证明已提交。可以继续结算。"
+        else:
+            coverage_detail = "All participant proofs submitted. Ready to proceed."
+
+    has_error = bool(req.tx_pipeline and any(
+        tx.get("status") == "failed" or tx.get("tx_state") == "failed"
+        for tx in req.tx_pipeline
+    ))
+
+    return {
+        "step": req.current_step,
+        "event_id": req.event_id or "none",
+        "event_exists": req.event_id is not None,
+        "proof_count": proof_count,
+        "required_count": required_count,
+        "reduction_kwh": reduction_kwh,
+        "coverage": coverage,
+        "proof_coverage": proof_count / required_count if required_count > 0 else 0,
+        "gap_status": gap_status,
+        "coverage_detail": coverage_detail,
+        "has_baseline": req.baseline_result is not None,
+        "has_settlement": req.settlement is not None,
+        "has_error": has_error,
+        "error_msg": next(
+            (tx.get("tx_error", "unknown error") for tx in req.tx_pipeline
+             if tx.get("status") == "failed" or tx.get("tx_state") == "failed"),
+            "",
+        ),
+        "audit_status": "integrity verified" if req.lang == "en" else "完整性已验证",
+        "audit_detail": "Hash match confirmed." if req.lang == "en" else "哈希匹配已确认。",
+    }
+
+
 class MockAgentProvider:
     """Rule-engine mock that simulates LLM agent behavior without external API calls.
 
@@ -259,56 +317,7 @@ class MockAgentProvider:
     # ---- Signal extraction ----
 
     def _extract_signals(self, req: AgentInsightRequest) -> dict[str, Any]:
-        proof_count = len(req.proofs)
-        required_count = max(proof_count, 2)  # default assumption: 2 sites
-        reduction_kwh = sum(
-            p.get("reduction_kwh", p.get("baseline_kwh", 0) - p.get("actual_kwh", 0))
-            for p in req.proofs
-        )
-        coverage = f"{proof_count}/{required_count}"
-        gap_status = "full coverage" if proof_count >= required_count else "gaps remain"
-        if req.lang == "zh":
-            gap_status = "完整覆盖" if proof_count >= required_count else "存在缺口"
-
-        coverage_detail = ""
-        if proof_count < required_count:
-            if req.lang == "zh":
-                coverage_detail = f"还需 {required_count - proof_count} 个证明以完成覆盖。"
-            else:
-                coverage_detail = f"{required_count - proof_count} more proof(s) needed for full coverage."
-        else:
-            if req.lang == "zh":
-                coverage_detail = "所有参与者证明已提交。可以继续结算。"
-            else:
-                coverage_detail = "All participant proofs submitted. Ready to proceed."
-
-        has_error = bool(req.tx_pipeline and any(
-            tx.get("status") == "failed" or tx.get("tx_state") == "failed"
-            for tx in req.tx_pipeline
-        ))
-
-        return {
-            "step": req.current_step,
-            "event_id": req.event_id or "none",
-            "event_exists": req.event_id is not None,
-            "proof_count": proof_count,
-            "required_count": required_count,
-            "reduction_kwh": reduction_kwh,
-            "coverage": coverage,
-            "proof_coverage": proof_count / required_count if required_count > 0 else 0,
-            "gap_status": gap_status,
-            "coverage_detail": coverage_detail,
-            "has_baseline": req.baseline_result is not None,
-            "has_settlement": req.settlement is not None,
-            "has_error": has_error,
-            "error_msg": next(
-                (tx.get("tx_error", "unknown error") for tx in req.tx_pipeline
-                 if tx.get("status") == "failed" or tx.get("tx_state") == "failed"),
-                "",
-            ),
-            "audit_status": "integrity verified" if req.lang == "en" else "完整性已验证",
-            "audit_detail": "Hash match confirmed." if req.lang == "en" else "哈希匹配已确认。",
-        }
+        return _extract_signals(req)
 
     def _compute_confidence(self, signals: dict[str, Any]) -> float:
         score = 0.0
@@ -440,11 +449,184 @@ class MockAgentProvider:
         return anomalies
 
 
+_LLM_SYSTEM_PROMPT = (
+    "You are DR Agent, a settlement and audit assistant for demand response events. "
+    "Return JSON only with keys: headline, reasoning, confidence (0-1), suggested_action, risk_flags (list). "
+    "Use the requested language and keep the response concise."
+)
+
+
+def _build_llm_messages(req: AgentInsightRequest, signals: dict[str, Any]) -> list[dict[str, str]]:
+    context = {
+        "lang": req.lang,
+        "current_step": req.current_step,
+        "event_id": req.event_id,
+        "proof_count": signals.get("proof_count"),
+        "required_count": signals.get("required_count"),
+        "reduction_kwh": signals.get("reduction_kwh"),
+        "coverage": signals.get("coverage"),
+        "has_baseline": signals.get("has_baseline"),
+        "has_settlement": signals.get("has_settlement"),
+        "has_error": signals.get("has_error"),
+        "error_msg": signals.get("error_msg"),
+    }
+    return [
+        {"role": "system", "content": _LLM_SYSTEM_PROMPT},
+        {"role": "user", "content": json.dumps(context, ensure_ascii=False)},
+    ]
+
+
+def _parse_llm_payload(content: str) -> dict[str, Any]:
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError:
+        start = content.find("{")
+        end = content.rfind("}")
+        if start == -1 or end == -1 or end <= start:
+            raise
+        return json.loads(content[start : end + 1])
+
+
+def _coerce_confidence(value: Any) -> float:
+    try:
+        confidence = float(value)
+    except (TypeError, ValueError):
+        return 0.5
+    return max(0.0, min(confidence, 1.0))
+
+
+class LLMAgentProvider:
+    """LLM-backed agent provider with Mock fallback for reliability."""
+
+    def __init__(
+        self,
+        api_key: str,
+        base_url: str,
+        model: str,
+        *,
+        timeout_s: float = 12.0,
+        client: httpx.Client | None = None,
+        fallback: AgentProvider | None = None,
+    ) -> None:
+        self._api_key = api_key
+        self._base_url = base_url.rstrip("/")
+        self._model = model
+        self._client = client or httpx.Client(
+            base_url=self._base_url,
+            timeout=timeout_s,
+            headers={"Authorization": f"Bearer {api_key}"},
+        )
+        self._fallback = fallback or MockAgentProvider()
+        self._analysis_count = 0
+        self._anomaly_count = 0
+
+    def _chat_path(self) -> str:
+        if self._base_url.endswith("/v1"):
+            return "/chat/completions"
+        return "/v1/chat/completions"
+
+    def generate_insight(self, request: AgentInsightRequest) -> AgentInsightResponse:
+        signals = _extract_signals(request)
+        payload = {
+            "model": self._model,
+            "messages": _build_llm_messages(request, signals),
+            "temperature": 0.3,
+        }
+        try:
+            resp = self._client.post(self._chat_path(), json=payload)
+            resp.raise_for_status()
+            data = resp.json()
+            content = data["choices"][0]["message"]["content"]
+            parsed = _parse_llm_payload(content)
+            headline = str(parsed.get("headline", "")).strip()
+            reasoning = str(parsed.get("reasoning", "")).strip()
+            if not headline or not reasoning:
+                raise ValueError("LLM response missing required fields")
+
+            confidence = _coerce_confidence(parsed.get("confidence", 0.5))
+            risk_flags = parsed.get("risk_flags", [])
+            if isinstance(risk_flags, str):
+                risk_flags = [risk_flags]
+            if not isinstance(risk_flags, list):
+                risk_flags = []
+
+            suggested = parsed.get("suggested_action")
+            if not suggested:
+                suggested = _SUGGESTED_ACTIONS.get(request.lang, _SUGGESTED_ACTIONS["en"]).get(
+                    request.current_step
+                )
+
+            self._analysis_count += 1
+            return AgentInsightResponse(
+                headline=headline,
+                reasoning=reasoning,
+                confidence=confidence,
+                suggested_action=str(suggested) if suggested else None,
+                risk_flags=[str(flag) for flag in risk_flags],
+                data_points={
+                    k: v
+                    for k, v in signals.items()
+                    if k in ("proof_count", "required_count", "reduction_kwh", "coverage", "step")
+                },
+            )
+        except Exception:
+            self._analysis_count += 1
+            return self._fallback.generate_insight(request)
+
+    def detect_anomaly(self, request: AgentAnomalyRequest) -> AnomalyReport:
+        report = self._fallback.detect_anomaly(request)
+        if report.has_anomaly:
+            self._anomaly_count += 1
+        return report
+
+    def get_status(self) -> AgentStatusResponse:
+        return AgentStatusResponse(
+            status="active",
+            provider="llm",
+            total_analyses=self._analysis_count,
+            total_anomalies_detected=self._anomaly_count,
+        )
+
+
+def _safe_float_env(key: str, default: float) -> float:
+    raw = os.getenv(key, "").strip()
+    if not raw:
+        return default
+    try:
+        return float(raw)
+    except ValueError:
+        return default
+
+
+def resolve_agent_provider() -> AgentProvider:
+    provider = os.getenv("DR_AGENT_PROVIDER", "mock").strip().lower()
+    if provider != "llm":
+        return MockAgentProvider()
+
+    api_key = os.getenv("DR_LLM_API_KEY", "").strip()
+    if not api_key:
+        return MockAgentProvider()
+
+    base_url = os.getenv("DR_LLM_BASE_URL", "https://api.openai.com/v1").strip()
+    model = os.getenv("DR_LLM_MODEL", "gpt-4o-mini").strip() or "gpt-4o-mini"
+    timeout_s = _safe_float_env("DR_LLM_TIMEOUT_SEC", 12.0)
+    return LLMAgentProvider(
+        api_key=api_key,
+        base_url=base_url,
+        model=model,
+        timeout_s=timeout_s,
+    )
+
+
 class AgentService:
     """Facade that delegates to an AgentProvider and tracks statistics."""
 
     def __init__(self, provider: AgentProvider | None = None) -> None:
-        self._provider: MockAgentProvider = provider if provider else MockAgentProvider()
+        self._provider: AgentProvider = provider if provider else MockAgentProvider()
+
+    @classmethod
+    def from_env(cls) -> "AgentService":
+        return cls(provider=resolve_agent_provider())
 
     def generate_insight(self, request: AgentInsightRequest) -> AgentInsightResponse:
         return self._provider.generate_insight(request)

@@ -14,6 +14,10 @@ test('story mode includes agent insight panel', () => {
   assert.match(html, /id="storyInsightMeta"/);
 });
 
+test('story mode includes challenge placeholder', () => {
+  assert.match(html, /id="storyChallenge"/);
+});
+
 test('story mode hides crosschain and extra visual cards', () => {
   assert.match(css, /body\[data-view="story"\] #storyCrosschainSummary/);
   assert.match(css, /body\[data-view="story"\] #visualBaselineCard/);
@@ -46,6 +50,19 @@ test('agent insight avoids aborting same-step request', () => {
 test('baseline comparison refresh is wired', () => {
   assert.match(js, /function refreshBaselineComparison/);
   assert.match(js, /refreshBaselineComparison\(\);/);
+});
+
+test('baseline compare API call is present', () => {
+  assert.match(js, /baseline\/compare/);
+});
+
+test('baseline result is stored for agent insight', () => {
+  assert.match(js, /baselineResult/);
+});
+
+test('payout card shows confidence weighting placeholder', () => {
+  assert.match(html, /id="visualConfidenceWeight"/);
+  assert.match(html, /id="visualConfidenceMethod"/);
 });
 
 test('agent insight skips API when no event', () => {

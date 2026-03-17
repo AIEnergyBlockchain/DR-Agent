@@ -219,7 +219,7 @@ def create_app(db_path: str | None = None) -> FastAPI:
     app.state.bridge = BridgeService(db_path=db_path)
     app.state.icm = ICMService(db_path=db_path)
     app.state.task_queue = InMemoryTaskQueue()
-    app.state.agent_service = AgentService()
+    app.state.agent_service = AgentService.from_env()
     app.add_middleware(
         CORSMiddleware,
         allow_origins=_cors_origins(),

@@ -1,4 +1,0 @@
-interface:
-  display_name: "Dev Rules Guardrails"
-  short_description: "Apply coding safety and workflow guardrails"
-  default_prompt: "Enforce security, branch, validation, and commit rules before and during code changes."

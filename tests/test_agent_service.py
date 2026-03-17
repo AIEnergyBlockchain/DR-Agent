@@ -4,14 +4,16 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+import json
 
 import pytest
+import httpx
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from services.agent import AgentProvider, AgentService, MockAgentProvider
+from services.agent import AgentProvider, AgentService, LLMAgentProvider, MockAgentProvider
 from services.dto import (
     AgentAnomalyRequest,
     AgentInsightRequest,
@@ -342,6 +344,71 @@ def test_service_get_status():
     svc = AgentService()
     status = svc.get_status()
     assert isinstance(status, AgentStatusResponse)
+
+
+def test_llm_provider_returns_llm_response():
+    content = {
+        "headline": "LLM insight ready.",
+        "reasoning": "LLM analyzed proof coverage and payout timing.",
+        "confidence": 0.82,
+        "suggested_action": "Proceed to settlement.",
+        "risk_flags": ["coverage_gap"],
+    }
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={"choices": [{"message": {"content": json.dumps(content)}}]},
+        )
+
+    client = httpx.Client(transport=httpx.MockTransport(handler), base_url="https://llm.test")
+    provider = LLMAgentProvider(
+        api_key="test",
+        base_url="https://llm.test",
+        model="test-model",
+        client=client,
+    )
+    req = AgentInsightRequest(
+        event_id="evt-1",
+        current_step="proofs",
+        proofs=[{"site_id": "site-a", "baseline_kwh": 150, "actual_kwh": 40}],
+    )
+    resp = provider.generate_insight(req)
+    assert resp.headline == "LLM insight ready."
+    assert resp.confidence == 0.82
+    assert "coverage_gap" in resp.risk_flags
+
+
+def test_llm_provider_falls_back_to_mock_on_error():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(500, json={"error": "llm unavailable"})
+
+    client = httpx.Client(transport=httpx.MockTransport(handler), base_url="https://llm.test")
+    provider = LLMAgentProvider(
+        api_key="test",
+        base_url="https://llm.test",
+        model="test-model",
+        client=client,
+    )
+    req = AgentInsightRequest(current_step="create")
+    resp = provider.generate_insight(req)
+    assert "no_event" in resp.risk_flags
+
+
+def test_service_from_env_prefers_llm(monkeypatch):
+    monkeypatch.setenv("DR_AGENT_PROVIDER", "llm")
+    monkeypatch.setenv("DR_LLM_API_KEY", "test")
+    monkeypatch.setenv("DR_LLM_BASE_URL", "https://llm.test")
+    monkeypatch.setenv("DR_LLM_MODEL", "test-model")
+    svc = AgentService.from_env()
+    assert svc.get_status().provider == "llm"
+
+
+def test_service_from_env_falls_back_to_mock(monkeypatch):
+    monkeypatch.setenv("DR_AGENT_PROVIDER", "llm")
+    monkeypatch.delenv("DR_LLM_API_KEY", raising=False)
+    svc = AgentService.from_env()
+    assert svc.get_status().provider == "mock"
 
 
 if __name__ == "__main__":

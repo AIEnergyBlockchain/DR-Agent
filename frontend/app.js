@@ -75,6 +75,7 @@ const el = {
   storyEnergy: document.getElementById('storyEnergy'),
   storyPayout: document.getElementById('storyPayout'),
   storyAudit: document.getElementById('storyAudit'),
+  storyChallenge: document.getElementById('storyChallenge'),
   storyInsight: document.getElementById('storyInsight'),
   visualInsights: document.getElementById('visualInsights'),
   visualEmpty: document.getElementById('visualEmpty'),
@@ -94,6 +95,8 @@ const el = {
   visPayoutSiteBBar: document.getElementById('visPayoutSiteBBar'),
   visPayoutSiteAValue: document.getElementById('visPayoutSiteAValue'),
   visPayoutSiteBValue: document.getElementById('visPayoutSiteBValue'),
+  visualConfidenceWeight: document.getElementById('visualConfidenceWeight'),
+  visualConfidenceMethod: document.getElementById('visualConfidenceMethod'),
 
   kpiStatus: document.getElementById('kpiStatus'),
   kpiStatusHint: document.getElementById('kpiStatusHint'),
@@ -191,6 +194,7 @@ const I18N = {
     'story.energyReduction': 'Energy Reduction',
     'story.totalPayout': 'Total Payout',
     'story.auditConfidence': 'Audit Confidence',
+    'story.challengeStatus': 'Challenge Status',
     'story.agentThinking': 'Agent Thinking',
     'story.viewTxEvidence': 'View Tx Evidence',
     'story.evidenceHint': 'Open engineering evidence or copy a review snapshot.',
@@ -206,6 +210,8 @@ const I18N = {
     'visual.empty': 'Run proof submission to unlock baseline and payout charts.',
     'visual.comparisonTitle': 'Submitted vs Baseline',
     'visual.payoutTitle': 'Payout Breakdown',
+    'visual.confidenceWeight': 'Confidence Weight',
+    'visual.confidenceMethod': 'Method',
     'visual.baseline': 'Baseline',
     'visual.actual': 'Actual',
     'visual.pending': 'Pending',
@@ -295,6 +301,10 @@ const I18N = {
     'status.pass': 'PASS',
     'status.mismatch': 'mismatch',
     'status.read': 'read',
+    'challenge.pending': 'pending',
+    'challenge.review': 'in review',
+    'challenge.accepted': 'accepted',
+    'challenge.challenged': 'challenged',
     'network.fuji': 'Fuji Testnet',
     'network.fuji-live': 'Fuji Testnet (Live Tx)',
     'network.mainnet': 'Mainnet',
@@ -537,6 +547,7 @@ const I18N = {
     'story.energyReduction': '节电量',
     'story.totalPayout': '总结算',
     'story.auditConfidence': '审计可信度',
+    'story.challengeStatus': '争议状态',
     'story.agentThinking': 'Agent 思考',
     'story.viewTxEvidence': '查看交易证据',
     'story.evidenceHint': '可切换工程模式查看证据，或复制评审快照。',
@@ -552,6 +563,8 @@ const I18N = {
     'visual.empty': '提交 proof 后将解锁 baseline 与 payout 图表。',
     'visual.comparisonTitle': '用户提交 vs 基线',
     'visual.payoutTitle': '结算拆分',
+    'visual.confidenceWeight': '置信度加权',
+    'visual.confidenceMethod': '方法',
     'visual.baseline': '基线',
     'visual.actual': '实际',
     'visual.pending': '待产生',
@@ -641,6 +654,10 @@ const I18N = {
     'status.pass': 'PASS',
     'status.mismatch': '不一致',
     'status.read': '查询',
+    'challenge.pending': '待审',
+    'challenge.review': '审核中',
+    'challenge.accepted': '已通过',
+    'challenge.challenged': '被挑战',
     'network.fuji': 'Fuji 测试网',
     'network.fuji-live': 'Fuji 测试网（真实交易）',
     'network.mainnet': '主网',
@@ -886,6 +903,46 @@ function displayStatus(value) {
   return translated === key ? String(value || '') : translated;
 }
 
+function formatChallengeStatus(status) {
+  const normalized = String(status || '').toLowerCase();
+  const key = `challenge.${normalized}`;
+  const translated = t(key);
+  return translated === key ? normalized || t('challenge.pending') : translated;
+}
+
+function deriveChallengeStatus(ui) {
+  const summary = state.judgeSummary || {};
+  const explicit =
+    summary.challenge_status ||
+    summary.challenge_state ||
+    summary.proof_status ||
+    summary.proof_state;
+  if (explicit) return String(explicit).toLowerCase();
+
+  const auditRequested = summary.audit_requested ?? !!state.audit;
+  const auditMatch = summary.audit_match ?? (state.audit ? !!state.audit.match : null);
+  if (auditRequested && auditMatch === false) return 'challenged';
+  if (auditRequested && auditMatch === true) return 'accepted';
+  if (ui.currentStep === 'audit' && auditRequested) return 'review';
+  return 'pending';
+}
+
+function challengeChipState(status) {
+  const normalized = String(status || '').toLowerCase();
+  if (normalized === 'accepted') return 'done';
+  if (normalized === 'challenged') return 'error';
+  if (normalized === 'review') return 'in-progress';
+  return 'pending';
+}
+
+function getBaselineConfidenceSummary() {
+  const recommended = state.baselineResult || state.baselineComparison?.recommended || null;
+  if (!recommended) return { confidence: null, method: null };
+  const confidence = Number.isFinite(Number(recommended.confidence)) ? Number(recommended.confidence) : null;
+  const method = recommended.method ? String(recommended.method) : null;
+  return { confidence, method };
+}
+
 function makeDefaultErrorView() {
   return {
     level: 'ok',
@@ -993,6 +1050,7 @@ const state = {
   icmStats: { total_messages: 0, by_status: {}, by_type: {} },
   dashboardSummary: null,
   baselineComparison: null,
+  baselineResult: null,
 };
 
 if (!el.eventIdInput.value) {
@@ -2267,6 +2325,8 @@ function renderKpiGrid(ui) {
   const claimStatus = summary?.claim_site_a_status || ui.claimRecord?.status || 'pending';
   const auditRequested = summary?.audit_requested ?? !!state.audit;
   const auditMatch = summary?.audit_match ?? (state.audit ? !!state.audit.match : null);
+  const challengeStatus = deriveChallengeStatus(ui);
+  const challengeLabel = `${t('story.challengeStatus')}: ${formatChallengeStatus(challengeStatus)}`;
   const requiredParticipantLabel = ui.requiredSites.map((siteId) => siteDisplay(siteId)).join(' and ');
   const txPipeline = collectTxPipeline();
 
@@ -2299,11 +2359,11 @@ function renderKpiGrid(ui) {
     : t('hint.claimPending');
 
   setTextWithPulse(el.kpiAudit, !auditRequested ? displayStatus('pending') : auditMatch ? t('status.pass') : t('status.mismatch'));
-  el.kpiAuditHint.textContent = !auditRequested
+  el.kpiAuditHint.textContent = `${!auditRequested
     ? t('hint.auditPending')
     : auditMatch
       ? t('hint.auditPass')
-      : t('hint.auditMismatch');
+      : t('hint.auditMismatch')} · ${challengeLabel}`;
 
   setTextWithPulse(el.kpiLatency, state.lastLatencyMs == null ? '-- ms' : `${Math.round(state.lastLatencyMs)} ms`);
   el.kpiLatencyHint.textContent = t('hint.apiRoundTrip');
@@ -2477,6 +2537,12 @@ function renderStoryHero(ui) {
     if (!auditRequested) el.storyAudit.textContent = displayStatus('pending');
     else el.storyAudit.textContent = auditMatch ? t('status.pass') : t('status.mismatch');
   }
+  if (el.storyChallenge) {
+    const challengeStatus = deriveChallengeStatus(ui);
+    const chipState = challengeChipState(challengeStatus);
+    el.storyChallenge.textContent = formatChallengeStatus(challengeStatus);
+    el.storyChallenge.className = `status-chip status-chip--mini ${chipState}`;
+  }
   if (el.storyLatencyLine) el.storyLatencyLine.textContent = buildStoryLatencyLine();
 }
 
@@ -2540,6 +2606,20 @@ function renderVisualInsights() {
   el.visualEmpty.classList.toggle('hidden', shouldShow);
   el.visualGrid.classList.toggle('hidden', !shouldShow);
   if (!shouldShow) return;
+
+  const baselineSummary = getBaselineConfidenceSummary();
+  if (el.visualConfidenceWeight) {
+    if (baselineSummary.confidence == null) {
+      el.visualConfidenceWeight.textContent = t('visual.pending');
+    } else {
+      el.visualConfidenceWeight.textContent = `${Math.round(baselineSummary.confidence * 100)}%`;
+    }
+  }
+  if (el.visualConfidenceMethod) {
+    const label = t('visual.confidenceMethod');
+    const methodText = baselineSummary.method || '--';
+    el.visualConfidenceMethod.textContent = `${label}: ${methodText}`;
+  }
 
   const maxKwh = Math.max(
     Number(proofA?.baseline_kwh || 0),
@@ -2797,16 +2877,88 @@ function buildBaselineComparisonFallback() {
   return { results, recommended, source: 'local' };
 }
 
+function buildBaselineHistoryPayload() {
+  const proofs = Object.values(state.proofs);
+  const baselineValues = proofs
+    .map((proof) => Number(proof?.baseline_kwh || 0))
+    .filter((value) => Number.isFinite(value) && value > 0);
+  const now = new Date();
+  const eventHour = state.event?.start_time
+    ? new Date(state.event.start_time).getUTCHours()
+    : now.getUTCHours();
+  const base = baselineValues.length
+    ? baselineValues.reduce((sum, value) => sum + value, 0) / baselineValues.length
+    : 150;
+
+  const history = [];
+  for (let day = 7; day >= 1; day -= 1) {
+    const ts = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate() - day,
+      eventHour,
+      0,
+      0
+    ));
+    const jitter = ((day % 3) - 1) * 0.04;
+    const kw = Math.max(1, base * (1 + jitter));
+    history.push({ timestamp: ts.toISOString(), kw: Number(kw.toFixed(2)) });
+  }
+  return { history, event_hour: eventHour };
+}
+
+async function requestBaselineComparison() {
+  const proofCount = Object.keys(state.proofs).length;
+  if (!proofCount) return;
+  const key = `${state.event?.event_id || 'none'}:${proofCount}`;
+  if (baselineState.lastKey === key && state.baselineComparison) {
+    renderBaselineComparison();
+    renderVisualInsights();
+    return;
+  }
+  baselineState.lastKey = key;
+
+  const payload = buildBaselineHistoryPayload();
+  if (!payload.history.length) {
+    state.baselineComparison = buildBaselineComparisonFallback();
+    state.baselineResult = state.baselineComparison.recommended || null;
+    renderBaselineComparison();
+    renderVisualInsights();
+    return;
+  }
+
+  try {
+    const c = cfg();
+    const data = await callApi(
+      '/v1/baseline/compare',
+      'POST',
+      payload,
+      c.operatorKey,
+      'ui-agent',
+      { trackStepTiming: false }
+    );
+    state.baselineComparison = { ...data, source: 'api' };
+    state.baselineResult = data.recommended || null;
+  } catch (_) {
+    state.baselineComparison = buildBaselineComparisonFallback();
+    state.baselineResult = state.baselineComparison.recommended || null;
+  }
+  renderBaselineComparison();
+  renderVisualInsights();
+}
+
 function refreshBaselineComparison() {
   const proofCount = Object.keys(state.proofs).length;
   const key = `${state.event?.event_id || 'none'}:${proofCount}`;
   if (baselineState.lastKey === key && state.baselineComparison) return;
   baselineState.lastKey = key;
   if (state.baselineComparison && state.baselineComparison.source === 'api') {
+    state.baselineResult = state.baselineComparison.recommended || null;
     renderBaselineComparison();
     return;
   }
   state.baselineComparison = buildBaselineComparisonFallback();
+  state.baselineResult = state.baselineComparison.recommended || null;
   renderBaselineComparison();
 }
 
@@ -3019,6 +3171,9 @@ function resetForNewEvent() {
   state.audit = null;
   state.stepErrors = {};
   state.judgeSummary = null;
+  state.baselineComparison = null;
+  state.baselineResult = null;
+  baselineState.lastKey = null;
 }
 
 function normalizeTxFromPayload(payload) {
@@ -3262,6 +3417,7 @@ async function submitProof(siteId, baseline, actual, options = {}) {
     ...tx,
   });
   appendLog(`submit proof ${siteId} ok`, data);
+  await requestBaselineComparison();
 }
 
 function defaultProofScenario(siteId) {

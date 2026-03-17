@@ -73,6 +73,9 @@ api-run:
 demo-run:
 	@$(RUN_WITH_SECRETS) bash scripts/demo_walkthrough.sh
 
+# 兼容简化命令：make demo
+demo: demo-run
+
 # 使用外置 secrets 执行 API 冒烟
 smoke-api-secrets:
 	@$(RUN_WITH_SECRETS) python3 scripts/smoke_api_flow.py

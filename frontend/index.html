@@ -99,6 +99,10 @@
           <article class="story-kpi">
             <p class="label" data-i18n="story.auditConfidence">Audit Confidence</p>
             <p id="storyAudit" class="value">Pending</p>
+            <p class="kpi-subvalue">
+              <span class="kpi-subvalue-label" data-i18n="story.challengeStatus">Challenge Status</span>
+              <span id="storyChallenge" class="status-chip status-chip--mini pending">pending</span>
+            </p>
           </article>
           <article class="story-kpi story-insight">
             <p class="label" data-i18n="story.agentThinking">Agent Thinking</p>
@@ -218,6 +222,11 @@
 
           <article id="visualPayoutCard" class="visual-card">
             <h3 data-i18n="visual.payoutTitle">Payout Breakdown</h3>
+            <div class="payout-meta">
+              <span class="payout-meta-label" data-i18n="visual.confidenceWeight">Confidence Weight</span>
+              <span id="visualConfidenceWeight" class="mono">--</span>
+              <span id="visualConfidenceMethod" class="payout-meta-method">method: --</span>
+            </div>
             <div class="payout-row">
               <span data-i18n="label.participantA">Participant A</span>
               <div class="payout-track"><div id="visPayoutSiteABar" class="payout-fill zero"></div></div>

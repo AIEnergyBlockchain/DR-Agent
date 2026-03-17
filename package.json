@@ -12,6 +12,7 @@
     "setup:python": "bash scripts/setup_python_env.sh full",
     "smoke:api": "python3 scripts/smoke_api_flow.py",
     "frontend:serve": "python3 -m http.server 4173 --directory frontend",
+    "demo:full": "bash scripts/demo_walkthrough.sh",
     "demo:walkthrough": "bash scripts/demo_walkthrough.sh",
     "demo:walkthrough:live": "DR_CHAIN_MODE=fuji-live DR_TX_CONFIRM_MODE=hybrid DR_DEMO_SITE_MODE=dual bash scripts/demo_walkthrough.sh",
     "deploy:fuji": "bash scripts/run_with_secrets.sh ./node_modules/.bin/hardhat run scripts/deploy_fuji.ts --network fuji",

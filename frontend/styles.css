@@ -421,6 +421,23 @@ h3 {
   font-weight: 700;
 }
 
+.story-kpi .kpi-subvalue {
+  margin: 4px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  letter-spacing: 0.01em;
+}
+
+.story-kpi .kpi-subvalue-label {
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-size: 0.66rem;
+  letter-spacing: 0.05em;
+}
+
 .story-kpi.story-insight .value {
   font-family: "Space Grotesk", "IBM Plex Sans", sans-serif;
   font-size: 0.92rem;
@@ -523,6 +540,24 @@ h3 {
   background: linear-gradient(90deg, rgba(59, 217, 255, 0.9), rgba(110, 227, 255, 0.92));
 }
 
+.payout-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.payout-meta .mono {
+  color: var(--text-strong);
+}
+
+.payout-meta-method {
+  opacity: 0.7;
+}
+
 .payout-row {
   display: grid;
   grid-template-columns: 94px 1fr auto;
@@ -584,6 +619,12 @@ h3 {
   letter-spacing: 0.04em;
   font-size: 0.74rem;
   font-weight: 700;
+}
+
+.status-chip--mini {
+  padding: 2px 7px;
+  font-size: 0.62rem;
+  letter-spacing: 0.03em;
 }
 
 .status-chip.pending {
@@ -1386,18 +1427,34 @@ body[data-view="story"] .judge-view .section-head {
 }
 
 body[data-view="story"] .panel {
-  padding: 8px 10px;
-  margin-bottom: 6px;
-  border-radius: 12px;
+  padding: 5px 7px;
+  margin-bottom: 4px;
+  border-radius: 10px;
+}
+
+body[data-view="story"] .hero {
+  margin-bottom: 8px;
+}
+
+body[data-view="story"] .hero::after {
+  width: min(280px, 66%);
+}
+
+body[data-view="story"] .hero h1 {
+  font-size: clamp(1.3rem, 2.2vw, 1.9rem);
+}
+
+body[data-view="story"] .hero .eyebrow {
+  font-size: 0.64rem;
 }
 
 body[data-view="story"] .btn {
-  padding: 5px 8px;
-  font-size: 0.78rem;
+  padding: 4px 7px;
+  font-size: 0.74rem;
 }
 
 body[data-view="story"] .btn.btn-strong {
-  padding: 5px 10px;
+  padding: 4px 9px;
 }
 
 body[data-view="story"] .hero-actions {
@@ -1407,38 +1464,38 @@ body[data-view="story"] .hero-actions {
 
 body[data-view="story"] h2 {
   margin-bottom: 4px;
-  font-size: 0.92rem;
+  font-size: 0.84rem;
 }
 
 body[data-view="story"] h3 {
   margin-bottom: 4px;
-  font-size: 0.84rem;
+  font-size: 0.76rem;
 }
 
 body[data-view="story"] .mission-strip {
-  gap: 6px;
+  gap: 3px;
 }
 
 body[data-view="story"] .mission-item {
-  padding: 7px 8px;
+  padding: 5px 6px;
 }
 
 body[data-view="story"] .mission-item .label {
-  font-size: 0.68rem;
-  margin-bottom: 3px;
+  font-size: 0.58rem;
+  margin-bottom: 1px;
 }
 
 body[data-view="story"] .mission-item .value {
-  font-size: 0.9rem;
+  font-size: 0.76rem;
 }
 
 body[data-view="story"] .mode-toggle {
-  gap: 6px;
+  gap: 4px;
 }
 
 body[data-view="story"] .mode-btn {
-  padding: 6px 10px;
-  font-size: 0.78rem;
+  padding: 5px 8px;
+  font-size: 0.72rem;
 }
 
 body[data-view="story"] #storyLatencyLine {
@@ -1454,34 +1511,39 @@ body[data-view="story"] .action-hero-main {
 }
 
 body[data-view="story"] .action-hero-main h2 {
-  font-size: 1.02rem;
+  font-size: 0.9rem;
 }
 
 body[data-view="story"] .action-hero-main .subtitle {
-  font-size: 0.82rem;
+  font-size: 0.76rem;
   margin: 0;
 }
 
 body[data-view="story"] .story-kpi-row {
-  gap: 6px;
+  gap: 5px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 body[data-view="story"] .story-kpi {
-  padding: 7px 8px;
-  border-radius: 10px;
+  padding: 5px 6px;
+  border-radius: 9px;
 }
 
 body[data-view="story"] .story-kpi .label {
-  font-size: 0.66rem;
+  font-size: 0.6rem;
 }
 
 body[data-view="story"] .story-kpi .value {
-  font-size: 0.88rem;
+  font-size: 0.82rem;
+}
+
+body[data-view="story"] .story-kpi .kpi-subvalue {
+  margin-top: 1px;
+  font-size: 0.6rem;
 }
 
 body[data-view="story"] .story-kpi.story-insight .value {
-  font-size: 0.8rem;
+  font-size: 0.74rem;
 }
 
 body[data-view="story"] .story-agent-insight .story-agent-body {
@@ -1489,7 +1551,7 @@ body[data-view="story"] .story-agent-insight .story-agent-body {
 }
 
 body[data-view="story"] .story-agent-insight .story-agent-body p {
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   line-height: 1.35;
   margin: 0;
 }
@@ -1499,12 +1561,12 @@ body[data-view="story"] .story-agent-insight .story-agent-head {
 }
 
 body[data-view="story"] .story-agent-insight .story-agent-head h3 {
-  font-size: 0.82rem;
+  font-size: 0.78rem;
 }
 
 body[data-view="story"] .story-agent-insight .story-agent-head .hint {
   margin: 0;
-  font-size: 0.7rem;
+  font-size: 0.66rem;
 }
 
 body[data-view="story"] .insight-meta {
@@ -1652,8 +1714,8 @@ body.judge-mode .hero .subtitle {
 }
 
 body.judge-mode .hero h1 {
-  font-size: clamp(2.05rem, 3.6vw, 3rem);
-  letter-spacing: 0.01em;
+  font-size: clamp(1.55rem, 2.7vw, 2.2rem);
+  letter-spacing: 0.004em;
 }
 
 body.judge-mode .mission-strip {
@@ -1661,11 +1723,11 @@ body.judge-mode .mission-strip {
 }
 
 body.judge-mode .mission-item {
-  padding: 12px;
+  padding: 8px;
 }
 
 body.judge-mode .mission-item .value {
-  font-size: 1.12rem;
+  font-size: 0.9rem;
 }
 
 body.judge-mode .action-hero {
@@ -1690,12 +1752,12 @@ body.judge-mode .btn-main-cta {
 }
 
 body.judge-mode .story-kpi .value {
-  font-size: 1.18rem;
+  font-size: 0.95rem;
 }
 
 body.judge-mode .story-kpi-row {
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  gap: 6px;
 }
 
 body.judge-mode .story-tx-link {
@@ -1724,25 +1786,30 @@ body[data-view="story"] .visual-site-row {
 
 body[data-view="story"] .visual-site-head {
   margin-bottom: 3px;
-  font-size: 0.74rem;
+  font-size: 0.7rem;
 }
 
 body[data-view="story"] .visual-metric {
   grid-template-columns: 50px 1fr auto;
   gap: 4px;
   margin-bottom: 3px;
-  font-size: 0.7rem;
+  font-size: 0.66rem;
 }
 
 body[data-view="story"] .visual-track {
   height: 6px;
 }
 
+body[data-view="story"] .payout-meta {
+  margin-bottom: 4px;
+  font-size: 0.66rem;
+}
+
 body[data-view="story"] .payout-row {
   grid-template-columns: 64px 1fr auto;
   gap: 4px;
   margin-bottom: 6px;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
 }
 
 body[data-view="story"] .payout-track {
