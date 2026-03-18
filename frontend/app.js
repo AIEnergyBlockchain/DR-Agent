@@ -1134,6 +1134,7 @@ function activateTab(key) {
     tab.setAttribute('tabindex', selected ? '0' : '-1');
   });
   Object.entries(panels).forEach(([name, panel]) => {
+    if (!panel) return;
     const hidden = name !== key;
     panel.classList.toggle('hidden', hidden);
     panel.setAttribute('aria-hidden', String(hidden));
@@ -3228,7 +3229,15 @@ let ccIcmChart = null;
 let m2mDrtChart = null;
 let m2mKwhChart = null;
 
+function destroyDemoCharts() {
+  if (ccBridgeChart) { ccBridgeChart.destroy(); ccBridgeChart = null; }
+  if (ccIcmChart) { ccIcmChart.destroy(); ccIcmChart = null; }
+  if (m2mDrtChart) { m2mDrtChart.destroy(); m2mDrtChart = null; }
+  if (m2mKwhChart) { m2mKwhChart.destroy(); m2mKwhChart = null; }
+}
+
 function setDemoMode(mode) {
+  if (activeDemoMode && activeDemoMode !== mode) destroyDemoCharts();
   activeDemoMode = mode;
   const ccPanel = document.getElementById('inlineCrosschainDemo');
   const m2mPanel = document.getElementById('inlineM2mDemo');
@@ -3295,6 +3304,9 @@ function ensureCcCharts() {
 }
 
 async function runInlineCcDemo() {
+  const btnInlineCcDemo = document.getElementById('btnInlineCcDemo');
+  if (btnInlineCcDemo) btnInlineCcDemo.disabled = true;
+  try {
   const log = document.getElementById('inlineCcLog');
   const homeNode = document.getElementById('ccNodeHome');
   const subnetNode = document.getElementById('ccNodeSubnet');
@@ -3367,6 +3379,9 @@ async function runInlineCcDemo() {
     if (subnetNode) subnetNode.classList.remove('cc-node-active');
   }
   appendM2MLog(log, t('crosschain.demoComplete'));
+  } finally {
+    if (btnInlineCcDemo) btnInlineCcDemo.disabled = false;
+  }
 }
 
 /* ── M2M inline demo with DRT/kWh charts ────────────────── */
@@ -3414,6 +3429,9 @@ function ensureM2mCharts() {
 }
 
 async function runInlineM2mDemo() {
+  const btnInlineM2mDemo = document.getElementById('btnInlineM2mDemo');
+  if (btnInlineM2mDemo) btnInlineM2mDemo.disabled = true;
+  try {
   const log = document.getElementById('inlineM2mLog');
   const statusA = document.getElementById('inlineM2mStatusA');
   const statusB = document.getElementById('inlineM2mStatusB');
@@ -3477,6 +3495,9 @@ async function runInlineM2mDemo() {
 
   if (statusHub) { statusHub.textContent = 'done'; statusHub.className = 'm2m-device-status done'; }
   appendM2MLog(log, t('m2m.complete', { count }));
+  } finally {
+    if (btnInlineM2mDemo) btnInlineM2mDemo.disabled = false;
+  }
 }
 
 /* ── Cross-chain demo (mock data) ────────────────────────── */
@@ -3767,19 +3788,19 @@ async function refreshCrosschainData() {
       state.bridgeStats = data.bridge || state.bridgeStats;
       state.icmStats = data.icm || state.icmStats;
     }
-  } catch (_) { /* silent */ }
+  } catch (err) { appendLog('crosschain', `Dashboard fetch failed: ${err.message}`); }
   try {
     const resp = await fetch(`${cfg().baseUrl}/v1/bridge/transfers/pending`, {
       headers: { 'x-api-key': operatorKey, 'x-actor-id': 'ui-user', 'Content-Type': 'application/json' },
     });
     if (resp.ok) state.bridgeTransfers = await resp.json();
-  } catch (_) { /* silent */ }
+  } catch (err) { appendLog('crosschain', `Bridge transfers fetch failed: ${err.message}`); }
   try {
     const resp = await fetch(`${cfg().baseUrl}/v1/icm/messages/pending`, {
       headers: { 'x-api-key': operatorKey, 'x-actor-id': 'ui-user', 'Content-Type': 'application/json' },
     });
     if (resp.ok) state.icmMessages = await resp.json();
-  } catch (_) { /* silent */ }
+  } catch (err) { appendLog('crosschain', `ICM messages fetch failed: ${err.message}`); }
   renderCrosschainTab();
 }
 
@@ -4681,36 +4702,40 @@ if (el.btnRefreshCrosschain) {
   const btnM2m = document.getElementById('btnM2mDemo');
   if (btnM2m) btnM2m.addEventListener('click', animateM2MSettlement);
 
-  // P2-8: KPI card flip on click (engineering mode)
+  // P2-8: KPI card flip on click + keyboard (engineering mode)
   document.querySelectorAll('.kpi-flip-container').forEach((card) => {
     card.addEventListener('click', () => card.classList.toggle('is-flipped'));
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.classList.toggle('is-flipped'); }
+    });
   });
 
-  // Story mode KPI card click — expand detail + highlight
-  document.querySelectorAll('.story-kpi[data-kpi]').forEach((card) => {
-    card.addEventListener('click', () => {
-      const wasExpanded = card.classList.contains('kpi-expanded');
-      // Close all others first
-      document.querySelectorAll('.story-kpi.kpi-expanded').forEach((c) => {
-        c.classList.remove('kpi-expanded', 'kpi-highlight');
-      });
-      if (!wasExpanded) {
-        card.classList.add('kpi-expanded', 'kpi-highlight');
-        // Update detail text based on current state
-        const kpiType = card.dataset.kpi;
-        const detailEl = card.querySelector('.kpi-detail-row');
-        if (detailEl && kpiType === 'energy') {
-          const reduction = getTotalReductionKwh();
-          detailEl.textContent = reduction > 0 ? `Total reduction: ${reduction} kWh` : 'No proof data yet';
-        } else if (detailEl && kpiType === 'payout') {
-          const ui = deriveUiState();
-          detailEl.textContent = ui.totalPayout > 0 ? `Settled: ${ui.totalPayout} DRT` : 'Awaiting settlement';
-        } else if (detailEl && kpiType === 'audit') {
-          detailEl.textContent = state.audit ? 'Hash verification complete' : 'Audit not yet requested';
-        }
-        // Auto-close after 3 seconds
-        setTimeout(() => card.classList.remove('kpi-expanded', 'kpi-highlight'), 3000);
+  // Story mode KPI card click + keyboard — expand detail + highlight
+  function handleStoryKpiActivate(card) {
+    const wasExpanded = card.classList.contains('kpi-expanded');
+    document.querySelectorAll('.story-kpi.kpi-expanded').forEach((c) => {
+      c.classList.remove('kpi-expanded', 'kpi-highlight');
+    });
+    if (!wasExpanded) {
+      card.classList.add('kpi-expanded', 'kpi-highlight');
+      const kpiType = card.dataset.kpi;
+      const detailEl = card.querySelector('.kpi-detail-row');
+      if (detailEl && kpiType === 'energy') {
+        const reduction = getTotalReductionKwh();
+        detailEl.textContent = reduction > 0 ? `Total reduction: ${reduction} kWh` : 'No proof data yet';
+      } else if (detailEl && kpiType === 'payout') {
+        const ui = deriveUiState();
+        detailEl.textContent = ui.totalPayout > 0 ? `Settled: ${ui.totalPayout} DRT` : 'Awaiting settlement';
+      } else if (detailEl && kpiType === 'audit') {
+        detailEl.textContent = state.audit ? 'Hash verification complete' : 'Audit not yet requested';
       }
+      setTimeout(() => card.classList.remove('kpi-expanded', 'kpi-highlight'), 3000);
+    }
+  }
+  document.querySelectorAll('.story-kpi[data-kpi]').forEach((card) => {
+    card.addEventListener('click', () => handleStoryKpiActivate(card));
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleStoryKpiActivate(card); }
     });
   });
 

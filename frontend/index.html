@@ -95,17 +95,17 @@
           </div>
         </div>
         <div class="story-kpi-row" role="region" aria-label="Key metrics" aria-live="polite">
-          <article class="story-kpi" data-kpi="energy">
+          <article class="story-kpi" data-kpi="energy" tabindex="0">
             <p class="label" data-i18n="story.energyReduction">Energy Reduction</p>
             <p id="storyEnergy" class="value">-- kWh</p>
             <p class="kpi-detail-row" id="storyEnergyDetail">baseline vs actual</p>
           </article>
-          <article class="story-kpi" data-kpi="payout">
+          <article class="story-kpi" data-kpi="payout" tabindex="0">
             <p class="label" data-i18n="story.totalPayout">Total Payout</p>
             <p id="storyPayout" class="value">0 DRT</p>
             <p class="kpi-detail-row" id="storyPayoutDetail">reduction x rate x confidence</p>
           </article>
-          <article class="story-kpi" data-kpi="audit">
+          <article class="story-kpi" data-kpi="audit" tabindex="0">
             <p class="label" data-i18n="story.auditConfidence">Audit Confidence</p>
             <p id="storyAudit" class="value">Pending</p>
             <p class="kpi-subvalue">
@@ -114,7 +114,7 @@
             </p>
             <p class="kpi-detail-row" id="storyAuditDetail">hash match verification</p>
           </article>
-          <article class="story-kpi story-insight" data-kpi="insight">
+          <article class="story-kpi story-insight" data-kpi="insight" tabindex="0">
             <p class="label" data-i18n="story.agentThinking">Agent Thinking</p>
             <p id="storyInsight" class="value">Waiting for mission data.</p>
           </article>
@@ -536,7 +536,7 @@
         </div>
 
         <div class="kpi-grid">
-          <article id="kpiCardStatus" class="kpi-card kpi-secondary kpi-flip-container" data-state="pending">
+          <article id="kpiCardStatus" class="kpi-card kpi-secondary kpi-flip-container" tabindex="0" role="button" data-state="pending">
             <div class="kpi-card-front">
               <p class="kpi-label" data-i18n="kpi.status">Status</p>
               <p id="kpiStatus" class="kpi-value">pending</p>
@@ -544,7 +544,7 @@
             </div>
             <div class="kpi-card-back" data-i18n="kpi.statusDetail">Event lifecycle state: pending → active → closed → settled</div>
           </article>
-          <article id="kpiCardCoverage" class="kpi-card kpi-flip-container" data-state="pending">
+          <article id="kpiCardCoverage" class="kpi-card kpi-flip-container" tabindex="0" role="button" data-state="pending">
             <div class="kpi-card-front">
               <p class="kpi-label" data-i18n="kpi.coverage">Proof Coverage</p>
               <p id="kpiCoverage" class="kpi-value">0 / 2 sites</p>
@@ -552,7 +552,7 @@
             </div>
             <div class="kpi-card-back" data-i18n="kpi.coverageDetail">Ratio of submitted proofs to required participant sites.</div>
           </article>
-          <article id="kpiCardPayout" class="kpi-card kpi-flip-container" data-state="pending">
+          <article id="kpiCardPayout" class="kpi-card kpi-flip-container" tabindex="0" role="button" data-state="pending">
             <div class="kpi-card-front">
               <p class="kpi-label" data-i18n="kpi.totalPayout">Total Payout</p>
               <p id="kpiPayout" class="kpi-value">0 DRT</p>
@@ -560,7 +560,7 @@
             </div>
             <div class="kpi-card-back" data-i18n="kpi.payoutDetail">DRT reward = reduction_kwh × rate × confidence / 10000</div>
           </article>
-          <article id="kpiCardClaim" class="kpi-card kpi-secondary kpi-flip-container" data-state="pending">
+          <article id="kpiCardClaim" class="kpi-card kpi-secondary kpi-flip-container" tabindex="0" role="button" data-state="pending">
             <div class="kpi-card-front">
               <p class="kpi-label" data-i18n="kpi.claimA">Claim (site-a)</p>
               <p id="kpiClaim" class="kpi-value">pending</p>
@@ -568,7 +568,7 @@
             </div>
             <div class="kpi-card-back" data-i18n="kpi.claimDetail">Participant withdraws earned DRT from Settlement contract.</div>
           </article>
-          <article id="kpiCardAudit" class="kpi-card kpi-flip-container" data-state="pending">
+          <article id="kpiCardAudit" class="kpi-card kpi-flip-container" tabindex="0" role="button" data-state="pending">
             <div class="kpi-card-front">
               <p class="kpi-label" data-i18n="kpi.auditMatch">Audit Match</p>
               <p id="kpiAudit" class="kpi-value">pending</p>
@@ -576,7 +576,7 @@
             </div>
             <div class="kpi-card-back" data-i18n="kpi.auditDetail">Off-chain proof hash vs on-chain anchored hash comparison.</div>
           </article>
-          <article id="kpiCardLatency" class="kpi-card kpi-secondary kpi-flip-container" data-state="pending">
+          <article id="kpiCardLatency" class="kpi-card kpi-secondary kpi-flip-container" tabindex="0" role="button" data-state="pending">
             <div class="kpi-card-front">
               <p class="kpi-label" data-i18n="kpi.latency">Latency</p>
               <p id="kpiLatency" class="kpi-value">-- ms</p>
