@@ -1624,7 +1624,7 @@ body[data-view="story"] .panel {
 }
 
 body[data-view="story"] .hero {
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 body[data-view="story"] .hero::after {
@@ -1694,15 +1694,17 @@ body[data-view="story"] #storyLatencyLine {
 }
 
 body[data-view="story"] .action-hero {
-  gap: 6px;
+  gap: 4px;
+  padding: 4px 8px;
 }
 
 body[data-view="story"] .action-hero-main {
-  gap: 3px;
+  gap: 2px;
 }
 
 body[data-view="story"] .action-hero-main h2 {
-  font-size: 0.84rem;
+  font-size: 0.78rem;
+  margin: 1px 0;
 }
 
 body[data-view="story"] .action-hero-main .subtitle {
