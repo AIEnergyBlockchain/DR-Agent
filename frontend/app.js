@@ -22,6 +22,7 @@ const MAX_LOG_ENTRIES = 320;
 const MAX_STEP_TIMING_ENTRIES = 24;
 const PENDING_TX_WAIT_TIMEOUT_MS = 120000;
 const PENDING_TX_POLL_MS = 1200;
+const STEP_ANIMATION_DELAY = 900;
 const HERO_TITLE_MAX_CHARS = 55;
 const HERO_SUBTITLE_MAX_CHARS = 90;
 
@@ -4287,6 +4288,10 @@ async function runFullFlow() {
   appendLog('run', t('log.runStart', { eventId: cfg().eventId }));
   const maxLoops = 18;
   for (let loop = 0; loop < maxLoops; loop += 1) {
+    // Allow UI animations (typewriter, chart transitions, agent insight)
+    // to render between steps — critical in fast simulation mode
+    if (loop > 0) await sleep(STEP_ANIMATION_DELAY);
+
     const ui = deriveUiState();
     if (ui.currentStep === 'completed') {
       appendLog('run', t('log.runDone'));

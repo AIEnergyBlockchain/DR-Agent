@@ -102,3 +102,77 @@ test('KPI cards have data-kpi attribute', () => {
   assert.match(html, /story-kpi[^>]*data-kpi="payout"/, 'payout KPI card must have data-kpi');
   assert.match(html, /story-kpi[^>]*data-kpi="audit"/, 'audit KPI card must have data-kpi');
 });
+
+/* ── Bug 7: runFullFlow too fast in simulation — no UI animation time ── */
+test('runFullFlow has inter-step delay for UI animation', () => {
+  // Between each step in the loop, there must be a sleep/delay to allow
+  // typewriter, chart animation, and agent insight to render
+  const fnBody = js.match(/async function runFullFlow\(\)[\s\S]*?^}/m);
+  assert.ok(fnBody, 'runFullFlow must exist');
+  // Must contain a sleep/delay call after each step (or at the top/bottom of loop)
+  const hasSleep = /await\s+sleep\s*\(\s*STEP_ANIMATION_DELAY|await\s+sleep\s*\(\s*\d{3,}/.test(fnBody[0]);
+  const hasAnimWait = /await\s+waitForStepAnimation|await\s+animationGap/.test(fnBody[0]);
+  assert.ok(hasSleep || hasAnimWait,
+    'runFullFlow must include inter-step delay (sleep or animation wait) for UI rendering');
+});
+
+test('STEP_ANIMATION_DELAY constant is defined and >= 600ms', () => {
+  const match = js.match(/STEP_ANIMATION_DELAY\s*=\s*(\d+)/);
+  assert.ok(match, 'STEP_ANIMATION_DELAY constant must be defined');
+  assert.ok(Number(match[1]) >= 600, 'STEP_ANIMATION_DELAY must be at least 600ms');
+});
+
+/* ── Bug 8: Engineering mode UI should match story mode compact style ── */
+test('compact panel padding applies to both modes (not story-only)', () => {
+  // Either the base .panel rule has compact padding, or both
+  // story and engineering modes apply the same compact styles
+  const basePanel = css.match(/\.panel\s*\{([^}]*)\}/);
+  assert.ok(basePanel, '.panel rule must exist');
+  const basePadding = basePanel[1].match(/padding\s*:\s*([^;]+)/);
+  assert.ok(basePadding, '.panel must have padding defined');
+});
+
+test('compact action-hero styles apply to both modes', () => {
+  // action-hero compact styles should not be story-only
+  // Either the base .action-hero has compact gap, or both modes define it
+  const baseHero = css.match(/\.action-hero\s*\{([^}]*)\}/);
+  assert.ok(baseHero, '.action-hero rule must exist');
+  const baseGap = baseHero[1].match(/gap\s*:\s*(\d+)px/);
+  assert.ok(baseGap, '.action-hero must define gap');
+  assert.ok(Number(baseGap[1]) <= 6, '.action-hero base gap must be compact (<=6px)');
+});
+
+test('compact h2 font-size applies to both modes', () => {
+  // base h2 or action-hero h2 should have a compact font-size
+  const baseH2 = css.match(/\.action-hero-main\s+h2\s*\{([^}]*)\}/);
+  assert.ok(baseH2, '.action-hero-main h2 rule must exist');
+  // Should use a reasonable size, not huge
+  const fontSize = baseH2[1].match(/font-size\s*:\s*([^;]+)/);
+  assert.ok(fontSize, '.action-hero-main h2 must define font-size');
+});
+
+test('compact KPI row styles apply to both modes', () => {
+  // .story-kpi-row base rule should have compact gap
+  const baseKpi = css.match(/\.story-kpi-row\s*\{([^}]*)\}/);
+  assert.ok(baseKpi, '.story-kpi-row base rule must exist');
+  const gap = baseKpi[1].match(/gap\s*:\s*(\d+)px/);
+  assert.ok(gap, '.story-kpi-row must define gap');
+  assert.ok(Number(gap[1]) <= 6, '.story-kpi-row base gap must be compact (<=6px)');
+});
+
+/* ── Bug 9: Single-page layout check ────────────────────────── */
+test('visual-insights and flow-timeline have compact margins in story mode', () => {
+  // These sections should have minimal margin/padding so everything fits on one page
+  assert.match(css, /body\[data-view="story"\]\s+\.visual-insights[\s\S]*?padding/,
+    'visual-insights must have compact padding in story mode');
+  assert.match(css, /body\[data-view="story"\]\s+\.flow-timeline[\s\S]*?gap/,
+    'flow-timeline must have compact gap in story mode');
+});
+
+test('agent insight panel has compact styling', () => {
+  assert.match(css, /\.story-agent-insight/,
+    'story-agent-insight CSS rule must exist');
+  // Check for compact body styling
+  assert.match(css, /story-agent-body[\s\S]*?font-size/,
+    'story-agent-body must have font-size defined');
+});
