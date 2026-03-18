@@ -154,6 +154,7 @@ const el = {
   errorHeadline: document.getElementById('errorHeadline'),
   errorHint: document.getElementById('errorHint'),
   errorNext: document.getElementById('errorNext'),
+  btnErrorRetry: document.getElementById('btnErrorRetry'),
   evidenceToggle: document.getElementById('evidenceToggle'),
   technicalEvidence: document.getElementById('technicalEvidence'),
   missionBridgeStatus: document.getElementById('missionBridgeStatus'),
@@ -358,6 +359,7 @@ const I18N = {
     'error.pendingChain.timeoutHint': 'Waited {seconds}s but pending tx is still not confirmed.',
     'error.actionFailed.headline': 'Action failed.',
     'error.actionFailed.next': 'Next: follow the highlighted step and retry.',
+    'error.retry': 'Retry',
     'error.failedStepPrefix': 'Failed step',
     'error.retrySuggestion': 'Retry suggestion',
     'hint.actionInProgress': 'Action in progress.',
@@ -732,6 +734,7 @@ const I18N = {
     'error.pendingChain.timeoutHint': '已等待 {seconds} 秒，但待确认交易仍未上链。',
     'error.actionFailed.headline': '操作失败。',
     'error.actionFailed.next': '下一步：按高亮步骤修复后重试。',
+    'error.retry': '重试',
     'error.failedStepPrefix': '失败步骤',
     'error.retrySuggestion': '重试建议',
     'hint.actionInProgress': '操作进行中。',
@@ -1040,7 +1043,7 @@ function refreshToggleText() {
 
 function applyLanguage(lang, shouldRender = true) {
   state.lang = lang === 'zh' ? 'zh' : 'en';
-  localStorage.setItem('dr_lang', state.lang);
+  persistState('lang', state.lang);
   document.documentElement.lang = state.lang === 'zh' ? 'zh-CN' : 'en';
   document.body.dataset.lang = state.lang;
   if (el.btnLangEn) {
@@ -1096,33 +1099,77 @@ const state = {
   dashboardSummary: null,
   baselineComparison: null,
   baselineResult: null,
+  lastFailedAction: null,
 };
+
+const dirty = {
+  mission: true,
+  hero: true,
+  kpi: true,
+  evidence: true,
+  visual: true,
+  crosschain: true,
+  timeline: true,
+  i18n: true,
+  all: true,
+};
+
+function markDirty(...regions) {
+  if (regions.length === 0 || regions.includes('all')) {
+    Object.keys(dirty).forEach(k => { dirty[k] = true; });
+    return;
+  }
+  regions.forEach(r => { if (r in dirty) dirty[r] = true; });
+}
+
+function clearDirty() {
+  Object.keys(dirty).forEach(k => { dirty[k] = false; });
+}
+
+const PERSIST_KEYS = {
+  builderOpen: { key: 'dr_builder_open', type: 'bool' },
+  cameraMode: { key: 'dr_camera_mode', type: 'bool' },
+  theme: { key: 'dr_theme', type: 'string', fallback: 'cobalt' },
+  viewMode: { key: 'dr_view_mode', type: 'string', fallback: 'story' },
+  lang: { key: 'dr_lang', type: 'string', fallback: 'en' },
+};
+
+function persistState(prop, value) {
+  const entry = PERSIST_KEYS[prop];
+  if (!entry) return;
+  if (entry.type === 'bool') {
+    localStorage.setItem(entry.key, value ? '1' : '0');
+  } else {
+    localStorage.setItem(entry.key, String(value));
+  }
+}
+
+function loadPersistedState() {
+  Object.entries(PERSIST_KEYS).forEach(([prop, entry]) => {
+    const raw = localStorage.getItem(entry.key);
+    if (raw === null) return;
+    if (entry.type === 'bool') {
+      state[prop] = raw === '1';
+    } else {
+      state[prop] = raw || entry.fallback;
+    }
+  });
+}
 
 if (!el.eventIdInput.value) {
   el.eventIdInput.value = `event-ui-${Date.now()}`;
 }
 
-state.builderOpen = localStorage.getItem('dr_builder_open') === '1';
+loadPersistedState();
 if (el.builderPanel) {
   el.builderPanel.open = state.builderOpen;
 }
-
-state.cameraMode = localStorage.getItem('dr_camera_mode') === '1';
 if (state.cameraMode) {
   document.body.classList.add('camera-mode');
 }
-
-const persistedTheme = localStorage.getItem('dr_theme');
-state.theme = persistedTheme === 'neon' ? 'neon' : 'cobalt';
 document.body.dataset.theme = state.theme;
-
-const persistedViewMode = localStorage.getItem('dr_view_mode');
-state.viewMode = persistedViewMode === 'engineering' ? 'engineering' : 'story';
 document.body.dataset.view = state.viewMode;
 document.body.classList.toggle('judge-mode', state.viewMode === 'story');
-
-const persistedLang = localStorage.getItem('dr_lang');
-state.lang = persistedLang === 'zh' ? 'zh' : 'en';
 state.errorView = makeDefaultErrorView();
 applyLanguage(state.lang, false);
 
@@ -1392,7 +1439,7 @@ function applyViewMode(mode) {
   state.viewMode = next;
   document.body.dataset.view = next;
   document.body.classList.toggle('judge-mode', next === 'story');
-  localStorage.setItem('dr_view_mode', next);
+  persistState('viewMode', next);
 
   const mapping = [
     { node: el.btnViewStory, mode: 'story' },
@@ -1555,7 +1602,7 @@ function setTextWithPulse(node, nextText) {
 function applyTheme(theme) {
   state.theme = theme === 'neon' ? 'neon' : 'cobalt';
   document.body.dataset.theme = state.theme;
-  localStorage.setItem('dr_theme', state.theme);
+  persistState('theme', state.theme);
   refreshToggleText();
 }
 
@@ -2565,6 +2612,9 @@ function renderErrorCard(ui) {
   el.errorHeadline.textContent = diagnostics.headline;
   el.errorHint.textContent = diagnostics.hint;
   el.errorNext.textContent = diagnostics.next;
+  if (el.btnErrorRetry) {
+    el.btnErrorRetry.style.display = state.lastError && state.lastFailedAction ? '' : 'none';
+  }
 }
 
 function renderStoryHero(ui) {
@@ -3125,7 +3175,7 @@ function applyCameraMode(ui) {
 function toggleCameraMode() {
   state.cameraMode = !state.cameraMode;
   document.body.classList.toggle('camera-mode', state.cameraMode);
-  localStorage.setItem('dr_camera_mode', state.cameraMode ? '1' : '0');
+  persistState('cameraMode', state.cameraMode);
   refreshToggleText();
   if (el.btnCameraMode) el.btnCameraMode.setAttribute('aria-pressed', String(state.cameraMode));
   renderAll();
@@ -3817,22 +3867,21 @@ function scheduleRender() {
 function renderAll() {
   const prevStep = renderAll._lastStep || null;
   const ui = deriveUiState();
-  renderStaticI18n();
+  const full = dirty.all;
+  if (full || dirty.i18n) renderStaticI18n();
   renderViewMode();
-  renderMissionStrip(ui);
-  renderStoryHero(ui);
-  renderStoryEvidenceRow();
-  refreshBaselineComparison();
-  renderVisualInsights();
-  renderFlowTimeline(ui);
-  renderKpiGrid(ui);
-  renderEvidenceDeck(ui);
-  renderErrorCard(ui);
+  if (full || dirty.mission) renderMissionStrip(ui);
+  if (full || dirty.hero) { renderStoryHero(ui); renderStoryEvidenceRow(); }
+  if (full || dirty.visual) { refreshBaselineComparison(); renderVisualInsights(); }
+  if (full || dirty.timeline) renderFlowTimeline(ui);
+  if (full || dirty.kpi) renderKpiGrid(ui);
+  if (full || dirty.evidence) { renderEvidenceDeck(ui); renderErrorCard(ui); }
   renderSnapshotFeedback();
   applyActionGuards(ui);
   applyCameraMode(ui);
   renderTechnicalEvidence();
-  renderCrosschainTab();
+  if (full || dirty.crosschain) renderCrosschainTab();
+  clearDirty();
 
   // Keep demo mode state consistent after renderAll re-renders
   if (activeDemoMode) {
@@ -4576,6 +4625,7 @@ function bindAction(id, fn, fallbackStep = '') {
   node.addEventListener('click', async () => {
     if (state.busy) return;
     state.busy = true;
+    markDirty('all');
     renderAll();
     try {
       await fn();
@@ -4583,6 +4633,8 @@ function bindAction(id, fn, fallbackStep = '') {
       handleActionError(err, fallbackStep);
     } finally {
       state.busy = false;
+      state.lastFailedAction = fallbackStep || null;
+      markDirty('all');
       renderAll();
     }
   });
@@ -4593,6 +4645,23 @@ if (el.evidenceToggle) {
     state.evidenceOpen = !state.evidenceOpen;
     renderTechnicalEvidence();
   });
+}
+
+if (el.btnErrorRetry) {
+  el.btnErrorRetry.addEventListener('click', () => {
+    const step = state.lastFailedAction;
+    if (!step) return;
+    clearErrorState();
+    state.lastFailedAction = null;
+    markDirty('all');
+    renderAll();
+    retryLastAction(step);
+  });
+}
+
+function retryLastAction(step) {
+  const btn = document.getElementById('btnNextStep');
+  if (btn && !btn.disabled) btn.click();
 }
 
 if (el.btnViewStory) {
@@ -4655,7 +4724,7 @@ if (el.btnCameraMode) {
 if (el.builderPanel) {
   el.builderPanel.addEventListener('toggle', () => {
     state.builderOpen = el.builderPanel.open;
-    localStorage.setItem('dr_builder_open', state.builderOpen ? '1' : '0');
+    persistState('builderOpen', state.builderOpen);
   });
 }
 

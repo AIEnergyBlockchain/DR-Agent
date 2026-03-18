@@ -1351,6 +1351,20 @@ input:focus {
   font-weight: 700;
 }
 
+.retry-btn {
+  margin-top: 8px;
+  background: var(--btn-surface);
+  border: 1px solid var(--accent-amber);
+  color: var(--accent-amber);
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 4px 14px;
+  border-radius: 4px;
+}
+.retry-btn:hover {
+  background: rgba(255, 200, 106, 0.12);
+}
+
 .mono {
   font-family: "IBM Plex Mono", "Consolas", monospace;
 }
